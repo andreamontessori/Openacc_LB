@@ -35,8 +35,8 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=4096
-    ny=4096
+    nx=256
+    ny=256
     nsteps=100
     stamp=1000
     fx=0.0_db*10.0**(-5)
@@ -92,7 +92,6 @@ program lb_openacc
     write(6,*) 'max fx',huge(fx)
     write(6,*) 'numero di gpu disponibili',ngpus
     write(6,*) '*******************************************'
-    pause
 
 
     !$acc data copy(rho,u,v,ex,ey,dex,dey,p,opp, &
