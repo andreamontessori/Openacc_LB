@@ -18,7 +18,7 @@ program lb_openacc
     integer(kind=4), allocatable,  dimension(:)     :: ex,ey,ez,opp
     integer(kind=4), allocatable,  dimension(:,:,:)   :: isfluid
     
-    real(kind=db), allocatable, dimension(:)     :: p,dex,dey,dez,fdum
+    real(kind=db), allocatable, dimension(:)     :: p,dex,dey,dez
     real(kind=db) :: rho,u,v,w
     real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
     real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
@@ -45,7 +45,7 @@ program lb_openacc
     fy=0.0_db*10.0**(-5)
     fz=0.0_db*10.0**(-5)
     allocate(p(0:nlinks),ex(0:nlinks),ey(0:nlinks),dex(0:nlinks),ez(0:nlinks))
-    allocate(dey(0:nlinks),dez(0:nlinks),opp(0:nlinks),fdum(0:nlinks))
+    allocate(dey(0:nlinks),dez(0:nlinks),opp(0:nlinks))
     allocate(f0(1:nx,1:ny,1:nz),f1(1:nx,1:ny,1:nz),f2(1:nx,1:ny,1:nz),f3(1:nx,1:ny,1:nz))
     allocate(f4(1:nx,1:ny,1:nz),f5(1:nx,1:ny,1:nz),f6(1:nx,1:ny,1:nz),f7(1:nx,1:ny,1:nz))
     allocate(f8(1:nx,1:ny,1:nz),f9(1:nx,1:ny,1:nz),f10(1:nx,1:ny,1:nz),f11(1:nx,1:ny,1:nz))
@@ -129,45 +129,7 @@ program lb_openacc
     !*************************************time loop************************  
     call cpu_time(ts1)
     do step=1,nsteps 
-        !**************************************** moments******************************
-    !    !$acc kernels
-    !     do k=2,nz-1
-    !         do j=2,ny-1
-    !             do i=2,nx-1         
-    !                 rho(i,j,k) = f0(i,j,k) &
-    !                         +f1(i,j,k) &
-    !                         +f2(i,j,k) &
-    !                         +f3(i,j,k) &
-    !                         +f4(i,j,k) &
-    !                         +f5(i,j,k) &
-    !                         +f6(i,j,k) &
-    !                         +f7(i,j,k) &
-    !                         +f8(i,j,k) &
-    !                         +f9(i,j,k) &
-    !                         +f10(i,j,k) &
-    !                         +f11(i,j,k) &
-    !                         +f12(i,j,k) &
-    !                         +f13(i,j,k) &
-    !                         +f14(i,j,k) &
-    !                         +f15(i,j,k) &
-    !                         +f16(i,j,k) &
-    !                         +f17(i,j,k) &
-    !                         +f18(i,j,k)
-
-    !                 u(i,j,k) = (f1(i,j,k)+f7(i,j,k)+f9(i,j,k)+f15(i,j,k)+f8(i,j,k)) &
-    !                          -(f2(i,j,k)+f8(i,j,k)+f10(i,j,k)+f16(i,j,k)+f17(i,j,k)) 
-                        
-    !                 v(i,j,k) = (f3(i,j,k)+f7(i,j,k)+f10(i,j,k)+f11(i,j,k)+f13(i,j,k)) &
-    !                         -(f4(i,j,k)+f8(i,j,k)+f9(i,j,k)+f12(i,j,k)+f14(i,j,k))
-
-    !                 w(i,j,k) = (f5(i,j,k)+f11(i,j,k)+f14(i,j,k)+f15(i,j,k)+f17(i,j,k)) &
-    !                         -(f6(i,j,k)+f12(i,j,k)+f13(i,j,k)+f16(i,j,k)+f18(i,j,k))
-                    
-    !             enddo
-    !         enddo 
-    !     enddo
-    !     !$acc end kernels
-        !***********************************collision&forcing************************ 
+        !***********************************moments collision&forcing************************ 
         !!$acc update host(rho,u,v)
         !!$acc update device(rho,u,v)
         !$acc kernels !!private(uu,temp,udotc,feq,dummy) 
