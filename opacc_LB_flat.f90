@@ -17,11 +17,10 @@ program lb_openacc
     
     integer(kind=4), allocatable,  dimension(:)     :: ex,ey,opp
     integer(kind=4), allocatable,  dimension(:,:)   :: isfluid
-    integer(kind=4), allocatable,  dimension(:,:,:) :: opposite
     
     real(kind=db), allocatable, dimension(:)     :: p,dex,dey,fdum
     real(kind=db), allocatable, dimension(:,:)   :: rho,u,v
-    real(kind=db), allocatable, dimension(:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f1dummy
+    real(kind=db), allocatable, dimension(:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8
 
        
     nlinks=8 !pari!
@@ -36,8 +35,8 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=16384
-    ny=16384
+    nx=4096
+    ny=4096
     nsteps=100
     stamp=1000
     fx=0.0_db*10.0**(-5)
@@ -47,8 +46,7 @@ program lb_openacc
     allocate(f0(1:nx,1:ny),f1(1:nx,1:ny),f2(1:nx,1:ny),f3(1:nx,1:ny),f4(1:nx,1:ny))
     allocate(f5(1:nx,1:ny),f6(1:nx,1:ny),f7(1:nx,1:ny),f8(1:nx,1:ny))
     allocate(u(1:nx,1:ny), v(1:nx,1:ny), rho(1:nx,1:ny))
-    allocate(isfluid(1:nx,1:ny), opposite(1:nx,1:ny,1:nlinks)) !,omega_2d(1:nx,1:ny)) 
-    allocate(f1dummy(1:nx,1:ny))
+    allocate(isfluid(1:nx,1:ny)) !,omega_2d(1:nx,1:ny)) 
     
     ex=(/0,1,0,-1,0,1,-1,-1,1/)
     ey=(/0,0,1,0,-1,1,1,-1,-1/)
@@ -64,9 +62,6 @@ program lb_openacc
     isfluid(nx,:)=0 !WEST
     isfluid(:,1)=0 !SOUTH 
     isfluid(:,ny)=0 !NORTH
-    do ll=1,nlinks
-        opposite(1:nx,1:ny,ll)=ll*isfluid(1:nx,1:ny) + opp(ll)*(1-isfluid(1:nx,1:ny))
-    enddo
     !*************************************initial conditions ************************    
     u=0.0_db
     v=0.0_db
@@ -245,7 +240,7 @@ program lb_openacc
         !!$acc update device(f0,f1,f2,f3,f4,f5,f6,f7,f8)
         !!$acc kernels
         ! right
-        f1(2:nx,2:ny-1)=f1(1:nx,2:ny-1)
+        f1(2:nx,2:ny-1)=f1(1:nx-1,2:ny-1)
         f3(1:nx-1,2:ny-1)=f3(2:nx,2:ny-1)
         !up 
         f2(2:nx-1,2:ny)=f2(2:nx-1,1:ny-1)
@@ -255,7 +250,7 @@ program lb_openacc
         f7(1:nx-1,1:ny-1)=f7(2:nx,2:ny)
         ! up left
         f6(1:nx-1,2:ny)=f6(2:nx,1:ny-1)
-        f8(2:nx,1:ny-1)=f8(1:nx,2:ny)
+        f8(2:nx,1:ny-1)=f8(1:nx-1,2:ny)
         !$acc end kernels
         
     enddo 
