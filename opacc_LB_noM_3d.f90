@@ -19,7 +19,7 @@ program lb_openacc
     integer(kind=4), allocatable,  dimension(:,:,:)   :: isfluid
     
     real(kind=db), allocatable, dimension(:)     :: p,dex,dey,dez,fdum
-    real(kind=db), allocatable, dimension(:,:,:)   :: rho,u,v,w
+    real(kind=db) :: rho,u,v,w
     real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
     real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
 
@@ -39,7 +39,7 @@ program lb_openacc
     nx=512
     ny=512
     nz=512
-    nsteps=1
+    nsteps=100
     stamp=1000
     fx=1.0_db*10.0**(-5)
     fy=0.0_db*10.0**(-5)
@@ -51,7 +51,6 @@ program lb_openacc
     allocate(f8(1:nx,1:ny,1:nz),f9(1:nx,1:ny,1:nz),f10(1:nx,1:ny,1:nz),f11(1:nx,1:ny,1:nz))
     allocate(f12(1:nx,1:ny,1:nz),f13(1:nx,1:ny,1:nz),f14(1:nx,1:ny,1:nz),f15(1:nx,1:ny,1:nz))
     allocate(f16(1:nx,1:ny,1:nz),f17(1:nx,1:ny,1:nz),f18(1:nx,1:ny,1:nz))
-    allocate(u(1:nx,1:ny,1:nz), v(1:nx,1:ny,1:nz), w(1:nx,1:ny,1:nz), rho(1:nx,1:ny,1:nz))
     allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
     
     ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
@@ -124,18 +123,60 @@ program lb_openacc
     pause
 
 
-    !$acc data copy(rho,u,v,w,ex,ey,ez,dex,dey,dez,p, &
+    !$acc data copy(ex,ey,ez,dex,dey,dez,p, &
     !$acc & f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,isfluid)
     
     !*************************************time loop************************  
     call cpu_time(ts1)
     do step=1,nsteps 
         !**************************************** moments******************************
-       !$acc kernels
+    !    !$acc kernels
+    !     do k=2,nz-1
+    !         do j=2,ny-1
+    !             do i=2,nx-1         
+    !                 rho(i,j,k) = f0(i,j,k) &
+    !                         +f1(i,j,k) &
+    !                         +f2(i,j,k) &
+    !                         +f3(i,j,k) &
+    !                         +f4(i,j,k) &
+    !                         +f5(i,j,k) &
+    !                         +f6(i,j,k) &
+    !                         +f7(i,j,k) &
+    !                         +f8(i,j,k) &
+    !                         +f9(i,j,k) &
+    !                         +f10(i,j,k) &
+    !                         +f11(i,j,k) &
+    !                         +f12(i,j,k) &
+    !                         +f13(i,j,k) &
+    !                         +f14(i,j,k) &
+    !                         +f15(i,j,k) &
+    !                         +f16(i,j,k) &
+    !                         +f17(i,j,k) &
+    !                         +f18(i,j,k)
+
+    !                 u(i,j,k) = (f1(i,j,k)+f7(i,j,k)+f9(i,j,k)+f15(i,j,k)+f8(i,j,k)) &
+    !                          -(f2(i,j,k)+f8(i,j,k)+f10(i,j,k)+f16(i,j,k)+f17(i,j,k)) 
+                        
+    !                 v(i,j,k) = (f3(i,j,k)+f7(i,j,k)+f10(i,j,k)+f11(i,j,k)+f13(i,j,k)) &
+    !                         -(f4(i,j,k)+f8(i,j,k)+f9(i,j,k)+f12(i,j,k)+f14(i,j,k))
+
+    !                 w(i,j,k) = (f5(i,j,k)+f11(i,j,k)+f14(i,j,k)+f15(i,j,k)+f17(i,j,k)) &
+    !                         -(f6(i,j,k)+f12(i,j,k)+f13(i,j,k)+f16(i,j,k)+f18(i,j,k))
+                    
+    !             enddo
+    !         enddo 
+    !     enddo
+    !     !$acc end kernels
+        !***********************************collision&forcing************************ 
+        !!$acc update host(rho,u,v)
+        !!$acc update device(rho,u,v)
+        !$acc kernels !!private(uu,temp,udotc,feq,dummy) 
+        !$acc loop private(uu,temp,udotc,feq,dummy,u,v,w,rho)
         do k=2,nz-1
             do j=2,ny-1
-                do i=2,nx-1         
-                    rho(i,j,k) = f0(i,j,k) &
+                do i=2,nx-1
+                    if(isfluid(i,j,k).eq.1)then
+                        rho = f0(i,j,k) &
                             +f1(i,j,k) &
                             +f2(i,j,k) &
                             +f3(i,j,k) &
@@ -155,121 +196,108 @@ program lb_openacc
                             +f17(i,j,k) &
                             +f18(i,j,k)
 
-                    u(i,j,k) = (f1(i,j,k)+f7(i,j,k)+f9(i,j,k)+f15(i,j,k)+f8(i,j,k)) &
+                        u = (f1(i,j,k)+f7(i,j,k)+f9(i,j,k)+f15(i,j,k)+f8(i,j,k)) &
                              -(f2(i,j,k)+f8(i,j,k)+f10(i,j,k)+f16(i,j,k)+f17(i,j,k)) 
                         
-                    v(i,j,k) = (f3(i,j,k)+f7(i,j,k)+f10(i,j,k)+f11(i,j,k)+f13(i,j,k)) &
+                        v = (f3(i,j,k)+f7(i,j,k)+f10(i,j,k)+f11(i,j,k)+f13(i,j,k)) &
                             -(f4(i,j,k)+f8(i,j,k)+f9(i,j,k)+f12(i,j,k)+f14(i,j,k))
 
-                    w(i,j,k) = (f5(i,j,k)+f11(i,j,k)+f14(i,j,k)+f15(i,j,k)+f17(i,j,k)) &
+                        w = (f5(i,j,k)+f11(i,j,k)+f14(i,j,k)+f15(i,j,k)+f17(i,j,k)) &
                             -(f6(i,j,k)+f12(i,j,k)+f13(i,j,k)+f16(i,j,k)+f18(i,j,k))
-                    
-                enddo
-            enddo 
-        enddo
-        !$acc end kernels
-        !***********************************collision&forcing************************ 
-        !!$acc update host(rho,u,v)
-        !!$acc update device(rho,u,v)
-        !$acc kernels !!private(uu,temp,udotc,feq,dummy) 
-        !$acc loop private(uu,temp,udotc,feq,dummy)
-        do k=2,nz-1
-            do j=2,ny-1
-                do i=2,nx-1
-                    if(isfluid(i,j,k).eq.1)then
-                        uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
+                        !
+                        uu=0.5_db*(u*u + v*v + w*w)/cssq
                         !0
-                        feq=p(0)*(rho(i,j,k)-uu)
+                        feq=p(0)*(rho-uu)
                         f0(i,j,k)=f0(i,j,k) + omega*(feq - f0(i,j,k)) 
                         
                         !1
-                        udotc=u(i,j,k)/cssq
+                        udotc=u/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(1)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(1)*(rho+(temp + udotc))
                         f1(i,j,k)=f1(i,j,k) + omega*(feq - f1(i,j,k)) + fx*p(1)/cssq
                         
                         !2
-                        feq=p(2)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(2)*(rho+(temp - udotc))
                         f2(i,j,k)=f2(i,j,k) + omega*(feq - f2(i,j,k)) - fx*p(2)/cssq
                         
                         !3
-                        udotc=v(i,j,k)/cssq
+                        udotc=v/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(3)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(3)*(rho+(temp + udotc))
                         f3(i,j,k)=f3(i,j,k) + omega*(feq - f3(i,j,k)) + fy*p(3)/cssq
                         
                         !4
-                        feq=p(4)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(4)*(rho+(temp - udotc))
                         f4(i,j,k)=f4(i,j,k) + omega*(feq - f4(i,j,k)) - fy*p(4)/cssq
                         
                         !7
-                        udotc=(u(i,j,k)+v(i,j,k))/cssq
+                        udotc=(u+v)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(7)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(7)*(rho+(temp + udotc))
                         f7(i,j,k)=f7(i,j,k) + omega*(feq - f7(i,j,k)) + (fx+fy)*p(7)/cssq  
                         
                         !8
-                        feq=p(8)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(8)*(rho+(temp - udotc))
                         f8(i,j,k)=f8(i,j,k) + omega*(feq - f8(i,j,k)) - (fx+fy)*p(8)/cssq
                         
                         !10
-                        udotc=(-u(i,j,k)+v(i,j,k))/cssq
+                        udotc=(-u+v)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(10)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(10)*(rho+(temp + udotc))
                         f10(i,j,k)=f10(i,j,k) + omega*(feq - f10(i,j,k)) +(fy-fx)*p(10)/cssq
                         
                         !9
-                        feq=p(9)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(9)*(rho+(temp - udotc))
                         f9(i,j,k)=f9(i,j,k) + omega*(feq - f9(i,j,k)) + (fx-fy)*p(9)/cssq
 
                         !5
-                        udotc=w(i,j,k)/cssq
+                        udotc=w/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(5)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(5)*(rho+(temp + udotc))
                         f5(i,j,k)=f5(i,j,k) + omega*(feq - f5(i,j,k)) + fz*p(5)/cssq
                         
                         !6
-                        feq=p(6)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(6)*(rho+(temp - udotc))
                         f6(i,j,k)=f6(i,j,k) + omega*(feq - f6(i,j,k)) - fz*p(6)/cssq
 
                         !15
-                        udotc=(u(i,j,k)+w(i,j,k))/cssq
+                        udotc=(u+w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(15)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(15)*(rho+(temp + udotc))
                         f15(i,j,k)=f15(i,j,k) + omega*(feq - f15(i,j,k)) + (fx+fz)*p(15)/cssq  
                         
                         !16
-                        feq=p(16)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(16)*(rho+(temp - udotc))
                         f16(i,j,k)=f16(i,j,k) + omega*(feq - f16(i,j,k)) - (fx+fz)*p(16)/cssq
 
                         !17
-                        udotc=(-u(i,j,k)+w(i,j,k))/cssq
+                        udotc=(-u+w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(17)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(17)*(rho+(temp + udotc))
                         f17(i,j,k)=f17(i,j,k) + omega*(feq - f17(i,j,k)) +(fz-fx)*p(17)/cssq
                         
                         !18
-                        feq=p(18)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(18)*(rho+(temp - udotc))
                         f18(i,j,k)=f18(i,j,k) + omega*(feq - f18(i,j,k)) + (fx-fz)*p(18)/cssq
 
                         !11
-                        udotc=(v(i,j,k)+w(i,j,k))/cssq
+                        udotc=(v+w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(11)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(11)*(rho+(temp + udotc))
                         f11(i,j,k)=f11(i,j,k) + omega*(feq - f11(i,j,k)) +(fy+fz)*p(11)/cssq
                         
                         !12
-                        feq=p(12)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(12)*(rho+(temp - udotc))
                         f12(i,j,k)=f12(i,j,k) + omega*(feq - f12(i,j,k)) - (fy+fz)*p(12)/cssq
 
                         !13
-                        udotc=(v(i,j,k)-w(i,j,k))/cssq
+                        udotc=(v-w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(13)*(rho(i,j,k)+(temp + udotc))
+                        feq=p(13)*(rho+(temp + udotc))
                         f13(i,j,k)=f13(i,j,k) + omega*(feq - f13(i,j,k)) + (fy-fz)*p(13)/cssq
                         
                         !14
-                        feq=p(14)*(rho(i,j,k)+(temp - udotc))
+                        feq=p(14)*(rho+(temp - udotc))
                         f14(i,j,k)=f14(i,j,k) + omega*(feq - f14(i,j,k)) + (fz-fy)*p(14)/cssq
 
                     elseif(isfluid(i,j,k).eq.0)then
@@ -383,10 +411,10 @@ program lb_openacc
         
     enddo 
     call cpu_time(ts2)
-    !$acc update host(rho,u,v)
+    !!$acc update host(rho,u,v)
     !$acc end data
     
-    write(6,*) 'u=',u(nx/2,ny/2,nz/2),'v=',v(nx/2,ny/2,nz/2),'w=',w(nx/2,ny/2,nz/2),'rho=',rho(nx/2,ny/2,nz/2)
+    !write(6,*) 'u=',u(nx/2,ny/2,nz/2),'v=',v(nx/2,ny/2,nz/2),'w=',w(nx/2,ny/2,nz/2),'rho=',rho(nx/2,ny/2,nz/2)
     write(6,*) 'You''ve just wasted ', ts2-ts1, ' s of your life time' 
 
     
