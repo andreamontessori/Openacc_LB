@@ -35,12 +35,12 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=256
-    ny=256
-    nsteps=100
+    nx=11
+    ny=1024
+    nsteps=1000
     stamp=1000
     fx=0.0_db*10.0**(-5)
-    fy=5.0_db*10.0**(-5)
+    fy=1.0_db*10.0**(-4)
     allocate(p(0:nlinks),ex(0:nlinks),ey(0:nlinks),dex(0:nlinks))
     allocate(dey(0:nlinks),opp(0:nlinks),fdum(0:nlinks))
     allocate(f0(1:nx,1:ny),f1(1:nx,1:ny),f2(1:nx,1:ny),f3(1:nx,1:ny),f4(1:nx,1:ny))
@@ -135,10 +135,10 @@ program lb_openacc
         !!$acc update host(rho,u,v)
         !!$acc update device(rho,u,v)
         !!$acc kernels
-        !$acc loop private(uu,temp,udotc,feq,dummy)
-        do j=2,ny-1
-           !$acc loop private(uu,temp,udotc,feq,dummy)
-            do i=2,nx-1
+        !!$acc loop private(uu,temp,udotc,feq,dummy)
+        do j=1,ny
+           !!$acc loop private(uu,temp,udotc,feq,dummy)
+            do i=1,nx
                 if(isfluid(i,j).eq.1)then
                     uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
                     !oneminusuu= -uu !1.0_db - uu
