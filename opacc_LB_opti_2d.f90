@@ -11,7 +11,7 @@ program lb_openacc
     
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     
-    real(kind=4)  :: ts1,ts2
+    real(kind=4)  :: ts1,ts2 
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
     real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,temp,dummy
     
