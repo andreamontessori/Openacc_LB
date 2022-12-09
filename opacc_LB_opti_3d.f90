@@ -13,7 +13,7 @@ program lb_openacc
     
     real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
-    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp,dummy
+    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp,dummy,dummy2
     
     integer(kind=4), allocatable,  dimension(:,:,:)   :: isfluid
     
@@ -369,8 +369,8 @@ program lb_openacc
         !
         !!$acc update host(f0,f1,f2,f3,f4,f5,f6,f7,f8)
         !!$acc update device(f0,f1,f2,f3,f4,f5,f6,f7,f8)
-        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18)
-        !$acc loop independent collapse(3)
+        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18) async(3) 
+        !$acc loop independent collapse(3)  !independent  
         do k=1,nz
             do j=1,ny
                 do i=1,nx

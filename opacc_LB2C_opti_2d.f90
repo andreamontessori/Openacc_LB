@@ -2,7 +2,9 @@ program lb_openacc
     !$if _OPENACC
     use openacc
     !$endif
-    
+    !******************************************************************************************!
+    !openacc implementation of a phase field 2d LB model with incompressible equilibria and NCI!
+    !******************************************************************************************!
     implicit none
     
     integer, parameter :: db=4 !kind(1.0)
@@ -34,12 +36,12 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=1024
-    ny=2048
-    nsteps=1000
+    nx=51
+    ny=4096
+    nsteps=10000
     stamp=1000
     fx=0.0_db*10.0**(-7)
-    fy=1.0_db*10.0**(-4)
+    fy=1.0_db*10.0**(-5)
     allocate(p(0:nlinks))
     allocate(f0(0:nx+1,0:ny+1,2),f1(0:nx+1,0:ny+1,2),f2(0:nx+1,0:ny+1,2),f3(0:nx+1,0:ny+1,2),f4(0:nx+1,0:ny+1,2))
     allocate(f5(0:nx+1,0:ny+1,2),f6(0:nx+1,0:ny+1,2),f7(0:nx+1,0:ny+1,2),f8(0:nx+1,0:ny+1,2))
@@ -97,7 +99,7 @@ program lb_openacc
     do step=1,nsteps 
         !***********************************collision&forcing************************ 
         !$acc update device(nsp,nsk)
-        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8) !async(2)
+        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8) async(2)
         !$acc loop private(uu,temp,udotc,feq,dummy) 
         do j=1,ny
            !$acc loop private(rho,u,v,uu,temp,udotc,feq,dummy)
@@ -189,41 +191,59 @@ program lb_openacc
         !$acc end kernels
         !******************************************call bcs************************
         !periodic along y
-        !$acc kernels 
+        !$acc kernels present(f0)
         f0(2:nx-1,1,nsp)=f0(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f1)
         f1(2:nx-1,1,nsp)=f1(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f2)
         f2(2:nx-1,1,nsp)=f2(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f3)
         f3(2:nx-1,1,nsp)=f3(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f4)
         f4(2:nx-1,1,nsp)=f4(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f5)
         f5(2:nx-1,1,nsp)=f5(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f6)
         f6(2:nx-1,1,nsp)=f6(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f7)
         f7(2:nx-1,1,nsp)=f7(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f8)
         f8(2:nx-1,1,nsp)=f8(2:nx-1,ny-1,nsp)
-
+        !$acc end kernels 
+        !
+        !$acc kernels present(f0)
         f0(2:nx-1,ny,nsp)=f0(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f1)
         f1(2:nx-1,ny,nsp)=f1(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f2)
         f2(2:nx-1,ny,nsp)=f2(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f3)
         f3(2:nx-1,ny,nsp)=f3(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f4)
         f4(2:nx-1,ny,nsp)=f4(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f5)
         f5(2:nx-1,ny,nsp)=f5(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f6)
         f6(2:nx-1,ny,nsp)=f6(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f7)
         f7(2:nx-1,ny,nsp)=f7(2:nx-1,2,nsp)
-
+        !$acc end kernels 
+        !$acc kernels present(f8)
         f8(2:nx-1,ny,nsp)=f8(2:nx-1,2,nsp)
         !$acc end kernels
         ! !******************************************streaming***************************  
