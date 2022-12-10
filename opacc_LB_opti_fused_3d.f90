@@ -35,10 +35,10 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=300
-    ny=300
-    nz=300
-    nsteps=1000
+    nx=512
+    ny=512
+    nz=512
+    nsteps=100
     stamp=1000
     fx=1.0_db*10.0**(-7)
     fy=0.0_db*10.0**(-5)
@@ -122,7 +122,6 @@ program lb_openacc
     call cpu_time(ts1)
     do step=1,nsteps 
         !***********************************moments collision bbck + forcing************************ 
-        !!$acc update host(rho,u,v)
         !$acc update device(nsp,nsk)
         !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18) 
         !$acc loop independent collapse (3) private(uu,temp,udotc,u,v,w,rho)
@@ -311,10 +310,13 @@ program lb_openacc
       
         f14(:,ny-1,:,:)=f14(:,1,:,:)
         !$acc end kernels 
+       
         !flip-flop
+        
         dum=nsp
         nsp=nsk
         nsk=dum
+        
         !
     enddo 
     call cpu_time(ts2)
