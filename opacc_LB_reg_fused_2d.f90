@@ -43,7 +43,7 @@ program lb_openacc
     nsteps=40000
     stamp=1000
     fx=0.0_db*10.0**(-7)
-    fy=1.0_db*10.0**(-6)
+    fy=1.0_db*10.0**(-5)
     allocate(p(0:nlinks))
     allocate(f0(0:nx+1,0:ny+1),f1(0:nx+1,0:ny+1),f2(0:nx+1,0:ny+1),f3(0:nx+1,0:ny+1),f4(0:nx+1,0:ny+1))
     allocate(f5(0:nx+1,0:ny+1),f6(0:nx+1,0:ny+1),f7(0:nx+1,0:ny+1),f8(0:nx+1,0:ny+1))
@@ -60,17 +60,17 @@ program lb_openacc
     ! regularized: hermite 
     qxx1=1.0_db-cssq
     qxx3=1.0_db-cssq
-    qxx5=1.0_db
-    qxx6=-1.0_db
-    qxx7=1.0_db
-    qxx8=-1.0_db
+    qxx5=1.0_db-cssq
+    qxx6=-1.0_db-cssq
+    qxx7=1.0_db-cssq
+    qxx8=-1.0_db-cssq
 
     qyy2=1.0_db-cssq
     qyy4=1.0_db-cssq
-    qyy5=1.0_db
-    qyy6=-1.0_db
-    qyy7=1.0_db
-    qyy8=-1.0_db
+    qyy5=1.0_db-cssq
+    qyy6=-1.0_db-cssq
+    qyy7=1.0_db-cssq
+    qyy8=-1.0_db-cssq
 
     qxy5=1.0_db
     qxy6=-1.0_db
@@ -123,15 +123,13 @@ program lb_openacc
     call cpu_time(ts1)
     do step=1,nsteps 
         !***********************************moment + neq pressor*********
-        !$acc kernels !present(f0,f1,f2,f3,f4,f5,f6,f7,f8)
+        !$acc kernels 
         !$acc loop collapse(2) private(uu,temp,udotc,fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8) 
         do j=1,ny
             do i=1,nx
                 if(isfluid(i,j).eq.1.or.isfluid(i,j).eq.0)then
                     rho(i,j) = f0(i,j)+f1(i,j)+f2(i,j)+f3(i,j)+f4(i,j)+f5(i,j)+f6(i,j)+f7(i,j)+f8(i,j)
-
                     u(i,j) = (f1(i,j) +f5(i,j) +f8(i,j)-f3(i,j) -f6(i,j) -f7(i,j)) !/rho(i,j)
-                        
                     v(i,j) = (f5(i,j) +f2(i,j) +f6(i,j)-f7(i,j) -f4(i,j) -f8(i,j))
                     ! non equilibrium pressor components
                     uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
@@ -160,6 +158,7 @@ program lb_openacc
                     pyy(i,j)= fneq2 + fneq4 + fneq5 + fneq6 + fneq7 + fneq8
                     pxy(i,j)= fneq5 - fneq6 + fneq7 - fneq8
                 endif
+                !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
                 if(isfluid(i,j).eq.0)then
                      f1(i,j)=p(3)*rho(i,j) + pi2cssq1*qxx3*pxx(i,j)
                      f3(i,j)=p(1)*rho(i,j) + pi2cssq1*qxx1*pxx(i,j)
@@ -216,7 +215,7 @@ program lb_openacc
             enddo
         enddo
         !!$acc end kernels
-        !******************************************call periodic bcs************************
+        !******************************************call periodic bcs: always after fused************************
         !periodic along y
         !!$acc kernels 
         f5(2:nx-1,2)=f5(2:nx-1,ny)
