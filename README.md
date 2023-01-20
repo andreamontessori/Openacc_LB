@@ -3,5 +3,5 @@
 The project aims at investigating the performances of
 LB implementations on gpus with directive based openacc procedures.
 
-single and multigpus implementations are expexted to be delivered.
+single and multigpus implementations will be delivered.
 
