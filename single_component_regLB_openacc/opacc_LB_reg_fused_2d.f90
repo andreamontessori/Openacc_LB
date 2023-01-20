@@ -14,7 +14,7 @@ program lb_openacc
     real(kind=4)  :: ts1,ts2 
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
     real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
-    real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2
+    real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2,pi2cssq0
     real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,temp,dummy
     
     integer(kind=4), allocatable,  dimension(:,:)   :: isfluid
@@ -25,7 +25,7 @@ program lb_openacc
 
        
     nlinks=8 !pari!
-    tau=1.5_db
+    tau=.70_db
     cssq=1.0_db/3.0_db
     visc_LB=cssq*(tau-0.5_db)
     one_ov_nu=1.0_db/visc_LB
@@ -38,7 +38,7 @@ program lb_openacc
     !*******************************user parameters**************************
     nx=101
     ny=4024
-    nsteps=40000
+    nsteps=90000
     stamp=1000
     fx=0.0_db*10.0**(-7)
     fy=1.0_db*10.0**(-5)
@@ -60,6 +60,7 @@ program lb_openacc
     qyy=1.0_db-cssq
     qxy5_7=1.0_db
     qxy6_8=-1.0_db
+    pi2cssq0=p(0)/(2.0_db*cssq**2)
     pi2cssq1=p(1)/(2.0_db*cssq**2)
     pi2cssq2=p(5)/(2.0_db*cssq**2)
     
@@ -143,10 +144,11 @@ program lb_openacc
                 endif
                 !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
                 if(isfluid(i,j).eq.0)then
-                     f1(i,j)=p(3)*rho(i,j) + pi2cssq1*qxx*pxx(i,j)
-                     f3(i,j)=p(1)*rho(i,j) + pi2cssq1*qxx*pxx(i,j)
-                     f2(i,j)=p(4)*rho(i,j) + pi2cssq1*qyy*pyy(i,j)
-                     f4(i,j)=p(2)*rho(i,j) + pi2cssq1*qyy*pyy(i,j)
+                     f0(i,j)=p(0)*rho(i,j) + pi2cssq0*(-cssq*pyy(i,j)-cssq*pxx(i,j))
+                     f1(i,j)=p(3)*rho(i,j) + pi2cssq1*(qxx*pxx(i,j)-cssq*pyy(i,j))
+                     f3(i,j)=p(1)*rho(i,j) + pi2cssq1*(qxx*pxx(i,j)-cssq*pyy(i,j))
+                     f2(i,j)=p(4)*rho(i,j) + pi2cssq1*(qyy*pyy(i,j)-cssq*pxx(i,j))
+                     f4(i,j)=p(2)*rho(i,j) + pi2cssq1*(qyy*pyy(i,j)-cssq*pxx(i,j))
                      f5(i,j)=p(7)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j))
                      f7(i,j)=p(5)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j))
                      f6(i,j)=p(8)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))
@@ -162,23 +164,23 @@ program lb_openacc
                 !oneminusuu= -uu !1.0_db - uu
                 !0
                 feq=p(0)*(rho(i,j)-uu)
-                f0(i,j)=f0(i,j) + omega*(feq - f0(i,j)) 
+                f0(i,j)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j))
                 !1
                 udotc=u(i,j)/cssq
                 temp = -uu + 0.5_db*udotc*udotc
                 feq=p(1)*(rho(i,j)+(temp + udotc))
-                f1(i+1,j)= feq + (1.0_db-omega)*pi2cssq1*qxx*pxx(i,j) + fx*p(1)/cssq !f1(i-1,j,nsp) + omega*(feq - f1(i-1,j,nsp)) + fx*p(1)/cssq
+                f1(i+1,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j)) + fx*p(1)/cssq !f1(i-1,j,nsp) + omega*(feq - f1(i-1,j,nsp)) + fx*p(1)/cssq
                 !3
                 feq=p(3)*(rho(i,j)+(temp - udotc))
-                f3(i-1,j)=feq + (1.0_db-omega)*pi2cssq1*qxx*pxx(i,j) - fx*p(3)/cssq !f3(i+1,j,nsp) + omega*(feq - f3(i+1,j,nsp)) - fx*p(3)/cssq
+                f3(i-1,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j))  - fx*p(3)/cssq !f3(i+1,j,nsp) + omega*(feq - f3(i+1,j,nsp)) - fx*p(3)/cssq
                 !2
                 udotc=v(i,j)/cssq
                 temp = -uu + 0.5_db*udotc*udotc
                 feq=p(2)*(rho(i,j)+(temp + udotc))
-                f2(i,j+1)= feq + (1.0_db-omega)*pi2cssq1*qyy*pyy(i,j) + fy*p(2)/cssq !f2(i,j-1,nsp) + omega*(feq - f2(i,j-1,nsp)) + fy*p(2)/cssq
+                f2(i,j+1)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  + fy*p(2)/cssq !f2(i,j-1,nsp) + omega*(feq - f2(i,j-1,nsp)) + fy*p(2)/cssq
                 !4
                 feq=p(4)*(rho(i,j)+(temp - udotc))
-                f4(i,j-1)=feq + (1.0_db-omega)*pi2cssq1*qyy*pyy(i,j) - fy*p(4)/cssq !f4(i,j+1,nsp) + omega*(feq - f4(i,j+1,nsp)) - fy*p(4)/cssq
+                f4(i,j-1)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  - fy*p(4)/cssq !f4(i,j+1,nsp) + omega*(feq - f4(i,j+1,nsp)) - fy*p(4)/cssq
                 !5
                 udotc=(u(i,j)+v(i,j))/cssq
                 temp = -uu + 0.5_db*udotc*udotc
@@ -220,5 +222,14 @@ program lb_openacc
     write(6,*) 'u=',u(nx/2,ny/2) ,'v=',v(nx/2,ny/2),'rho',rho(nx/2,ny/2) !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
     write(6,*) 'u=',u(2,ny/2) ,'v=',v(2,ny/2),'rho',rho(2,ny/2)
     write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
-    write(6,*) 'running time: ', ts2-ts1, 'seconds'     
+    write(6,*) 'running time: ', ts2-ts1, 'seconds'  
+
+    open(101, file = 'v.out', status = 'replace')
+    do j=1,ny
+        do i=1,nx
+            write(101,*) v(i,j) 
+        enddo
+    enddo
+    close(101) 
+    write(*,*) 'fatto'  
 end program

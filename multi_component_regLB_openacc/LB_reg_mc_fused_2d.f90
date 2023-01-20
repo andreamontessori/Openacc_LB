@@ -11,14 +11,15 @@ program lb_openacc
     
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     
-    real(kind=4)  :: ts1,ts2
+    real(kind=4)  :: ts1,ts2,radius
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
     real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
-    real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2
+    real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2,pi2cssq0
     real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,temp,dummy,fpc
     real(kind=db) :: addendum0,addendum1,addendum2,addendum3,addendum4,addendum5,addendum6,addendum7,addendum8
     real(kind=db) :: gaddendum0,gaddendum1,gaddendum2,gaddendum3,gaddendum4,gaddendum5,gaddendum6,gaddendum7,gaddendum8
     real(kind=db) :: psi_x,psi_y,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma
+    real(kind=db) :: rr2,rr1,one_ov_nu2,one_ov_nu1,nu_avg
     
     integer(kind=4), allocatable,  dimension(:,:)   :: isfluid
     
@@ -29,10 +30,15 @@ program lb_openacc
 
     !lattice pars  
     nlinks=8 !pari!
-    tau=1.0_db
     cssq=1.0_db/3.0_db
+    !fluid 1
+    tau=1.0_db
     visc_LB=cssq*(tau-0.5_db)
-    one_ov_nu=1.0_db/visc_LB
+    one_ov_nu1=1.0_db/visc_LB
+    !fluid2
+    tau=0.70_db
+    visc_LB=cssq*(tau-0.5_db)
+    one_ov_nu2=1.0_db/visc_LB
     omega=1.0_db/tau
 !#ifdef _OPENACC
 !        ngpus=acc_get_num_devices(acc_device_nvidia)
@@ -41,8 +47,8 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=4096
-    ny=4096
+    nx=10001
+    ny=10001
     nsteps=1000
     stamp=10000
     fx=0.0_db*10.0**(-7)
@@ -65,11 +71,12 @@ program lb_openacc
     qyy=1.0_db-cssq
     qxy5_7=1.0_db
     qxy6_8=-1.0_db
+    pi2cssq0=p(0)/(2.0_db*cssq**2)
     pi2cssq1=p(1)/(2.0_db*cssq**2)
     pi2cssq2=p(5)/(2.0_db*cssq**2)
     ! chromodynamic
-    beta=1.5_db
-    sigma=0.02_db
+    beta=0.75_db
+    sigma=0.03_db
     st_coeff=(9.0_db/4.0_db)*sigma*omega
     b0=-4.0_db/27.0_db
     b1=2.0_db/27.0_db
@@ -96,13 +103,36 @@ program lb_openacc
     f7(1:nx,1:ny)=p(7)*rho(:,:)
     f8(1:nx,1:ny)=p(8)*rho(:,:)
     !
-    do i=nx/2-10,nx/2+10
-        do j=ny/2-10,ny/2+10
-            if ((i-nx/2)**2+(j-ny/2)**2<=10**2)then
+    ! do i=nx/2-10,nx/2+10
+    !     do j=ny/2-10,ny/2+10
+    !         if ((i-nx/2)**2+(j-ny/2)**2<=10**2)then
+    !             psi(i,j)=1.0_db
+    !         endif
+    !     enddo
+    ! enddo
+    radius=12
+    do i=35-radius,35+radius
+        do j=ny/2-radius,ny/2+radius
+            if ((i-35)**2+(j-ny/2)**2<=radius**2)then
                 psi(i,j)=1.0_db
             endif
         enddo
     enddo
+    ! do i=65-radius,65+radius
+    !     do j=ny/2-radius,ny/2+radius
+    !         if ((i-65)**2+(j-ny/2)**2<=radius**2)then
+    !             psi(i,j)=1.0_db
+    !         endif
+    !     enddo
+    ! enddo
+
+    ! do i=nx/2-radius,nx/2+radius
+    !     do j=75-radius,75+radius
+    !         if ((i-nx/2)**2+(j-75)**2<=radius**2)then
+    !             psi(i,j)=1.0_db
+    !         endif
+    !     enddo
+    ! enddo
     g0(1:nx,1:ny)=p(0)*psi(1:nx,1:ny)
     g1(1:nx,1:ny)=p(1)*psi(1:nx,1:ny)
     g2(1:nx,1:ny)=p(2)*psi(1:nx,1:ny)
@@ -112,11 +142,12 @@ program lb_openacc
     g6(1:nx,1:ny)=p(6)*psi(1:nx,1:ny)
     g7(1:nx,1:ny)=p(7)*psi(1:nx,1:ny)
     g8(1:nx,1:ny)=p(8)*psi(1:nx,1:ny)
+
     !*************************************check data ************************ 
     write(6,*) '*******************LB data*****************'
     write(6,*) 'tau',tau
     write(6,*) 'omega',omega
-    write(6,*) 'visc',visc_LB
+    write(6,*) 'visc',one_ov_nu1,one_ov_nu2
     write(6,*) 'fx',fx
     write(6,*) 'cssq',cssq
     write(6,*) 'beta',beta
@@ -130,7 +161,6 @@ program lb_openacc
     write(6,*) 'max fx',huge(fx)
     write(6,*) 'available gpus',ngpus
     write(6,*) '*******************************************'
-
 
     !$acc data copy(p,rho,u,v,pxx,pxy,pyy,f0,f1,f2,f3,f4,f5,f6,f7,f8,isfluid, &
     !$acc& g0,g1,g2,g3,g4,g5,g6,g7,g8,psi)
@@ -176,20 +206,21 @@ program lb_openacc
                 endif
                 !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
                 if(isfluid(i,j).eq.0)then
-                     f1(i,j)=p(3)*rho(i,j) + pi2cssq1*qxx*pxx(i,j)
-                     f3(i,j)=p(1)*rho(i,j) + pi2cssq1*qxx*pxx(i,j)
-                     f2(i,j)=p(4)*rho(i,j) + pi2cssq1*qyy*pyy(i,j)
-                     f4(i,j)=p(2)*rho(i,j) + pi2cssq1*qyy*pyy(i,j)
-                     f5(i,j)=p(7)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j))
-                     f7(i,j)=p(5)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j))
-                     f6(i,j)=p(8)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))
-                     f8(i,j)=p(6)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))
-                     psi(i,j)=-1.0_db
+                    f0(i,j)=((p(0)*rho(i,j))  + pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j)))
+                    f1(i,j)=((p(3)*rho(i,j))  + pi2cssq1*(qxx*pxx(i,j)-cssq*pyy(i,j)))
+                    f3(i,j)=((p(1)*rho(i,j))  + pi2cssq1*(qxx*pxx(i,j)-cssq*pyy(i,j)))
+                    f2(i,j)=((p(4)*rho(i,j))  + pi2cssq1*(qyy*pyy(i,j)-cssq*pxx(i,j)))
+                    f4(i,j)=((p(2)*rho(i,j))  + pi2cssq1*(qyy*pyy(i,j)-cssq*pxx(i,j)))
+                    f5(i,j)=((p(7)*rho(i,j)) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)))
+                    f7(i,j)=((p(5)*rho(i,j)) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)))
+                    f6(i,j)=((p(8)*rho(i,j)) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)))
+                    f8(i,j)=((p(6)*rho(i,j)) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)))
+                    psi(i,j)=-1.0_db
 
                 endif
             enddo
         enddo
-        !***********************************collision + no slip + forcing: fused implementation*********
+        !********************collision + no slip + forcing: fused implementation*********
         !$acc loop collapse(2)  
         do j=1,ny
            do i=1,nx   
@@ -201,6 +232,11 @@ program lb_openacc
                 psi_y=(1.0_db/cssq)*(p(1)*(psi(i,j+1)-psi(i,j-1)) + p(5)*(psi(i+1,j+1) - psi(i+1,j-1)+psi(i-1,j+1)-psi(i-1,j-1)))
                 mod_psi=sqrt(psi_x**2+psi_y**2)
                 mod_psi_sq=psi_x**2+psi_y**2 
+                rr2=(1.0_db-psi(i,j))*0.5_db
+                rr1=1.0_db-rr2
+                nu_avg=1.0_db/(rr1*one_ov_nu1 + rr2*one_ov_nu2)
+                omega=2.0_db/(6.0_db*nu_avg + 1.0_db)
+                st_coeff=(9.0_db/4.0_db)*sigma*omega
                 addendum0=0.0_db
                 addendum1=0.0_db
                 addendum2=0.0_db
@@ -218,80 +254,80 @@ program lb_openacc
                 gaddendum5=0.0_db
                 gaddendum6=0.0_db
                 gaddendum7=0.0_db
-                gaddendum8=0.0_db
-                if(mod_psi>0.01)then
-                addendum0=-st_coeff*mod_psi*b0
-                addendum1=st_coeff*mod_psi*(p(1)*psi_x**2/mod_psi_sq - b1)
-                addendum2=st_coeff*mod_psi*(p(2)*psi_y**2/mod_psi_sq - b1)
-                addendum3=st_coeff*mod_psi*(p(3)*psi_x**2/mod_psi_sq - b1)
-                addendum4=st_coeff*mod_psi*(p(4)*psi_y**2/mod_psi_sq - b1)
-                addendum5=st_coeff*mod_psi*(p(5)*(psi_x+psi_y)**2/mod_psi_sq - b2)
-                addendum6=st_coeff*mod_psi*(p(6)*(-psi_x+psi_y)**2/mod_psi_sq - b2)
-                addendum7=st_coeff*mod_psi*(p(7)*(-psi_x-psi_y)**2/mod_psi_sq - b2)
-                addendum8=st_coeff*mod_psi*(p(8)*(psi_x-psi_y)**2/mod_psi_sq - b2)
-                !recolor
-                gaddendum1=0.25*beta*rho(i,j)*p(1)*(1.0_db-psi(i,j)**2)*psi_x/mod_psi
-                gaddendum2=0.25*beta*rho(i,j)*p(2)*(1.0_db-psi(i,j)**2)*psi_y/mod_psi
-                gaddendum3=0.25*beta*rho(i,j)*p(3)*(1.0_db-psi(i,j)**2)*(-psi_x/mod_psi)
-                gaddendum4=0.25*beta*rho(i,j)*p(4)*(1.0_db-psi(i,j)**2)*(-psi_y/mod_psi)
-                gaddendum5=0.25*beta*rho(i,j)*p(5)*(1.0_db-psi(i,j)**2)*(psi_x/mod_psi + psi_y/mod_psi)
-                gaddendum6=0.25*beta*rho(i,j)*p(6)*(1.0_db-psi(i,j)**2)*(-psi_x/mod_psi + psi_y/mod_psi)
-                gaddendum7=0.25*beta*rho(i,j)*p(7)*(1.0_db-psi(i,j)**2)*(-psi_x/mod_psi - psi_y/mod_psi)
-                gaddendum8=0.25*beta*rho(i,j)*p(8)*(1.0_db-psi(i,j)**2)*(psi_x/mod_psi - psi_y/mod_psi)
+                gaddendum8=0.0_db 
+                if(mod_psi>0.001)then ! i'm sitting on the interface 
+                    addendum0=-st_coeff*mod_psi*b0
+                    addendum1=st_coeff*mod_psi*(p(1)*psi_x**2/mod_psi_sq - b1)
+                    addendum2=st_coeff*mod_psi*(p(2)*psi_y**2/mod_psi_sq - b1)
+                    addendum3=st_coeff*mod_psi*(p(3)*psi_x**2/mod_psi_sq - b1)
+                    addendum4=st_coeff*mod_psi*(p(4)*psi_y**2/mod_psi_sq - b1)
+                    addendum5=st_coeff*mod_psi*(p(5)*(psi_x+psi_y)**2/mod_psi_sq - b2)
+                    addendum6=st_coeff*mod_psi*(p(6)*(-psi_x+psi_y)**2/mod_psi_sq - b2)
+                    addendum7=st_coeff*mod_psi*(p(7)*(-psi_x-psi_y)**2/mod_psi_sq - b2)
+                    addendum8=st_coeff*mod_psi*(p(8)*(psi_x-psi_y)**2/mod_psi_sq - b2)
+                    !recoloring
+                    gaddendum1=0.25*rho(i,j)*beta*p(1)*(1.0_db-psi(i,j)**2)*psi_x/mod_psi !ok
+                    gaddendum2=0.25*rho(i,j)*beta*p(2)*(1.0_db-psi(i,j)**2)*psi_y/mod_psi
+                    gaddendum3=0.25*rho(i,j)*beta*p(3)*(1.0_db-psi(i,j)**2)*(-psi_x/mod_psi)
+                    gaddendum4=0.25*rho(i,j)*beta*p(4)*(1.0_db-psi(i,j)**2)*(-psi_y/mod_psi)
+                    gaddendum5=0.25*rho(i,j)*beta*p(5)*(1.0_db-psi(i,j)**2)*(psi_x/mod_psi + psi_y/mod_psi)
+                    gaddendum6=0.25*rho(i,j)*beta*p(6)*(1.0_db-psi(i,j)**2)*(-psi_x/mod_psi + psi_y/mod_psi)
+                    gaddendum7=0.25*rho(i,j)*beta*p(7)*(1.0_db-psi(i,j)**2)*(-psi_x/mod_psi - psi_y/mod_psi)
+                    gaddendum8=0.25*rho(i,j)*beta*p(8)*(1.0_db-psi(i,j)**2)*(psi_x/mod_psi - psi_y/mod_psi)
+                    ! se psi interfaccia vicina a 3-4-5lu è piu' grande del mio valore allora applico nci
                 endif
-                !regularized collision + perturbation
+                !regularized collision + perturbation + recolouring
                 feq=p(0)*(rho(i,j)-uu)
-                f0(i,j)=f0(i,j) + omega*(feq - f0(i,j)) + addendum0
+                f0(i,j)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*pyy(i,j)-cssq*pxx(i,j)) + addendum0
                 g0(i,j)=psi(i,j)*f0(i,j)
                 !1
                 udotc=u(i,j)/cssq
                 temp = -uu + 0.5_db*udotc*udotc
                 feq=p(1)*(rho(i,j)+(temp + udotc))
-                fpc=feq + (1.0_db-omega)*pi2cssq1*qxx*pxx(i,j) + fx*p(1)/cssq + addendum1
-                g1(i+1,j)=psi(i,j)*fpc + gaddendum1
-                f1(i+1,j)= fpc !f1(i-1,j,nsp) + omega*(feq - f1(i-1,j,nsp)) + fx*p(1)/cssq
-               
+                fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) ) + fx*p(1)/cssq + addendum1
+                g1(i+1,j)=psi(i,j)*fpc + 2*gaddendum1
+                f1(i+1,j)= fpc 
                 !3
                 feq=p(3)*(rho(i,j)+(temp - udotc))
-                fpc=feq + (1.0_db-omega)*pi2cssq1*qxx*pxx(i,j) - fx*p(3)/cssq + addendum3
-                g3(i-1,j)=psi(i,j)*fpc + gaddendum3
-                f3(i-1,j)= fpc !f3(i+1,j,nsp) + omega*(feq - f3(i+1,j,nsp)) - fx*p(3)/cssq
+                fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) - fx*p(3)/cssq + addendum3
+                g3(i-1,j)=psi(i,j)*fpc + 2*gaddendum3
+                f3(i-1,j)= fpc 
                 !2
                 udotc=v(i,j)/cssq
                 temp = -uu + 0.5_db*udotc*udotc
                 feq=p(2)*(rho(i,j)+(temp + udotc))
-                fpc=feq + (1.0_db-omega)*pi2cssq1*qyy*pyy(i,j) + fy*p(2)/cssq + addendum2
-                g2(i,j+1)=psi(i,j)*fpc + gaddendum2  
-                f2(i,j+1)= fpc !f2(i,j-1,nsp) + omega*(feq - f2(i,j-1,nsp)) + fy*p(2)/cssq
+                fpc=feq +(1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + fy*p(2)/cssq + addendum2 !
+                g2(i,j+1)=psi(i,j)*fpc + 2*gaddendum2  
+                f2(i,j+1)= fpc 
                 !4
                 feq=p(4)*(rho(i,j)+(temp - udotc))
-                fpc=feq + (1.0_db-omega)*pi2cssq1*qyy*pyy(i,j) - fy*p(4)/cssq + addendum4 
-                g4(i,j-1)=psi(i,j)*fpc +gaddendum4
-                f4(i,j-1)=fpc!f4(i,j+1,nsp) + omega*(feq - f4(i,j+1,nsp)) - fy*p(4)/cssq
+                fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) - fy*p(4)/cssq + addendum4 
+                g4(i,j-1)=psi(i,j)*fpc +2*gaddendum4
+                f4(i,j-1)=fpc
                 !5
                 udotc=(u(i,j)+v(i,j))/cssq
                 temp = -uu + 0.5_db*udotc*udotc
                 feq=p(5)*(rho(i,j)+(temp + udotc))
                 fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + fx*p(5)/cssq + fy*p(5)/cssq + addendum5
-                g5(i+1,j+1)=psi(i,j)*fpc + gaddendum5
-                f5(i+1,j+1)=fpc !f5(i-1,j-1,nsp) + omega*(feq - f5(i-1,j-1,nsp)) + fx*p(5)/cssq + fy*p(5)/cssq 
+                g5(i+1,j+1)=psi(i,j)*fpc + 2*gaddendum5
+                f5(i+1,j+1)=fpc
                 !7
                 feq=p(7)*(rho(i,j)+(temp - udotc))
                 fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) - fx*p(7)/cssq - fy*p(7)/cssq + addendum7
-                g7(i-1,j-1)=psi(i,j)*fpc + gaddendum7
-                f7(i-1,j-1)=fpc !f7(i+1,j+1,nsp) + omega*(feq - f7(i+1,j+1,nsp)) - fx*p(7)/cssq - fy*p(7)/cssq
+                g7(i-1,j-1)=psi(i,j)*fpc + 2*gaddendum7
+                f7(i-1,j-1)=fpc 
                 !6
                 udotc=(-u(i,j)+v(i,j))/cssq
                 temp = -uu + 0.5_db*udotc*udotc
                 feq=p(6)*(rho(i,j)+(temp + udotc))
                 fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) - fx*p(6)/cssq + fy*p(6)/cssq + addendum6
-                g6(i-1,j+1)=psi(i,j)*fpc + gaddendum6
-                f6(i-1,j+1)= fpc!f6(i+1,j-1,nsp) + omega*(feq - f6(i+1,j-1,nsp)) - fx*p(6)/cssq + fy*p(6)/cssq
+                g6(i-1,j+1)=psi(i,j)*fpc + 2*gaddendum6
+                f6(i-1,j+1)= fpc
                 !8
                 feq=p(8)*(rho(i,j)+(temp - udotc))
                 fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + fx*p(8)/cssq - fy*p(8)/cssq + addendum8
-                g8(i+1,j-1)=psi(i,j)*fpc + gaddendum8
-                f8(i+1,j-1)=fpc !f8(i-1,j+1,nsp) + omega*(feq - f8(i-1,j+1,nsp)) + fx*p(8)/cssq - fy*p(8)/cssq
+                g8(i+1,j-1)=psi(i,j)*fpc + 2*gaddendum8
+                f8(i+1,j-1)=fpc 
             enddo
         enddo
         !
@@ -322,7 +358,7 @@ program lb_openacc
     open(101, file = 'psi.out', status = 'replace')
     do j=1,ny
         do i=1,nx
-            write(101,*) psi(i,j)        
+            write(101,*) sqrt(u(i,j)**2+v(i,j)**2) 
         enddo
     enddo
     close(101)
