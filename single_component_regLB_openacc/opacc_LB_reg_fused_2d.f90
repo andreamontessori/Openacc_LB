@@ -154,7 +154,7 @@ program lb_openacc
                      f6(i,j)=p(8)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))
                      f8(i,j)=p(6)*rho(i,j) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) 
                 endif
-            enddo
+            enddo 
         enddo
         !***********************************collision + no slip + forcing: fused implementation*********
         !$acc loop collapse(2) private(uu,temp,udotc,feq,fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8) 
