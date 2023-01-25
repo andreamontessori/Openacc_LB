@@ -7,7 +7,7 @@ program lb_openacc
     
     integer, parameter :: db=4 !kind(1.0)
     integer(kind=8) :: i,j,ll,l,dumm
-    integer(kind=8) :: nx,ny,step,stamp,nlinks,nsteps,ngpus
+    integer(kind=8) :: nx,ny,step,stamp,nlinks,nsteps,ngpus,ncontact
     
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     
@@ -20,7 +20,8 @@ program lb_openacc
     real(kind=db) :: gaddendum0,gaddendum1,gaddendum2,gaddendum3,gaddendum4,gaddendum5,gaddendum6,gaddendum7,gaddendum8
     real(kind=db) :: psi_x,psi_y,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma
     real(kind=db) :: one_ov_nu2,one_ov_nu1,nu_avg,rtot,rprod
-    real(kind=db) :: press_excess,max_press_excess
+    real(kind=db) :: press_excess,max_press_excess,psid1,psid2,psid3,psid4
+    real(kind=db) :: rnd_n1,rnd_n2,drhok1,drhok2
     
     integer(kind=4), allocatable,  dimension(:,:)   :: isfluid
     
@@ -48,9 +49,9 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=101
-    ny=101
-    nsteps=500
+    nx=512
+    ny=512
+    nsteps=1
     stamp=10000
     fx=0.0_db*10.0**(-7)
     fy=0.0_db*10.0**(-5)
@@ -77,7 +78,7 @@ program lb_openacc
     pi2cssq2=p(5)/(2.0_db*cssq**2)
     ! chromodynamic
     beta=0.95_db
-    sigma=0.07_db
+    sigma=0.02_db
     st_coeff=(9.0_db/4.0_db)*sigma*omega
     b0=-4.0_db/27.0_db
     b1=2.0_db/27.0_db
@@ -94,23 +95,42 @@ program lb_openacc
     rhoA=0.0_db     !is to be intended as a delta rho
     rhoB=0.0_db     !is to be intended as a delta rho
     press_excess=0.0_db
-    max_press_excess=0.05
+    max_press_excess=0.05 !2
+    ncontact=0
+    psid1=0.0_db
+    psid2=0.0_db
+    psid3=0.0_db
+    psid4=0.0_db
     psi=-1.0_db
-    radius=14
-    do i=35-radius,35+radius
-        do j=ny/2-radius,ny/2+radius
-            if ((i-35)**2+(j-ny/2)**2<=radius**2)then
-                psi(i,j)=1.0_db
-            endif
+    radius=55
+    ! do i=(nx/2-radius-2)-radius,(nx/2-radius-2) +radius
+    !     do j=ny/2-radius,ny/2+radius
+    !         if ((i-(nx/2-radius-2))**2+(j-ny/2)**2<=radius**2)then
+    !             psi(i,j)=1.0_db
+    !         endif
+    !     enddo
+    ! enddo
+    ! do i=(nx/2+radius+2)-radius,(nx/2+radius+2) +radius
+    !     do j=ny/2-radius,ny/2+radius
+    !         if ((i-(nx/2+radius+2))**2+(j-ny/2)**2<=radius**2)then
+    !             psi(i,j)=1.0_db
+    !         endif
+    !     enddo
+    ! enddo
+
+    do j=10,ny-10
+        do i=10,nx-10
+        call random_number(rnd_n1)
+        !call random_number(rnd_n3)
+        if(rnd_n1.gt.0.5)then
+            psi(i,j)=1.0_db
+        else
+            psi(i,j)=-1.0_db
+        endif
+        
         enddo
     enddo
-    do i=66-radius,66+radius
-        do j=ny/2-radius,ny/2+radius
-            if ((i-66)**2+(j-ny/2)**2<=radius**2)then
-                psi(i,j)=1.0_db
-            endif
-        enddo
-    enddo
+    
     !
     rhoB=0.5*(1.0_db-psi(1:nx,1:ny))
     rhoA=1.0_db-rhoB
@@ -204,6 +224,8 @@ program lb_openacc
                     pxy(i,j)= fneq5 - fneq6 + fneq7 - fneq8
                     if(isfluid(i,j).eq.0)then
                         !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
+                        rhoA(i,j)=0.0_db
+                        rhoB(i,j)=1.0_db
                         f0(i,j)=((p(0))  + pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j)))*rhoA(i,j)/rtot
                         f1(i,j)=((p(3))  + pi2cssq1*(qxx*pxx(i,j)-cssq*pyy(i,j)))*rhoA(i,j)/rtot
                         f3(i,j)=((p(1))  + pi2cssq1*(qxx*pxx(i,j)-cssq*pyy(i,j)))*rhoA(i,j)/rtot
@@ -223,6 +245,7 @@ program lb_openacc
                         g7(i,j)=((p(5)) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)))*rhob(i,j)/rtot
                         g6(i,j)=((p(8)) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)))*rhob(i,j)/rtot
                         g8(i,j)=((p(6)) + pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)))*rhob(i,j)/rtot
+                        psi(i,j)=-1.0_db
                     endif
                 endif
             enddo
@@ -286,9 +309,44 @@ program lb_openacc
                 endif
                 !************************* pressure excess **********!
                 press_Excess=0.0_db
-                if(psi(i,j).lt.-0.95_db .and. psi(i+3*nint(psi_x/mod_psi),j+3*nint(psi_y/mod_psi)).gt.-0.85 &
-                        .and. psi(i-3*nint(psi_x/mod_psi),j-3*nint(psi_y/mod_psi)).gt.-0.85)then
-                        press_excess=max_press_excess*(2.0_db+psi(i+2*nint(psi_x/mod_psi),j+2*nint(psi_y/mod_psi)) + psi(i-2*nint(psi_x/mod_psi),j-2*nint(psi_y/mod_psi)))
+                psid1=0.0_db
+                psid2=0.0_db
+                psid3=0.0_db
+                psid4=0.0_db
+                ncontact=0
+                if(psi(i,j).lt.-0.9_db)then
+                    
+                    if (psi(i+3,j).gt.-0.85 .and. psi(i+3,j).lt.0.0_db .and. psi(i-3,j).gt.-0.85 .and. psi(i-3,j).lt.0.0_db)then !&
+                        !.and. psi(i-3*nint(psi_x/mod_psi),j-3*nint(psi_y/mod_psi)).gt.-0.85)then
+                        !press_excess=max_press_excess*(2.0_db+psi(i+2*nint(psi_x/mod_psi),j+2*nint(psi_y/mod_psi)) + psi(i-2*nint(psi_x/mod_psi),j-2*nint(psi_y/mod_psi)))
+                        psid1=psi(i+2,j) + psi(i-2,j)
+                        ncontact=ncontact+1
+                        ! write(*,*) float(ncontact)
+                        ! stop
+                    else
+                        psid1=-2.0_db
+                    endif
+                    if (psi(i,j+3).gt.-0.9 .and. psi(i,j+3).lt.0.0_db .and. psi(i,j-3).gt.-0.9 .and. psi(i,j-3).lt.0.0_db)then
+                        psid2=psi(i,j+2) + psi(i,j-2)
+                        ncontact=ncontact+1
+                    else
+                        psid2=-2.0_db
+                    endif
+                    if (psi(i+2,j+2).gt.-0.9 .and. psi(i+2,j+2).lt.0.0_db .and. psi(i-2,j-2).gt.-0.9 .and. psi(i-2,j-2).lt.0.0_db)then
+                        psid3=psi(i+1,j+1) + psi(i-1,j-1)
+                        ncontact=ncontact+1
+                    else
+                        psid3=-2.0_db
+                    endif
+                    if (psi(i-2,j+2).gt.-0.9 .and. psi(i-2,j+2).lt.0.0_db .and. psi(i+2,j-2).gt.-0.9 .and. psi(i+2,j-2).lt.0.0_db)then
+                        psid4=psi(i+1,j-1) + psi(i-1,j+1)
+                        ncontact=ncontact+1
+                    else
+                        psid4=-2.0_db
+                    endif
+                    if(ncontact.gt.0)then
+                        press_excess=max_press_excess*(8.0_db+psid1+psid2+psid3+psid4)/float(ncontact)
+                    endif
                 endif
                 !*************************pressure excess**********!
                 !regularized collision + perturbation + recolouring
@@ -382,8 +440,24 @@ program lb_openacc
     open(101, file = 'psi.out', status = 'replace')
     do i=1,nx
         do j=1,ny
-            write(101,*) rhoB(i,j) !sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!!!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)  
+            write(101,*) psi(i,j)!sqrt(u(i,j)**2+v(i,j)**2) !sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!!!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)  
         enddo
     enddo
     close(101)
+
+    open(102, file = 'rhoB.out', status = 'replace')
+    do i=1,nx
+        do j=1,ny
+            write(102,*) rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2) !sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!!!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)  
+        enddo
+    enddo
+    close(102)
+
+    open(103, file = 'mu.out', status = 'replace')
+    do i=1,nx
+        do j=1,ny
+            write(103,*) sqrt(u(i,j)**2+v(i,j)**2)!(i,j)!sqrt(u(i,j)**2+v(i,j)**2) !sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!!!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)  
+        enddo
+    enddo
+    close(103)
 end program
