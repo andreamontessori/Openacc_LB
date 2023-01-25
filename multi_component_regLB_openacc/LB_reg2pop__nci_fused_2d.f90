@@ -103,31 +103,20 @@ program lb_openacc
     psid4=0.0_db
     psi=-1.0_db
     radius=55
-    ! do i=(nx/2-radius-2)-radius,(nx/2-radius-2) +radius
-    !     do j=ny/2-radius,ny/2+radius
-    !         if ((i-(nx/2-radius-2))**2+(j-ny/2)**2<=radius**2)then
-    !             psi(i,j)=1.0_db
-    !         endif
-    !     enddo
-    ! enddo
-    ! do i=(nx/2+radius+2)-radius,(nx/2+radius+2) +radius
-    !     do j=ny/2-radius,ny/2+radius
-    !         if ((i-(nx/2+radius+2))**2+(j-ny/2)**2<=radius**2)then
-    !             psi(i,j)=1.0_db
-    !         endif
-    !     enddo
-    ! enddo
-
-    do j=10,ny-10
-        do i=10,nx-10
-        call random_number(rnd_n1)
-        !call random_number(rnd_n3)
-        if(rnd_n1.gt.0.5)then
-            psi(i,j)=1.0_db
-        else
-            psi(i,j)=-1.0_db
-        endif
-        
+    do i=(nx/2-radius-5)-radius,(nx/2-radius-5) +radius
+        do j=ny/2-radius,ny/2+radius
+            if ((i-(nx/2-radius-5))**2+(j-ny/2)**2<=radius**2)then
+                psi(i,j)=1.0_db
+                u(i,j)=-0.05
+            endif
+        enddo
+    enddo
+    do i=(nx/2+radius+5)-radius,(nx/2+radius+5) +radius
+        do j=ny/2-radius,ny/2+radius
+            if ((i-(nx/2+radius+5))**2+(j-ny/2)**2<=radius**2)then
+                psi(i,j)=1.0_db
+                u(i,j)=-0.05
+            endif
         enddo
     enddo
     
@@ -136,25 +125,25 @@ program lb_openacc
     rhoA=1.0_db-rhoB
     write(*,*) rhoB(nx/2,ny/2),rhoA(nx/2,ny/2)
     !do ll=0,nlinks
-    f0(1:nx,1:ny)=p(0)*rhoA(:,:)
-    f1(1:nx,1:ny)=p(1)*rhoA(:,:)
-    f2(1:nx,1:ny)=p(2)*rhoA(:,:)
-    f3(1:nx,1:ny)=p(3)*rhoA(:,:)
-    f4(1:nx,1:ny)=p(4)*rhoA(:,:)
-    f5(1:nx,1:ny)=p(5)*rhoA(:,:)
-    f6(1:nx,1:ny)=p(6)*rhoA(:,:)
-    f7(1:nx,1:ny)=p(7)*rhoA(:,:)
-    f8(1:nx,1:ny)=p(8)*rhoA(:,:)
+    f0(1:nx,1:ny)=p(0)*rhoA(:,:)*(1.0-u(:,:)*u(:,:)*0.5/cssq)
+    f1(1:nx,1:ny)=p(1)*rhoA(:,:)*(1.0+u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    f2(1:nx,1:ny)=p(2)*rhoA(:,:)*(1.0+v(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    f3(1:nx,1:ny)=p(3)*rhoA(:,:)*(1.0-u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    f4(1:nx,1:ny)=p(4)*rhoA(:,:)*(1.0-v(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    f5(1:nx,1:ny)=p(5)*rhoA(:,:)*(1.0+u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    f6(1:nx,1:ny)=p(6)*rhoA(:,:)*(1.0-u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    f7(1:nx,1:ny)=p(7)*rhoA(:,:)*(1.0-u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    f8(1:nx,1:ny)=p(8)*rhoA(:,:)*(1.0+u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
     !
-    g0(1:nx,1:ny)=p(0)*rhoB(:,:)
-    g1(1:nx,1:ny)=p(1)*rhoB(:,:)
-    g2(1:nx,1:ny)=p(2)*rhoB(:,:)
-    g3(1:nx,1:ny)=p(3)*rhoB(:,:)
-    g4(1:nx,1:ny)=p(4)*rhoB(:,:)
-    g5(1:nx,1:ny)=p(5)*rhoB(:,:)
-    g6(1:nx,1:ny)=p(6)*rhoB(:,:)
-    g7(1:nx,1:ny)=p(7)*rhoB(:,:)
-    g8(1:nx,1:ny)=p(8)*rhoB(:,:)
+    g0(1:nx,1:ny)=p(0)*rhoB(:,:)*(1.0-u(:,:)*u(:,:)*0.5/cssq)
+    g1(1:nx,1:ny)=p(1)*rhoB(:,:)*(1.0+u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    g2(1:nx,1:ny)=p(2)*rhoB(:,:)*(1.0+v(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    g3(1:nx,1:ny)=p(3)*rhoB(:,:)*(1.0-u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    g4(1:nx,1:ny)=p(4)*rhoB(:,:)*(1.0-v(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    g5(1:nx,1:ny)=p(5)*rhoB(:,:)*(1.0+u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    g6(1:nx,1:ny)=p(6)*rhoB(:,:)*(1.0-u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    g7(1:nx,1:ny)=p(7)*rhoB(:,:)*(1.0-u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
+    g8(1:nx,1:ny)=p(8)*rhoB(:,:)*(1.0+u(:,:)/cssq + 0.5*(u(:,:)/cssq)**2-u(:,:)*u(:,:)*0.5/cssq)
     !
     !pause
     !*************************************check data ************************ 
