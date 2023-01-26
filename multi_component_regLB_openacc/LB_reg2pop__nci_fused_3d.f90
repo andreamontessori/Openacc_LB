@@ -4,220 +4,230 @@ program lb_openacc
     !$endif
     
     implicit none
-    
-    integer, parameter :: db=4 !kind(1.0)
-    integer(kind=8) :: i,j,k
-    integer(kind=8) :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus
-    
-    real(kind=db),parameter :: pi_greek=3.14159265359793234626433
-    
-    real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
-    real(kind=db) :: visc_LB,uu,udotc,omega,feq,geq,fpc
-    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
-    real(kind=db) :: radius
+    !************************************block of vars*******************************************!
+        integer, parameter :: db=4 !kind(1.0)
+        integer(kind=8) :: i,j,k
+        integer(kind=8) :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus
+        
+        real(kind=db),parameter :: pi_greek=3.14159265359793234626433
+        
+        real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
+        real(kind=db) :: visc_LB,uu,udotc,omega,feq,geq,fpc
+        real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
+        real(kind=db) :: radius
 
-    real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8,fneq17
-    real(kind=db) :: fneq9,fneq10,fneq11,fneq12,fneq13,fneq14,fneq15,fneq16,fneq18
-    real(kind=db) :: ft0,ft1,ft2,ft3,ft4,ft5,ft6,ft7,ft8,ft17
-    real(kind=db) :: ft9,ft10,ft11,ft12,ft13,ft14,ft15,ft16,ft18
-    real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
-    real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0
-    real(kind=db) :: psid1,psid2,psid3,psid4,psid5,psid6,psid7,psid8,psid9,ncontact
-    real(kind=db) :: addendum0,addendum1,addendum2,addendum3,addendum4,addendum5,addendum6,addendum7,addendum8
-    real(kind=db) :: addendum9,addendum10,addendum11,addendum12,addendum13,addendum14,addendum15,addendum16,addendum17,addendum18
-    real(kind=db) :: gaddendum1,gaddendum2,gaddendum3,gaddendum4,gaddendum5,gaddendum6,gaddendum7,gaddendum8
-    real(kind=db) :: gaddendum9,gaddendum10,gaddendum11,gaddendum12,gaddendum13,gaddendum14,gaddendum15,gaddendum16,gaddendum17,gaddendum18
-    real(kind=db) :: psi_x,psi_y,psi_z,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma
-    real(kind=db) :: one_ov_nu2,one_ov_nu1,nu_avg,rtot,rprod
-    real(kind=db) :: press_excess,max_press_excess
+        real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8,fneq17
+        real(kind=db) :: fneq9,fneq10,fneq11,fneq12,fneq13,fneq14,fneq15,fneq16,fneq18
+        real(kind=db) :: ft0,ft1,ft2,ft3,ft4,ft5,ft6,ft7,ft8,ft17
+        real(kind=db) :: ft9,ft10,ft11,ft12,ft13,ft14,ft15,ft16,ft18
+        real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
+        real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0
+        real(kind=db) :: psid1,psid2,psid3,psid4,psid5,psid6,psid7,psid8,psid9,ncontact
+        real(kind=db) :: addendum0,addendum1,addendum2,addendum3,addendum4,addendum5,addendum6,addendum7,addendum8
+        real(kind=db) :: addendum9,addendum10,addendum11,addendum12,addendum13,addendum14,addendum15,addendum16,addendum17,addendum18
+        real(kind=db) :: gaddendum1,gaddendum2,gaddendum3,gaddendum4,gaddendum5,gaddendum6,gaddendum7,gaddendum8
+        real(kind=db) :: gaddendum9,gaddendum10,gaddendum11,gaddendum12,gaddendum13,gaddendum14,gaddendum15,gaddendum16,gaddendum17,gaddendum18
+        real(kind=db) :: psi_x,psi_y,psi_z,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma
+        real(kind=db) :: one_ov_nu2,one_ov_nu1,nu_avg,rtot,rprod
+        real(kind=db) :: press_excess,max_press_excess
 
-    integer(kind=4), allocatable,dimension(:,:,:)   :: isfluid
-    real(kind=db), allocatable, dimension(:,:,:) :: psi,rhoA,rhoB,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
-    real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
-    real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
-    real(kind=db), allocatable, dimension(:,:,:) :: g0,g1,g2,g3,g4,g5,g6,g7,g8,g9
-    real(kind=db), allocatable, dimension(:,:,:) :: g10,g11,g12,g13,g14,g15,g16,g17,g18
+        integer(kind=4), allocatable,dimension(:,:,:)   :: isfluid
+        real(kind=db), allocatable, dimension(:,:,:) :: psi,rhoA,rhoB,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
+        real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
+        real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
+        real(kind=db), allocatable, dimension(:,:,:) :: g0,g1,g2,g3,g4,g5,g6,g7,g8,g9
+        real(kind=db), allocatable, dimension(:,:,:) :: g10,g11,g12,g13,g14,g15,g16,g17,g18
 
        
-    nlinks=18 !pari!
-    cssq=1.0_db/3.0_db
-    !fluid 1
-    tau=1.0_db
-    visc_LB=cssq*(tau-0.5_db)
-    one_ov_nu1=1.0_db/visc_LB
-    !fluid2
-    tau=1.0_db
-    visc_LB=cssq*(tau-0.5_db)
-    one_ov_nu2=1.0_db/visc_LB
-    omega=1.0_db/tau
-!#ifdef _OPENACC
-!        ngpus=acc_get_num_devices(acc_device_nvidia)
-!#else
-!        ngpus=0
-!#endif
-
-    !*******************************user parameters**************************
-    nx=100
-    ny=100
-    nz=100
-    nsteps=100
-    stamp=1000
-    fx=0.0_db*10.0**(-7)
-    fy=0.0_db*10.0**(-5)
-    fz=0.0_db*10.0**(-5)
-
-    allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
-    allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))
-    allocate(f8(0:nx+1,0:ny+1,0:nz+1),f9(0:nx+1,0:ny+1,0:nz+1),f10(0:nx+1,0:ny+1,0:nz+1),f11(0:nx+1,0:ny+1,0:nz+1))
-    allocate(f12(0:nx+1,0:ny+1,0:nz+1),f13(0:nx+1,0:ny+1,0:nz+1),f14(0:nx+1,0:ny+1,0:nz+1),f15(0:nx+1,0:ny+1,0:nz+1))
-    allocate(f16(0:nx+1,0:ny+1,0:nz+1),f17(0:nx+1,0:ny+1,0:nz+1),f18(0:nx+1,0:ny+1,0:nz+1))
-    allocate(g0(0:nx+1,0:ny+1,0:nz+1),g1(0:nx+1,0:ny+1,0:nz+1),g2(0:nx+1,0:ny+1,0:nz+1),g3(0:nx+1,0:ny+1,0:nz+1))
-    allocate(g4(0:nx+1,0:ny+1,0:nz+1),g5(0:nx+1,0:ny+1,0:nz+1),g6(0:nx+1,0:ny+1,0:nz+1),g7(0:nx+1,0:ny+1,0:nz+1))
-    allocate(g8(0:nx+1,0:ny+1,0:nz+1),g9(0:nx+1,0:ny+1,0:nz+1),g10(0:nx+1,0:ny+1,0:nz+1),g11(0:nx+1,0:ny+1,0:nz+1))
-    allocate(g12(0:nx+1,0:ny+1,0:nz+1),g13(0:nx+1,0:ny+1,0:nz+1),g14(0:nx+1,0:ny+1,0:nz+1),g15(0:nx+1,0:ny+1,0:nz+1))
-    allocate(g16(0:nx+1,0:ny+1,0:nz+1),g17(0:nx+1,0:ny+1,0:nz+1),g18(0:nx+1,0:ny+1,0:nz+1))
-    allocate(rhoA(1:nx,1:ny,1:nz),rhoB(1:nx,1:ny,1:nz),u(1:nx,1:ny,1:nz),v(1:nx,1:ny,1:nz),w(1:nx,1:ny,1:nz))
-    allocate(pxx(1:nx,1:ny,1:nz),pxy(1:nx,1:ny,1:nz),pxz(1:nx,1:ny,1:nz),pyy(1:nx,1:ny,1:nz))
-    allocate(pyz(1:nx,1:ny,1:nz),pzz(1:nx,1:ny,1:nz),psi(0:nx+1,0:ny+1,0:nz+1))
-    allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
+   
     
-    !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
-	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
-	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+    
+    !*********************************** lattice parameters**************************************!
+        nlinks=18 !pari!
+        cssq=1.0_db/3.0_db
+        !fluid 1
+        tau=1.0_db
+        visc_LB=cssq*(tau-0.5_db)
+        one_ov_nu1=1.0_db/visc_LB
+        !fluid2
+        tau=1.0_db
+        visc_LB=cssq*(tau-0.5_db)
+        one_ov_nu2=1.0_db/visc_LB
+        omega=1.0_db/tau
+    !#ifdef _OPENACC
+    !        ngpus=acc_get_num_devices(acc_device_nvidia)
+    !#else
+    !        ngpus=0
+    !#endif
 
-    p0=(1.0_db/3.0_db)
-	p1=(1.0_db/18.0_db)
-	p2=(1.0_db/36.0_db)
-    p1dcssq=p1/cssq
-    p2dcssq=p2/cssq
-    !*****************************************geometry************************
-    isfluid=1
-    isfluid(1,:,:)=0 !left
-    isfluid(nx,:,:)=0 !right
-    isfluid(:,1,:)=0 !front 
-    isfluid(:,ny,:)=0 !rear
-    isfluid(:,:,1)=0 !bottom
-    isfluid(:,:,nz)=0 !top
-    !****************************************hermite projection vars**********
-    pi2cssq0=p0/(2.0_db*cssq**2)
-    pi2cssq1=p1/(2.0_db*cssq**2)
-    pi2cssq2=p2/(2.0_db*cssq**2)
+    !**************************************user parameters**************************
+        nx=100
+        ny=100
+        nz=100
+        nsteps=1000
+        stamp=1000
+        fx=0.0_db*10.0**(-7)
+        fy=0.0_db*10.0**(-5)
+        fz=0.0_db*10.0**(-5)
+    !*****************************************allocation*******************************************************
+        allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
+        allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))
+        allocate(f8(0:nx+1,0:ny+1,0:nz+1),f9(0:nx+1,0:ny+1,0:nz+1),f10(0:nx+1,0:ny+1,0:nz+1),f11(0:nx+1,0:ny+1,0:nz+1))
+        allocate(f12(0:nx+1,0:ny+1,0:nz+1),f13(0:nx+1,0:ny+1,0:nz+1),f14(0:nx+1,0:ny+1,0:nz+1),f15(0:nx+1,0:ny+1,0:nz+1))
+        allocate(f16(0:nx+1,0:ny+1,0:nz+1),f17(0:nx+1,0:ny+1,0:nz+1),f18(0:nx+1,0:ny+1,0:nz+1))
+        allocate(g0(0:nx+1,0:ny+1,0:nz+1),g1(0:nx+1,0:ny+1,0:nz+1),g2(0:nx+1,0:ny+1,0:nz+1),g3(0:nx+1,0:ny+1,0:nz+1))
+        allocate(g4(0:nx+1,0:ny+1,0:nz+1),g5(0:nx+1,0:ny+1,0:nz+1),g6(0:nx+1,0:ny+1,0:nz+1),g7(0:nx+1,0:ny+1,0:nz+1))
+        allocate(g8(0:nx+1,0:ny+1,0:nz+1),g9(0:nx+1,0:ny+1,0:nz+1),g10(0:nx+1,0:ny+1,0:nz+1),g11(0:nx+1,0:ny+1,0:nz+1))
+        allocate(g12(0:nx+1,0:ny+1,0:nz+1),g13(0:nx+1,0:ny+1,0:nz+1),g14(0:nx+1,0:ny+1,0:nz+1),g15(0:nx+1,0:ny+1,0:nz+1))
+        allocate(g16(0:nx+1,0:ny+1,0:nz+1),g17(0:nx+1,0:ny+1,0:nz+1),g18(0:nx+1,0:ny+1,0:nz+1))
+        allocate(rhoA(1:nx,1:ny,1:nz),rhoB(1:nx,1:ny,1:nz),u(1:nx,1:ny,1:nz),v(1:nx,1:ny,1:nz),w(1:nx,1:ny,1:nz))
+        allocate(pxx(1:nx,1:ny,1:nz),pxy(1:nx,1:ny,1:nz),pxz(1:nx,1:ny,1:nz),pyy(1:nx,1:ny,1:nz))
+        allocate(pyz(1:nx,1:ny,1:nz),pzz(1:nx,1:ny,1:nz),psi(0:nx+1,0:ny+1,0:nz+1))
+        allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
+    
+    !***************************************lattice vars*************************************!
+        !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+        !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+        !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
 
-    qxx=1.0_db-cssq
-    qyy=1.0_db-cssq
-    qzz=1.0_db-cssq
-    qxy_7_8=1.0_db
-    qxy_9_10=-1.0_db
-    qxz_15_16=1.0_db
-    qxz_17_18=-1.0_db
-    qyz_11_12=1.0_db
-    qyz_13_14=-1.0_db
-    ! chromodynamic
-    beta=0.95_db
-    sigma=0.02_db
-    st_coeff=(9.0_db/4.0_db)*sigma*omega
-    b0=-1.0_db/3.0_db
-    b1=1.0_db/18.0_db
-    b2=1_db/36.0_db
-    !*************************************initial conditions ************************    
-    u=0.0_db
-    v=0.0_db
-    w=0.0_db
-    rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
-    rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
-    press_excess=0.0_db
-    max_press_excess=0.0
-    psi=-1.0_db
-    radius=14
-    do i=35-radius,35+radius
-        do j=ny/2-radius,ny/2+radius
-            do k=nz/2-radius,nz/2+radius
-                if ((i-35)**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
-                    psi(i,j,k)=1.0_db
-                endif
+        p0=(1.0_db/3.0_db)
+        p1=(1.0_db/18.0_db)
+        p2=(1.0_db/36.0_db)
+        p1dcssq=p1/cssq
+        p2dcssq=p2/cssq
+    !****************************************geometry************************
+        isfluid=1
+        isfluid(1,:,:)=0 !left
+        isfluid(nx,:,:)=0 !right
+        isfluid(:,1,:)=0 !front 
+        isfluid(:,ny,:)=0 !rear
+        isfluid(:,:,1)=0 !bottom
+        isfluid(:,:,nz)=0 !top
+    !********************************hermite projection vars**********
+        pi2cssq0=p0/(2.0_db*cssq**2)
+        pi2cssq1=p1/(2.0_db*cssq**2)
+        pi2cssq2=p2/(2.0_db*cssq**2)
+
+        qxx=1.0_db-cssq
+        qyy=1.0_db-cssq
+        qzz=1.0_db-cssq
+        qxy_7_8=1.0_db
+        qxy_9_10=-1.0_db
+        qxz_15_16=1.0_db
+        qxz_17_18=-1.0_db
+        qyz_11_12=1.0_db
+        qyz_13_14=-1.0_db
+    !*********************************chromodynamics vars*****************************
+        ! 
+        beta=0.95_db
+        sigma=0.02_db
+        st_coeff=(9.0_db/4.0_db)*sigma*omega
+        b0=-1.0_db/3.0_db
+        b1=1.0_db/18.0_db
+        b2=1_db/36.0_db
+    !********************************initialization of macrovars ************************    
+        u=0.0_db
+        v=0.0_db
+        w=0.0_db
+        rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
+        rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
+        press_excess=0.0_db
+        max_press_excess=0.05
+        psi=-1.0_db
+        radius=14
+        do i=35-radius,35+radius
+            do j=ny/2-radius,ny/2+radius
+                do k=nz/2-radius,nz/2+radius
+                    if ((i-35)**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
+                        psi(i,j,k)=1.0_db
+                    endif
+                enddo
             enddo
         enddo
-    enddo
-    do i=66-radius,66+radius
-        do j=ny/2-radius,ny/2+radius
-            do k=nz/2-radius,nz/2+radius
-                if ((i-66)**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
-                    psi(i,j,k)=1.0_db
-                endif
+        do i=66-radius,66+radius
+            do j=ny/2-radius,ny/2+radius
+                do k=nz/2-radius,nz/2+radius
+                    if ((i-66)**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
+                        psi(i,j,k)=1.0_db
+                    endif
+                enddo
             enddo
         enddo
-    enddo
-    rhoB=0.5*(1.0_db-psi(1:nx,1:ny,1:nz))
-    rhoA=1.0_db-rhoB
-    write(*,*) rhoB(nx/2,ny/2,nz/2),rhoA(nx/2,ny/2,nz/2)
-    !!***************!!!
-    f0(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p0
-    f1(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-    f2(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-    f3(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-    f4(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-    f5(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-    f6(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-    f7(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f8(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f9(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f10(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f11(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f12(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f13(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f14(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f15(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f16(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f17(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    f18(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-    !
-    g0(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p0
-    g1(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-    g2(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-    g3(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-    g4(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-    g5(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-    g6(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-    g7(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g8(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g9(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g10(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g11(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g12(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g13(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g14(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g15(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g16(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g17(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    g18(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-    !enddo
-    !*************************************check data ************************ 
-    write(6,*) '*******************LB data*****************'
-    write(6,*) 'tau',tau
-    write(6,*) 'omega',omega
-    write(6,*) 'visc',visc_LB
-    write(6,*) 'fx',fx
-    write(6,*) 'fy',fy
-    write(6,*) 'fz',fz
-    write(6,*) 'cssq',cssq
-    write(6,*) 'beta',beta
-    write(6,*) 'sigma',sigma
-    write(6,*) 'surface_tens_coeff',st_coeff
-    write(6,*) '*******************INPUT data*****************'
-    write(6,*) 'nx',nx
-    write(6,*) 'ny',ny
-    write(6,*) 'ny',nz
-    write(6,*) 'nsteps',nsteps
-    write(6,*) 'stamp',stamp
-    write(6,*) 'max fx',huge(fx)
-    write(6,*) 'max fx',huge(fy)
-    write(6,*) 'max fx',huge(fz)
-    write(6,*) '*******************************************'
+        rhoB=0.5*(1.0_db-psi(1:nx,1:ny,1:nz))
+        rhoA=1.0_db-rhoB
+        write(*,*) rhoB(nx/2,ny/2,nz/2),rhoA(nx/2,ny/2,nz/2)
+    !*************************************set distros************************!
+        f0(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p0
+        f1(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
+        f2(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
+        f3(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
+        f4(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
+        f5(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
+        f6(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
+        f7(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f8(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f9(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f10(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f11(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f12(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f13(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f14(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f15(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f16(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f17(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        f18(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        !
+        g0(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p0
+        g1(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
+        g2(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
+        g3(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
+        g4(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
+        g5(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
+        g6(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
+        g7(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g8(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g9(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g10(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g11(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g12(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g13(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g14(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g15(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g16(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g17(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g18(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+    
+    !***************************************check data ************************ 
+        write(6,*) '*******************LB data*****************'
+        write(6,*) 'tau',tau
+        write(6,*) 'omega',omega
+        write(6,*) 'visc',visc_LB
+        write(6,*) 'fx',fx
+        write(6,*) 'fy',fy
+        write(6,*) 'fz',fz
+        write(6,*) 'cssq',cssq
+        write(6,*) 'beta',beta
+        write(6,*) 'sigma',sigma
+        write(6,*) 'surface_tens_coeff',st_coeff
+        write(6,*) '*******************INPUT data*****************'
+        write(6,*) 'nx',nx
+        write(6,*) 'ny',ny
+        write(6,*) 'ny',nz
+        write(6,*) 'nsteps',nsteps
+        write(6,*) 'stamp',stamp
+        write(6,*) 'max fx',huge(fx)
+        write(6,*) 'max fx',huge(fy)
+        write(6,*) 'max fx',huge(fz)
+        write(6,*) '*******************************************'
+    !*****************************************copy data on gpu*********************************************!
     !$acc data copy(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,isfluid,p0,p1,p2,&
              !$acc& pxx,pyy,pzz,pxy,pxz,pyz,rhoA,rhoB,u,v,w,psi, &
              !$acc& g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15,g16,g17,g18)
-    !*************************************time loop************************  
+    
+    
+    !**********************************************************************!
     call cpu_time(ts1)
+    !*************************************main loop*************************!
     do step=1,nsteps 
         !***********************************moments collision bbck + forcing************************  
         !$acc kernels 
@@ -400,11 +410,11 @@ program lb_openacc
                         
                         rprod=rhoA(i,j,k)*rhoB(i,j,k)
                         
-                        !nu_avg=1.0_db/(rhoA(i,j,k)*one_ov_nu1/rtot + rhoB(i,j,k)*one_ov_nu2/rtot)
+                        nu_avg=1.0_db/(rhoA(i,j,k)*one_ov_nu1/rtot + rhoB(i,j,k)*one_ov_nu2/rtot)
                         
-                        !omega=2.0_db/(6.0_db*nu_avg + 1.0_db)
+                        omega=2.0_db/(6.0_db*nu_avg + 1.0_db)
                         
-                        !st_coeff=(9.0_db/4.0_db)*sigma*omega
+                        st_coeff=(9.0_db/4.0_db)*sigma*omega
                         addendum0=0.0_db
                         addendum1=0.0_db
                         addendum2=0.0_db
@@ -443,10 +453,6 @@ program lb_openacc
                         gaddendum17=0.0_db
                         gaddendum18=0.0_db
                         if (mod_psi>0.001)then
-                            ! 0  1   2  3   4   5   6   7    8   9    10  11   12  13   14  15   16   17   18
-                        !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
-	                    !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
-	                    !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
                             addendum0=-st_coeff*mod_psi*b0
                             addendum1=st_coeff*mod_psi*(p1*psi_x**2/mod_psi_sq - b1)
                             addendum2=addendum1
@@ -468,10 +474,6 @@ program lb_openacc
                             addendum17=st_coeff*mod_psi*(p2*(-psi_x+psi_z)**2/mod_psi_sq - b2)
                             addendum18=addendum17
                             !
-                                ! 0  1   2  3   4   5   6   7    8   9    10  11   12  13   14  15   16   17   18
-                            !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
-                            !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
-                            !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
                             gaddendum1=p1*(rtot)*(rprod*beta*psi_x/mod_psi/rtot**2)
                             gaddendum2=-gaddendum1
                             gaddendum3=p1*(rtot)*(rprod*beta*psi_y/mod_psi/rtot**2)
@@ -494,78 +496,74 @@ program lb_openacc
                         endif
                         !!************************************************************************!
                         press_Excess=0.0_db
-                        ! psid1=0.0_db
-                        ! psid2=0.0_db
-                        ! psid3=0.0_db
-                        ! psid4=0.0_db
-                        ! ncontact=0
-                        ! if(psi(i,j,k).lt.-0.9_db)then
+                        psid1=0.0_db
+                        psid2=0.0_db
+                        psid3=0.0_db
+                        psid4=0.0_db
+                        ncontact=0
+                        if(psi(i,j,k).lt.-0.9_db)then
                             
-                        !     if (psi(i+3,j,k).gt.-0.85 .and. psi(i+3,j,k).lt.0.0_db .and. psi(i-3,j,k).gt.-0.85 .and. psi(i-3,j,k).lt.0.0_db)then !&
-                        !         psid1=psi(i+2,j,k) + psi(i-2,j,k)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid1=-2.0_db
-                        !     endif
-                        !     if (psi(i,j+3,k).gt.-0.85 .and. psi(i,j+3,k).lt.0.0_db .and. psi(i,j-3,k).gt.-0.85 .and. psi(i,j-3,k).lt.0.0_db)then
-                        !         psid2=psi(i,j+2,k) + psi(i,j-2,k)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid2=-2.0_db
-                        !     endif
-                        !     if (psi(i,j,k+3).gt.-0.85 .and. psi(i,j,k+3).lt.0.0_db .and. psi(i,j,k-3).gt.-0.85 .and. psi(i,j,k-3).lt.0.0_db)then
-                        !         psid3=psi(i,j,k+2) + psi(i,j,k-2)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid3=-2.0_db
-                        !     endif
-                        !     if (psi(i+2,j+2,k).gt.-0.85 .and. psi(i+2,j+2,k).lt.0.0_db .and. psi(i-2,j-2,k).gt.-0.85 .and. psi(i-2,j-2,k).lt.0.0_db)then
-                        !         psid4=psi(i+1,j+1,k) + psi(i-1,j-1,k)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid4=-2.0_db
-                        !     endif
-                        !     if (psi(i+2,j,k+2).gt.-0.85 .and. psi(i+2,j,k+2).lt.0.0_db .and. psi(i-2,j,k-2).gt.-0.85 .and. psi(i-2,j,k-2).lt.0.0_db)then
-                        !         psid5=psi(i+1,j,k+1) + psi(i-1,j,k-1)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid5=-2.0_db
-                        !     endif
-                        !     if (psi(i,j+2,k+2).gt.-0.85 .and. psi(i,j+2,k+2).lt.0.0_db .and. psi(i,j-2,k-2).gt.-0.85 .and. psi(i,j-2,k-2).lt.0.0_db)then
-                        !         psid6=psi(i,j+1,k+1) + psi(i,j-1,k-1)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid6=-2.0_db
-                        !     endif
+                            if (psi(i+3,j,k).gt.-0.85 .and. psi(i+3,j,k).lt.0.0_db .and. psi(i-3,j,k).gt.-0.85 .and. psi(i-3,j,k).lt.0.0_db)then !&
+                                psid1=psi(i+2,j,k) + psi(i-2,j,k)
+                                ncontact=ncontact+1
+                            else
+                                psid1=-2.0_db
+                            endif
+                            if (psi(i,j+3,k).gt.-0.85 .and. psi(i,j+3,k).lt.0.0_db .and. psi(i,j-3,k).gt.-0.85 .and. psi(i,j-3,k).lt.0.0_db)then
+                                psid2=psi(i,j+2,k) + psi(i,j-2,k)
+                                ncontact=ncontact+1
+                            else
+                                psid2=-2.0_db
+                            endif
+                            if (psi(i,j,k+3).gt.-0.85 .and. psi(i,j,k+3).lt.0.0_db .and. psi(i,j,k-3).gt.-0.85 .and. psi(i,j,k-3).lt.0.0_db)then
+                                psid3=psi(i,j,k+2) + psi(i,j,k-2)
+                                ncontact=ncontact+1
+                            else
+                                psid3=-2.0_db
+                            endif
+                            if (psi(i+2,j+2,k).gt.-0.85 .and. psi(i+2,j+2,k).lt.0.0_db .and. psi(i-2,j-2,k).gt.-0.85 .and. psi(i-2,j-2,k).lt.0.0_db)then
+                                psid4=psi(i+1,j+1,k) + psi(i-1,j-1,k)
+                                ncontact=ncontact+1
+                            else
+                                psid4=-2.0_db
+                            endif
+                            if (psi(i+2,j,k+2).gt.-0.85 .and. psi(i+2,j,k+2).lt.0.0_db .and. psi(i-2,j,k-2).gt.-0.85 .and. psi(i-2,j,k-2).lt.0.0_db)then
+                                psid5=psi(i+1,j,k+1) + psi(i-1,j,k-1)
+                                ncontact=ncontact+1
+                            else
+                                psid5=-2.0_db
+                            endif
+                            if (psi(i,j+2,k+2).gt.-0.85 .and. psi(i,j+2,k+2).lt.0.0_db .and. psi(i,j-2,k-2).gt.-0.85 .and. psi(i,j-2,k-2).lt.0.0_db)then
+                                psid6=psi(i,j+1,k+1) + psi(i,j-1,k-1)
+                                ncontact=ncontact+1
+                            else
+                                psid6=-2.0_db
+                            endif
 
-                        !     if (psi(i-2,j+2,k).gt.-0.85 .and. psi(i-2,j+2,k).lt.0.0_db .and. psi(i+2,j-2,k).gt.-0.85 .and. psi(i+2,j-2,k).lt.0.0_db)then
-                        !         psid7=psi(i+1,j-1,k) + psi(i-1,j+1,k)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid7=-2.0_db
-                        !     endif
-                        !     if (psi(i-2,j,k+2).gt.-0.85 .and. psi(i-2,j,k+2).lt.0.0_db .and. psi(i+2,j,k-2).gt.-0.85 .and. psi(i+2,j,k-2).lt.0.0_db)then
-                        !         psid8=psi(i+1,j,k-1) + psi(i-1,j,k+1)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid8=-2.0_db
-                        !     endif
-                        !     if (psi(i,j-2,k+2).gt.-0.85 .and. psi(i,j-2,k+2).lt.0.0_db .and. psi(i,j+2,k-2).gt.-0.85 .and. psi(i,j+2,k-2).lt.0.0_db)then
-                        !         psid9=psi(i,j+1,k-1) + psi(i,j-1,k+1)
-                        !         ncontact=ncontact+1
-                        !     else
-                        !         psid9=-2.0_db
-                        !     endif
-                        !     if(ncontact.gt.0)then
-                        !         press_excess=max_press_excess*(18.0_db+psid1+psid2+psid3+psid4+psid5+psid6+psid7+psid8+psid9)/real(ncontact,4)
-                        !     endif
-                        ! endif
+                            if (psi(i-2,j+2,k).gt.-0.85 .and. psi(i-2,j+2,k).lt.0.0_db .and. psi(i+2,j-2,k).gt.-0.85 .and. psi(i+2,j-2,k).lt.0.0_db)then
+                                psid7=psi(i+1,j-1,k) + psi(i-1,j+1,k)
+                                ncontact=ncontact+1
+                            else
+                                psid7=-2.0_db
+                            endif
+                            if (psi(i-2,j,k+2).gt.-0.85 .and. psi(i-2,j,k+2).lt.0.0_db .and. psi(i+2,j,k-2).gt.-0.85 .and. psi(i+2,j,k-2).lt.0.0_db)then
+                                psid8=psi(i+1,j,k-1) + psi(i-1,j,k+1)
+                                ncontact=ncontact+1
+                            else
+                                psid8=-2.0_db
+                            endif
+                            if (psi(i,j-2,k+2).gt.-0.85 .and. psi(i,j-2,k+2).lt.0.0_db .and. psi(i,j+2,k-2).gt.-0.85 .and. psi(i,j+2,k-2).lt.0.0_db)then
+                                psid9=psi(i,j+1,k-1) + psi(i,j-1,k+1)
+                                ncontact=ncontact+1
+                            else
+                                psid9=-2.0_db
+                            endif
+                            if(ncontact.gt.0)then
+                                press_excess=max_press_excess*(18.0_db+psid1+psid2+psid3+psid4+psid5+psid6+psid7+psid8+psid9)/real(ncontact,4)
+                            endif
+                        endif
                         !*************************************************************************!
                         !0
-                            ! 0  1   2  3   4   5   6   7    8   9    10  11   12  13   14  15   16   17   18
-                        !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
-                        !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
-                        !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
                         feq=p0*(rtot+press_excess-uu)
                         fpc=feq + (1.0_db-omega)*pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k))) + addendum0
                         f0(i,j,k)=fpc*rhoA(i,j,k)/rtot
@@ -741,8 +739,6 @@ program lb_openacc
     call cpu_time(ts2)
     !$acc update host(rhoA,rhoB,u,v,w)
     !$acc end data
-    
-
     write(6,*) 'u=',u(nx/2,ny/2,nz/2),'v=',v(nx/2,ny/2,nz/2),'w=',w(nx/2,ny/2,nz/2),'rho=',rhoA(nx/2,ny/2,nz/2)
     write(6,*) 'u=',u(nx/2,ny/2,1),'v=',v(nx/2,ny/2,1),'w=',w(nx/2,ny/2,1),'rho=',rhoA(nx/2,ny/2,1)
     write(6,*) 'time elapsed ', ts2-ts1, ' s ' 
