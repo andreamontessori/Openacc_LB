@@ -18,7 +18,7 @@ program lb_openacc
     real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8,fneq17
     real(kind=db) :: fneq9,fneq10,fneq11,fneq12,fneq13,fneq14,fneq15,fneq16,fneq18
     real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
-    real(kind=db) :: pi2cssq1,pi2cssq2
+    real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0
     
     integer(kind=4), allocatable,dimension(:,:,:)   :: isfluid
     real(kind=db), allocatable, dimension(:,:,:) :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
@@ -216,31 +216,31 @@ program lb_openacc
                         pxy(i,j,k)= fneq7+fneq8-fneq9-fneq10
                         pxz(i,j,k)=fneq15+fneq16-fneq17-fneq18
                         pyz(i,j,k)=fneq11+fneq12-fneq13-fneq14
-                    endif
-                    !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
-                    if(isfluid(i,j,k).eq.0)then
-                        f0(i,j,k)=p0*rho(i,j,k) + pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k)))
-                        f1(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
-                        f2(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
-                        f3(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
-                        f4(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
-                        f5(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
-                        f6(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
+                        !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
+                        if(isfluid(i,j,k).eq.0)then
+                            f0(i,j,k)=p0*rho(i,j,k) + pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k)))
+                            f1(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
+                            f2(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
+                            f3(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
+                            f4(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
+                            f5(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
+                            f6(i,j,k)=p1*rho(i,j,k) + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
 
-                        f7(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j)+2.0_db*qxy_7_8*pxy(i,j,k))
-                        f8(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j)+2.0_db*qxy_7_8*pxy(i,j,k))
-                        f9(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j)+2.0_db*qxy_9_10*pxy(i,j,k))
-                        f10(i,j,k)=p2*rho(i,j,k) +pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j)+2.0_db*qxy_9_10*pxy(i,j,k))
+                            f7(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k))
+                            f8(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k))
+                            f9(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k))
+                            f10(i,j,k)=p2*rho(i,j,k) +pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k))
 
-                        f11(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j)+2.0_db*qyz_11_12*pyz(i,j,k))
-                        f12(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j)+2.0_db*qyz_11_12*pyz(i,j,k))
-                        f13(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j)+2.0_db*qyz_13_14*pyz(i,j,k))
-                        f14(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j)+2.0_db*qyz_13_14*pyz(i,j,k))
+                            f11(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k))
+                            f12(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k))
+                            f13(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k))
+                            f14(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k))
 
-                        f15(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j)+2.0_db*qxz_15_16*pxz(i,j,k))
-                        f16(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j)+2.0_db*qxz_15_16*pxz(i,j,k))
-                        f17(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j)+2.0_db*qxz_17_18*pxz(i,j,k))
-                        f18(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j)+2.0_db*qxz_17_18*pxz(i,j,k))
+                            f15(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k))
+                            f16(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k))
+                            f17(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k))
+                            f18(i,j,k)=p2*rho(i,j,k) + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k))
+                        endif
                     endif
                 enddo
             enddo

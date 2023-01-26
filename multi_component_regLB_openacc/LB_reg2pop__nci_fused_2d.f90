@@ -51,7 +51,7 @@ program lb_openacc
     !*******************************user parameters**************************
     nx=512
     ny=512
-    nsteps=1
+    nsteps=2000
     stamp=10000
     fx=0.0_db*10.0**(-7)
     fy=0.0_db*10.0**(-5)
@@ -95,7 +95,7 @@ program lb_openacc
     rhoA=0.0_db     !is to be intended as a delta rho
     rhoB=0.0_db     !is to be intended as a delta rho
     press_excess=0.0_db
-    max_press_excess=0.05 !2
+    max_press_excess=0.01 !2
     ncontact=0
     psid1=0.0_db
     psid2=0.0_db
@@ -107,7 +107,7 @@ program lb_openacc
         do j=ny/2-radius,ny/2+radius
             if ((i-(nx/2-radius-5))**2+(j-ny/2)**2<=radius**2)then
                 psi(i,j)=1.0_db
-                u(i,j)=-0.05
+                u(i,j)=0.05
             endif
         enddo
     enddo
@@ -173,7 +173,7 @@ program lb_openacc
     do step=1,nsteps 
         !***********************************moment + neq pressor*********
         !$acc kernels 
-        !$acc loop collapse(2) private(uu,temp,udotc,fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8) 
+        !$acc loop collapse(2) !private(uu,temp,udotc,fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8) 
         do j=1,ny
             do i=1,nx
                 if(isfluid(i,j).eq.1.or.isfluid(i,j).eq.0)then
@@ -315,19 +315,19 @@ program lb_openacc
                     else
                         psid1=-2.0_db
                     endif
-                    if (psi(i,j+3).gt.-0.9 .and. psi(i,j+3).lt.0.0_db .and. psi(i,j-3).gt.-0.9 .and. psi(i,j-3).lt.0.0_db)then
+                    if (psi(i,j+3).gt.-0.85 .and. psi(i,j+3).lt.0.0_db .and. psi(i,j-3).gt.-0.85 .and. psi(i,j-3).lt.0.0_db)then
                         psid2=psi(i,j+2) + psi(i,j-2)
                         ncontact=ncontact+1
                     else
                         psid2=-2.0_db
                     endif
-                    if (psi(i+2,j+2).gt.-0.9 .and. psi(i+2,j+2).lt.0.0_db .and. psi(i-2,j-2).gt.-0.9 .and. psi(i-2,j-2).lt.0.0_db)then
+                    if (psi(i+2,j+2).gt.-0.85 .and. psi(i+2,j+2).lt.0.0_db .and. psi(i-2,j-2).gt.-0.85 .and. psi(i-2,j-2).lt.0.0_db)then
                         psid3=psi(i+1,j+1) + psi(i-1,j-1)
                         ncontact=ncontact+1
                     else
                         psid3=-2.0_db
                     endif
-                    if (psi(i-2,j+2).gt.-0.9 .and. psi(i-2,j+2).lt.0.0_db .and. psi(i+2,j-2).gt.-0.9 .and. psi(i+2,j-2).lt.0.0_db)then
+                    if (psi(i-2,j+2).gt.-0.85 .and. psi(i-2,j+2).lt.0.0_db .and. psi(i+2,j-2).gt.-0.85 .and. psi(i+2,j-2).lt.0.0_db)then
                         psid4=psi(i+1,j-1) + psi(i-1,j+1)
                         ncontact=ncontact+1
                     else
