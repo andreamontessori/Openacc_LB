@@ -61,10 +61,10 @@ program lb_openacc
     !#endif
 
     !**************************************user parameters**************************
-        nx=100
-        ny=100
-        nz=100
-        nsteps=1000
+        nx=300
+        ny=300
+        nz=300
+        nsteps=5
         stamp=1000
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)

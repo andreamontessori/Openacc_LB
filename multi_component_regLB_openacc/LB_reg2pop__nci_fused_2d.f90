@@ -8,6 +8,7 @@ program lb_openacc
     integer, parameter :: db=4 !kind(1.0)
     integer(kind=8) :: i,j,ll,l,dumm
     integer(kind=8) :: nx,ny,step,stamp,nlinks,nsteps,ngpus,ncontact
+    integer,save :: iframe=0
     
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     
@@ -47,12 +48,11 @@ program lb_openacc
 !#else
 !        ngpus=0
 !#endif
-
     !*******************************user parameters**************************
     nx=512
     ny=512
-    nsteps=2000
-    stamp=10000
+    nsteps=100
+    stamp=50
     fx=0.0_db*10.0**(-7)
     fy=0.0_db*10.0**(-5)
     !**********************************allocation****************************
@@ -393,7 +393,6 @@ program lb_openacc
                 g8(i+1,j-1)=fpc*rhoB(i,j)/rtot - gaddendum8 
             enddo
         enddo
-        !
         !******************************************call periodic bcs: always after fused************************
         !periodic along y
         !!$acc kernels 
@@ -412,41 +411,121 @@ program lb_openacc
         ! f6(nx,1:ny)=f6(2,1:ny)
         ! f7(nx,1:ny)=f7(2,1:ny)
         !$acc end kernels 
-
+        !****************************************writeonfile***************************************************!
+            if(mod(step,stamp).eq.0)then
+            !$acc update self(psi(1:nx,1:ny),rhoB(1:nx,1:ny),rhoA(1:nx,1:ny),u(1:nx,1:ny),v(1:nx,1:ny))
+            iframe=iframe+1
+            open(101, file = 'psi'//write_fmtnumb(iframe)//'.out', status = 'replace')
+            open(102, file = 'rhoA'//write_fmtnumb(iframe)//'.out', status = 'replace')
+            open(103, file = 'rhoB'//write_fmtnumb(iframe)//'.out', status = 'replace')
+            open(104, file = 'u'//write_fmtnumb(iframe)//'.out', status = 'replace')
+            open(105, file = 'v'//write_fmtnumb(iframe)//'.out', status = 'replace')
+            do i=1,nx
+                do j=1,ny
+                    write(101,*) psi(i,j)  
+                enddo
+            enddo
+            close(101)
+            do i=1,nx
+                do j=1,ny
+                    write(102,*) rhoA(i,j)  
+                enddo
+            enddo
+            close(102)
+            do i=1,nx
+                do j=1,ny
+                    write(103,*) rhoB(i,j)  
+                enddo
+            enddo
+            close(103)
+            do i=1,nx
+                do j=1,ny
+                    write(104,*) u(i,j)  
+                enddo
+            enddo
+            close(104)
+            do i=1,nx
+                do j=1,ny
+                    write(105,*) v(i,j)  
+                enddo
+            enddo
+            close(105)
+            write(6,*) "files updated at t=", step
+            endif
+        !
     enddo 
     call cpu_time(ts2)
-    !$acc update host(rhoA,rhoB,psi,u,v)
 
     !$acc end data
 
+contains 
 
-    !************************************************test points**********************************************!
-    write(6,*) 'u=',u(nx/2,ny/2) ,'v=',v(nx/2,ny/2),'rho',rhoA(nx/2,ny/2),'psi',psi(nx/2,ny/2) !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
-    write(6,*) 'u=',u(2,ny/2) ,'v=',v(2,ny/2),'rho',rhoA(2,ny/2)
-    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rhoA(1,ny/2)
-    write(6,*) 'running time: ', ts2-ts1, 'seconds'     
+function dimenumb(inum)
 
-    open(101, file = 'psi.out', status = 'replace')
-    do i=1,nx
-        do j=1,ny
-            write(101,*) psi(i,j)!sqrt(u(i,j)**2+v(i,j)**2) !sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!!!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)  
-        enddo
+!***********************************************************************
+!    
+!     LBsoft function for returning the number of digits
+!     of an integer number
+!     originally written in JETSPIN by M. Lauricella et al.
+!    
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification July 2018
+!    
+!***********************************************************************
+
+    implicit none
+
+    integer,intent(in) :: inum
+    integer :: dimenumb
+    integer :: i
+    real*8 :: tmp
+
+    i=1
+    tmp=real(inum,kind=8)
+    do
+    if(tmp< 10.d0 )exit
+    i=i+1
+    tmp=tmp/ 10.0d0
     enddo
-    close(101)
 
-    open(102, file = 'rhoB.out', status = 'replace')
-    do i=1,nx
-        do j=1,ny
-            write(102,*) rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2) !sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!!!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)  
-        enddo
-    enddo
-    close(102)
+    dimenumb=i
 
-    open(103, file = 'mu.out', status = 'replace')
-    do i=1,nx
-        do j=1,ny
-            write(103,*) sqrt(u(i,j)**2+v(i,j)**2)!(i,j)!sqrt(u(i,j)**2+v(i,j)**2) !sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)!!!rhoB(i,j)+rhoA(i,j)!sqrt(u(i,j)**2+v(i,j)**2)  
-        enddo
-    enddo
-    close(103)
+    return
+
+    end function dimenumb
+
+function write_fmtnumb(inum)
+
+!***********************************************************************
+!    
+!     LBsoft function for returning the string of six characters
+!     with integer digits and leading zeros to the left
+!     originally written in JETSPIN by M. Lauricella et al.
+!    
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification July 2018
+!    
+!***********************************************************************
+
+implicit none
+
+integer,intent(in) :: inum
+character(len=6) :: write_fmtnumb
+integer :: numdigit,irest
+!real*8 :: tmp
+character(len=22) :: cnumberlabel
+numdigit=dimenumb(inum)
+irest=6-numdigit
+if(irest>0)then
+    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+    write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
+else
+    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+    write(write_fmtnumb,fmt=cnumberlabel)inum
+endif
+
+return
+end function write_fmtnumb   
 end program
