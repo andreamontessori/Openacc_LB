@@ -48,14 +48,16 @@ program lb_openacc
         nlinks=18 !pari!
         cssq=1.0_db/3.0_db
         !fluid 1
-        tau=1.0_db
+        tau=0.65_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu1=1.0_db/visc_LB
         !fluid2
-        tau=1.0_db
+        tau=0.65_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
+    
+    
     !#ifdef _OPENACC
     !        ngpus=acc_get_num_devices(acc_device_nvidia)
     !#else
@@ -66,8 +68,8 @@ program lb_openacc
         nx=350
         ny=350
         nz=350
-        nsteps=10000
-        stamp=400
+        nsteps=15000
+        stamp=500
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
@@ -131,7 +133,7 @@ program lb_openacc
         p2cg=(1.0_db/6.0_db)**2 * (2.0_db/3.0_db)
         p3cg=(1.0_db/6.0_db)**3
         press_excess=0.0_db
-        max_press_excess=0.03
+        max_press_excess=0.02
     !********************************initialization of macrovars ************************    
         u=0.0_db
         v=0.0_db
@@ -139,7 +141,7 @@ program lb_openacc
         rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
         psi=-1.0_db
-        radius=55
+        radius=50
         do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
             do j=ny/2-radius,ny/2+radius
                 do k=nz/2-radius,nz/2+radius
@@ -288,9 +290,9 @@ program lb_openacc
                         !1-2
                         udotc=u(i,j,k)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        
                         fneq1=ft1-p1*(rtot+(temp + udotc))
                         fneq2=ft2-p1*(rtot+(temp - udotc))
+
                         !3-4
                         udotc=v(i,j,k)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
@@ -333,6 +335,9 @@ program lb_openacc
                         fneq17=ft17-p2*(rtot+(temp + udotc))
                         fneq18=ft18-p2*(rtot+(temp - udotc))
                         
+                        !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+                        !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+                        !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
                         pxx(i,j,k)=fneq1+fneq2+fneq7+fneq8+fneq9+fneq10+fneq15+fneq16+fneq17+fneq18
                         pyy(i,j,k)=fneq3+fneq4+fneq7+fneq8+fneq9+fneq10+fneq11+fneq12+fneq13+fneq14
                         pzz(i,j,k)=fneq5+fneq6+fneq11+fneq12+fneq13+fneq14+fneq15+fneq16+fneq17+fneq18
@@ -582,14 +587,14 @@ program lb_openacc
                         udotc=u(i,j,k)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p1*(rtot+press_excess+(temp + udotc))
-                        fneq1=(1.0_db-omega)*pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
+                        fneq1=(1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
                         fpc=feq + addendum1+fneq1+fx*p1dcssq 
                         f1(i+1,j,k)=fpc*rhoA(i,j,k)/rtot + gaddendum1
                         g1(i+1,j,k)=fpc*rhob(i,j,k)/rtot - gaddendum1
                         
                         !2
                         feq=p1*(rtot+press_excess+(temp - udotc))
-                        fpc=feq + addendum1+ fneq1 - fx*p1dcssq 
+                        fpc=feq + addendum1 + fneq1 - fx*p1dcssq 
                         f2(i-1,j,k)=fpc*rhoA(i,j,k)/rtot + gaddendum2
                         g2(i-1,j,k)=fpc*rhob(i,j,k)/rtot - gaddendum2
                         
@@ -597,7 +602,7 @@ program lb_openacc
                         udotc=v(i,j,k)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p1*(rtot+press_excess+(temp + udotc))
-                        fneq3=(1.0_db-omega)*pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
+                        fneq3=(1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
                         fpc=feq +addendum3+fneq3 + fy*p1dcssq
                         f3(i,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum3
                         g3(i,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum3
@@ -612,7 +617,7 @@ program lb_openacc
                         udotc=(u(i,j,k)+v(i,j,k))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rtot+press_excess+(temp + udotc))
-                        fneq7=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k))
+                        fneq7=(1.0_db-omega)*pi2cssq2*((1.0_db-cssq)*pxx(i,j,k)+(1.0_db-cssq)*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*pxy(i,j,k))
                         fpc=feq + addendum7+fneq7+ (fx+fy)*p2dcssq 
                         f7(i+1,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum7
                         g7(i+1,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum7
@@ -627,7 +632,7 @@ program lb_openacc
                         udotc=(-u(i,j,k)+v(i,j,k))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rtot+press_excess+(temp + udotc))
-                        fneq10=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k))
+                        fneq10=(1.0_db-omega)*pi2cssq2*((1.0_db-cssq)*pxx(i,j,k)+(1.0_db-cssq)*pyy(i,j,k)-cssq*pzz(i,j,k)-2.0_db*pxy(i,j,k))
                         fpc=feq + addendum10+ fneq10 + (fy-fx)*p2dcssq 
                         f10(i-1,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum10
                         g10(i-1,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum10
@@ -642,7 +647,7 @@ program lb_openacc
                         udotc=w(i,j,k)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p1*(rtot+press_excess+(temp + udotc))
-                        fneq5=(1.0_db-omega)*pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
+                        fneq5=(1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
                         fpc=feq + addendum5+fneq5 + fz*p1dcssq 
                         f5(i,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum5
                         g5(i,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum5
@@ -657,7 +662,7 @@ program lb_openacc
                         udotc=(u(i,j,k)+w(i,j,k))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rtot+press_excess+(temp + udotc))
-                        fneq15=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k))
+                        fneq15=(1.0_db-omega)*pi2cssq2*((1.0_db-cssq)*pxx(i,j,k)+(1.0_db-cssq)*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*pxz(i,j,k))
                         fpc=feq + addendum15+fneq15 + (fx+fz)*p2dcssq 
                         f15(i+1,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum15
                         g15(i+1,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum15
@@ -672,7 +677,7 @@ program lb_openacc
                         udotc=(-u(i,j,k)+w(i,j,k))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rtot+press_excess+(temp + udotc))
-                        fneq17=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k))
+                        fneq17=(1.0_db-omega)*pi2cssq2*((1.0_db-cssq)*pxx(i,j,k)+(1.0_db-cssq)*pzz(i,j,k)-cssq*pyy(i,j,k)-2.0_db*pxz(i,j,k))
                         fpc=feq +addendum17+fneq17 +(fz-fx)*p2dcssq 
                         f17(i-1,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum17
                         g17(i-1,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum17
@@ -687,7 +692,7 @@ program lb_openacc
                         udotc=(v(i,j,k)+w(i,j,k))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rtot+press_excess+(temp + udotc))
-                        fneq11=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k))
+                        fneq11=(1.0_db-omega)*pi2cssq2*((1.0_db-cssq)*pyy(i,j,k)+(1.0_db-cssq)*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*pyz(i,j,k))
                         fpc=feq + addendum11+fneq11+(fy+fz)*p2dcssq 
                         f11(i,j+1,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum11
                         g11(i,j+1,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum11
@@ -702,14 +707,14 @@ program lb_openacc
                         udotc=(v(i,j,k)-w(i,j,k))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rtot+press_excess+(temp + udotc))
-                        fneq13=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k))
-                        fpc=feq + addendum13!+fneq13 + (fy-fz)*p2dcssq 
+                        fneq13=(1.0_db-omega)*pi2cssq2*((1.0_db-cssq)*pyy(i,j,k)+(1.0_db-cssq)*pzz(i,j,k)-cssq*pxx(i,j,k)-2.0_db*pyz(i,j,k))
+                        fpc=feq + addendum13+fneq13 + (fy-fz)*p2dcssq 
                         f13(i,j+1,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum13
                         g13(i,j+1,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum13
                         
                         !14
                         feq=p2*(rtot+press_excess+(temp - udotc))
-                        fpc=feq + addendum13!+fneq13 + (fz-fy)*p2dcssq 
+                        fpc=feq + addendum13+fneq13 + (fz-fy)*p2dcssq 
                         f14(i,j-1,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum14
                         g14(i,j-1,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum14
                 enddo
@@ -866,74 +871,74 @@ program lb_openacc
     !$acc end data
     write(6,*) 'elapsed time:', ts2-ts1, 'seconds'
    contains 
+    !*************************************************functions************************************************!
+        function dimenumb(inum)
 
-    function dimenumb(inum)
+        !***********************************************************************
+        !    
+        !     LBsoft function for returning the number of digits
+        !     of an integer number
+        !     originally written in JETSPIN by M. Lauricella et al.
+        !    
+        !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+        !     author: M. Lauricella
+        !     last modification July 2018
+        !    
+        !***********************************************************************
 
-    !***********************************************************************
-    !    
-    !     LBsoft function for returning the number of digits
-    !     of an integer number
-    !     originally written in JETSPIN by M. Lauricella et al.
-    !    
-    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-    !     author: M. Lauricella
-    !     last modification July 2018
-    !    
-    !***********************************************************************
+            implicit none
+
+            integer,intent(in) :: inum
+            integer :: dimenumb
+            integer :: i
+            real*8 :: tmp
+
+            i=1
+            tmp=real(inum,kind=8)
+            do
+            if(tmp< 10.d0 )exit
+            i=i+1
+            tmp=tmp/ 10.0d0
+            enddo
+
+            dimenumb=i
+
+            return
+
+            end function dimenumb
+
+        function write_fmtnumb(inum)
+
+        !***********************************************************************
+        !    
+        !     LBsoft function for returning the string of six characters
+        !     with integer digits and leading zeros to the left
+        !     originally written in JETSPIN by M. Lauricella et al.
+        !    
+        !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+        !     author: M. Lauricella
+        !     last modification July 2018
+        !    
+        !***********************************************************************
 
         implicit none
 
         integer,intent(in) :: inum
-        integer :: dimenumb
-        integer :: i
-        real*8 :: tmp
-
-        i=1
-        tmp=real(inum,kind=8)
-        do
-        if(tmp< 10.d0 )exit
-        i=i+1
-        tmp=tmp/ 10.0d0
-        enddo
-
-        dimenumb=i
+        character(len=6) :: write_fmtnumb
+        integer :: numdigit,irest
+        !real*8 :: tmp
+        character(len=22) :: cnumberlabel
+        numdigit=dimenumb(inum)
+        irest=6-numdigit
+        if(irest>0)then
+            write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+            write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
+        else
+            write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+            write(write_fmtnumb,fmt=cnumberlabel)inum
+        endif
 
         return
-
-        end function dimenumb
-
-    function write_fmtnumb(inum)
-
-    !***********************************************************************
-    !    
-    !     LBsoft function for returning the string of six characters
-    !     with integer digits and leading zeros to the left
-    !     originally written in JETSPIN by M. Lauricella et al.
-    !    
-    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-    !     author: M. Lauricella
-    !     last modification July 2018
-    !    
-    !***********************************************************************
-
-    implicit none
-
-    integer,intent(in) :: inum
-    character(len=6) :: write_fmtnumb
-    integer :: numdigit,irest
-    !real*8 :: tmp
-    character(len=22) :: cnumberlabel
-    numdigit=dimenumb(inum)
-    irest=6-numdigit
-    if(irest>0)then
-        write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
-        write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
-    else
-        write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
-        write(write_fmtnumb,fmt=cnumberlabel)inum
-    endif
-
-    return
-    end function write_fmtnumb   
+        end function write_fmtnumb   
     
 end program
