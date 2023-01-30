@@ -83,7 +83,7 @@ program lb_openacc
         allocate(g12(0:nx+1,0:ny+1,0:nz+1),g13(0:nx+1,0:ny+1,0:nz+1),g14(0:nx+1,0:ny+1,0:nz+1),g15(0:nx+1,0:ny+1,0:nz+1))
         allocate(g16(0:nx+1,0:ny+1,0:nz+1),g17(0:nx+1,0:ny+1,0:nz+1),g18(0:nx+1,0:ny+1,0:nz+1))
         allocate(rhoA(1:nx,1:ny,1:nz),rhoB(1:nx,1:ny,1:nz),u(1:nx,1:ny,1:nz),v(1:nx,1:ny,1:nz),w(1:nx,1:ny,1:nz))
-        allocate(pxx(1:nx,1:ny,1:nz),pxy(1:nx,1:ny,1:nz),pxz(1:nx,1:ny,1:nz),pyy(1:nx,1:ny,1:nz))
+        allocate(pxx(1:nx,1:ny,1:nz),pxy(1:nx,1:ny,1:nz),pxz(1:nx,1:ny,1:nz),pyy(1:nx,1:ny,1:nz))  
         allocate(pyz(1:nx,1:ny,1:nz),pzz(1:nx,1:ny,1:nz),psi(0:nx+1,0:ny+1,0:nz+1))
         allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
     
