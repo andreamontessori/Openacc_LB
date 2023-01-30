@@ -13,6 +13,7 @@ program lb_openacc
         real(kind=db),parameter :: pi_greek=3.14159265359793234626433
         
         real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
+        real(kind=4)  :: p1cg,p2cg,p3cg
         real(kind=db) :: visc_LB,uu,udotc,omega,feq,geq,fpc
         real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
         real(kind=db) :: radius
@@ -24,8 +25,8 @@ program lb_openacc
         real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
         real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0
         real(kind=db) :: psid1,psid2,psid3,psid4,psid5,psid6,psid7,psid8,psid9,ncontact
-        real(kind=db) :: addendum0,addendum1,addendum2,addendum3,addendum4,addendum5,addendum6,addendum7,addendum8
-        real(kind=db) :: addendum9,addendum10,addendum11,addendum12,addendum13,addendum14,addendum15,addendum16,addendum17,addendum18
+        real(kind=db) :: addendum0,addendum1,addendum3,addendum5,addendum7
+        real(kind=db) :: addendum10,addendum11,addendum13,addendum15,addendum17
         real(kind=db) :: gaddendum1,gaddendum2,gaddendum3,gaddendum4,gaddendum5,gaddendum6,gaddendum7,gaddendum8
         real(kind=db) :: gaddendum9,gaddendum10,gaddendum11,gaddendum12,gaddendum13,gaddendum14,gaddendum15,gaddendum16,gaddendum17,gaddendum18
         real(kind=db) :: psi_x,psi_y,psi_z,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma
@@ -62,11 +63,11 @@ program lb_openacc
     !#endif
 
     !**************************************user parameters**************************
-        nx=400
-        ny=400
-        nz=400
-        nsteps=10
-        stamp=5
+        nx=350
+        ny=350
+        nz=350
+        nsteps=10000
+        stamp=400
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
@@ -121,82 +122,89 @@ program lb_openacc
     !*********************************chromodynamics vars*****************************
         ! 
         beta=0.95_db
-        sigma=0.02_db
+        sigma=0.03_db
         st_coeff=(9.0_db/4.0_db)*sigma*omega
-        b0=-1.0_db/3.0_db
-        b1=1.0_db/18.0_db
-        b2=1_db/36.0_db
+        b0=-2.0_db/9.0_db
+        b1=1.0_db/54.0_db
+        b2=1.0_db/27.0_db
+        p1cg=(2.0_db/3.0_db)**2 * (1.0_db/6.0_db)
+        p2cg=(1.0_db/6.0_db)**2 * (2.0_db/3.0_db)
+        p3cg=(1.0_db/6.0_db)**3
+        press_excess=0.0_db
+        max_press_excess=0.03
     !********************************initialization of macrovars ************************    
         u=0.0_db
         v=0.0_db
         w=0.0_db
         rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
-        press_excess=0.0_db
-        max_press_excess=0.05
         psi=-1.0_db
-        radius=14
-        do i=35-radius,35+radius
+        radius=55
+        do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
             do j=ny/2-radius,ny/2+radius
                 do k=nz/2-radius,nz/2+radius
-                    if ((i-35)**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
+                    if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
                         psi(i,j,k)=1.0_db
+                        u(i,j,k)=0.025_db
                     endif
                 enddo
             enddo
         enddo
-        do i=66-radius,66+radius
+        do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
             do j=ny/2-radius,ny/2+radius
                 do k=nz/2-radius,nz/2+radius
-                    if ((i-66)**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
+                    if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
                         psi(i,j,k)=1.0_db
+                        u(i,j,k)=-0.025_db
                     endif
                 enddo
             enddo
         enddo
         rhoB=0.5*(1.0_db-psi(1:nx,1:ny,1:nz))
         rhoA=1.0_db-rhoB
-        write(*,*) rhoB(nx/2,ny/2,nz/2),rhoA(nx/2,ny/2,nz/2)
     !*************************************set distros************************!
-        f0(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p0
-        f1(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-        f2(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-        f3(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-        f4(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-        f5(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-        f6(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1
-        f7(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f8(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f9(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f10(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f11(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f12(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f13(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f14(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f15(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f16(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f17(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
-        f18(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2
+        !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+        !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+        !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+        f0(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p0*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f1(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1*(1.0+u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f2(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1*(1.0-u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f3(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f4(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f5(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f6(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p1*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f7(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0+u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f8(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0-u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f9(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0+u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f10(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0-u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f11(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f12(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f13(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f14(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0-u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f15(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0 + u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2 - u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f16(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0 - u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2 - u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f17(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0 - u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2 - u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
+        f18(1:nx,1:ny,1:nz)=rhoa(1:nx,1:ny,1:nz)*p2*(1.0 + u(1:nx,1:ny,1:nz)/cssq + 0.5*(u(1:nx,1:ny,1:nz)/cssq)**2 - u(1:nx,1:ny,1:nz)*u(1:nx,1:ny,1:nz)*0.5/cssq)
         !
-        g0(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p0
-        g1(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-        g2(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-        g3(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-        g4(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-        g5(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-        g6(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1
-        g7(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g8(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g9(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g10(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g11(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g12(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g13(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g14(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g15(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g16(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g17(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
-        g18(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2
+        g0(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p0!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g1(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1!*(1.0+u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g2(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1!*(1.0-u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g3(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g4(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g5(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g6(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p1!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g7(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0+u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g8(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0-u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g9(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0+u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g10(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0-u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g11(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g12(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g13(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g14(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0-u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g15(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0 +u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2 - u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g16(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0 -u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2 - u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g17(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0 -u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2 - u(:,:,:)*u(:,:,:)*0.5/cssq)
+        g18(1:nx,1:ny,1:nz)=rhoB(1:nx,1:ny,1:nz)*p2!*(1.0 +u(:,:,:)/cssq + 0.5*(u(:,:,:)/cssq)**2 - u(:,:,:)*u(:,:,:)*0.5/cssq)
     
     !***************************************check data ************************ 
         write(6,*) '*******************LB data*****************'
@@ -230,7 +238,6 @@ program lb_openacc
     call cpu_time(ts1)
     !*************************************main loop*************************!
     do step=1,nsteps 
-        !***********************************moments collision bbck + forcing************************  
         !$acc kernels 
         !$acc loop collapse (3) 
         do k=1,nz
@@ -274,13 +281,14 @@ program lb_openacc
                         v(i,j,k) = (ft3+ft7+ft10+ft11+ft13)-(ft4+ft8+ft9+ft12+ft14)
 
                         w(i,j,k) = (ft5+ft11+ft14+ft15+ft17)-(ft6+ft12+ft13+ft16+ft18)
-                        
+
+                        rtot=rhoA(i,j,k)+rhoB(i,j,k)
                         
                         uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
                         !1-2
                         udotc=u(i,j,k)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        rtot=rhoA(i,j,k)+rhoB(i,j,k)
+                        
                         fneq1=ft1-p1*(rtot+(temp + udotc))
                         fneq2=ft2-p1*(rtot+(temp - udotc))
                         !3-4
@@ -387,351 +395,353 @@ program lb_openacc
         !$acc loop collapse (3) 
         do k=1,nz
             do j=1,ny
-                do i=1,nx
-                    uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq   
+                do i=1,nx  
                     !!*******************************chromodynamics***************************!
-                    psi_x=(1.0_db/cssq)*(p1*(psi(i+1,j,k)-psi(i-1,j,k)) + p2*(psi(i+1,j+1,k)+psi(i+1,j-1,k)+psi(i+1,j,k+1)+psi(i+1,j,k-1)) &
-                                            -p2*(psi(i-1,j+1,k)+psi(i-1,j-1,k)+psi(i-1,j,k+1)+psi(i-1,j,k-1)))
+                        psi_x=(1.0_db/cssq)*(p1cg*(psi(i+1,j,k)-psi(i-1,j,k)) + &
+                                            p2cg*(psi(i+1,j+1,k)+psi(i+1,j-1,k)+psi(i+1,j,k+1)+psi(i+1,j,k-1)) &
+                                        -p2cg*(psi(i-1,j+1,k)+psi(i-1,j-1,k)+psi(i-1,j,k+1)+psi(i-1,j,k-1)) &
+                                        + p3cg*(psi(i+1,j+1,k+1)+psi(i+1,j+1,k-1)+psi(i+1,j-1,k+1)+psi(i+1,j-1,k-1)) &
+                                        -p3cg*(psi(i-1,j+1,k+1)+psi(i-1,j+1,k-1)+psi(i-1,j-1,k+1)+psi(i-1,j-1,k-1))) 
 
 
-                    psi_y=(1.0_db/cssq)*(p1*(psi(i,j+1,k)-psi(i,j-1,k)) + p2*(psi(i+1,j+1,k)+psi(i-1,j+1,k)+psi(i,j+1,k+1)+psi(i,j+1,k-1)) &
-                                            -p2*(psi(i+1,j-1,k)+psi(i-1,j-1,k)+psi(i,j-1,k+1)+psi(i,j-1,k-1)))
+                        psi_y=(1.0_db/cssq)*(p1cg*(psi(i,j+1,k)-psi(i,j-1,k)) &
+                                            +p2cg*(psi(i+1,j+1,k)+psi(i-1,j+1,k)+psi(i,j+1,k+1)+psi(i,j+1,k-1)) &
+                                        -p2cg*(psi(i+1,j-1,k)+psi(i-1,j-1,k)+psi(i,j-1,k+1)+psi(i,j-1,k-1)) &
+                                        +p3cg*(psi(i+1,j+1,k+1)+psi(i-1,j+1,k+1)+psi(i+1,j+1,k-1)+psi(i-1,j+1,k-1)) &
+                                        -p3cg*(psi(i+1,j-1,k+1)+psi(i-1,j-1,k+1)+psi(i+1,j-1,k-1)+psi(i-1,j-1,k-1)))
 
 
-                    psi_z=(1.0_db/cssq)*(p1*(psi(i,j,k+1)-psi(i,j,k-1)) + p2*(psi(i+1,j,k+1)+psi(i-1,j,k+1)+psi(i,j+1,k+1)+psi(i,j-1,k+1)) &
-                                            -p2*(psi(i+1,j,k-1)+psi(i-1,j,k-1)+psi(i,j+1,k-1)+psi(i,j-1,k-1)))
-                    mod_psi=sqrt(psi_x**2+psi_y**2+psi_z**2)
-
-                    mod_psi_sq=psi_x**2+psi_y**2 +psi_z**2 
-                    
-                    rtot=0.0_db
-                    
-                    rtot=rhoA(i,j,k)+rhoB(i,j,k)
-                    
-                    rprod=rhoA(i,j,k)*rhoB(i,j,k)
-                    
-                    nu_avg=1.0_db/(rhoA(i,j,k)*one_ov_nu1/rtot + rhoB(i,j,k)*one_ov_nu2/rtot)
-                    
-                    omega=2.0_db/(6.0_db*nu_avg + 1.0_db)
-                    
-                    st_coeff=(9.0_db/4.0_db)*sigma*omega
-                    addendum0=0.0_db
-                    addendum1=0.0_db
-                    addendum2=0.0_db
-                    addendum3=0.0_db
-                    addendum4=0.0_db
-                    addendum5=0.0_db
-                    addendum6=0.0_db
-                    addendum7=0.0_db
-                    addendum8=0.0_db
-                    addendum9=0.0_db
-                    addendum10=0.0_db
-                    addendum11=0.0_db
-                    addendum12=0.0_db
-                    addendum13=0.0_db
-                    addendum14=0.0_db
-                    addendum15=0.0_db
-                    addendum16=0.0_db
-                    addendum17=0.0_db
-                    addendum18=0.0_db
-                    gaddendum1=0.0_db
-                    gaddendum2=0.0_db
-                    gaddendum3=0.0_db
-                    gaddendum4=0.0_db
-                    gaddendum5=0.0_db
-                    gaddendum6=0.0_db
-                    gaddendum7=0.0_db
-                    gaddendum8=0.0_db 
-                    gaddendum9=0.0_db
-                    gaddendum10=0.0_db
-                    gaddendum11=0.0_db
-                    gaddendum12=0.0_db
-                    gaddendum13=0.0_db
-                    gaddendum14=0.0_db
-                    gaddendum15=0.0_db
-                    gaddendum16=0.0_db
-                    gaddendum17=0.0_db
-                    gaddendum18=0.0_db
-                    if (mod_psi>0.001)then
-                        addendum0=-st_coeff*mod_psi*b0
-                        addendum1=st_coeff*mod_psi*(p1*psi_x**2/mod_psi_sq - b1)
-                        addendum2=addendum1
-                        addendum3=st_coeff*mod_psi*(p1*psi_y**2/mod_psi_sq - b1)
-                        addendum4=addendum3
-                        addendum5=st_coeff*mod_psi*(p1*psi_z**2/mod_psi_sq - b1)
-                        addendum6=addendum5
-                        !
-                        addendum7=st_coeff*mod_psi*(p2*(psi_x+psi_y)**2/mod_psi_sq - b2)
-                        addendum8=addendum7
-                        addendum9=st_coeff*mod_psi*(p2*(psi_x-psi_y)**2/mod_psi_sq - b2)
-                        addendum10=addendum9
-                        addendum11=st_coeff*mod_psi*(p2*(psi_y+psi_z)**2/mod_psi_sq - b2)
-                        addendum12=addendum11
-                        addendum13=st_coeff*mod_psi*(p2*(psi_y-psi_z)**2/mod_psi_sq - b2)
-                        addendum14=addendum13
-                        addendum15=st_coeff*mod_psi*(p2*(psi_x+psi_z)**2/mod_psi_sq - b2)
-                        addendum16=addendum15
-                        addendum17=st_coeff*mod_psi*(p2*(-psi_x+psi_z)**2/mod_psi_sq - b2)
-                        addendum18=addendum17
-                        !
-                        gaddendum1=p1*(rtot)*(rprod*beta*psi_x/mod_psi/rtot**2)
-                        gaddendum2=-gaddendum1
-                        gaddendum3=p1*(rtot)*(rprod*beta*psi_y/mod_psi/rtot**2)
-                        gaddendum4=-gaddendum3
-                        gaddendum5=p1*(rtot)*(rprod*beta*psi_z/mod_psi/rtot**2)
-                        gaddendum6=-gaddendum5
-                        !
-                        gaddendum7=p2*(rtot)*(rprod*beta*(psi_x+psi_y)/mod_psi/rtot**2)
-                        gaddendum8=-gaddendum7
-                        gaddendum9=p2*(rtot)*(rprod*beta*(psi_x-psi_y)/mod_psi/rtot**2)
-                        gaddendum10=-gaddendum9
-                        gaddendum11=p2*(rtot)*(rprod*beta*(psi_y+psi_z)/mod_psi/rtot**2)
-                        gaddendum12=-gaddendum11
-                        gaddendum13=p2*(rtot)*(rprod*beta*(psi_y-psi_z)/mod_psi/rtot**2)
-                        gaddendum14=-gaddendum13
-                        gaddendum15=p2*(rtot)*(rprod*beta*(psi_x+psi_z)/mod_psi/rtot**2)
-                        gaddendum16=-gaddendum15
-                        gaddendum17=p2*(rtot)*(rprod*beta*(-psi_x+psi_z)/mod_psi/rtot**2)
-                        gaddendum18=-gaddendum17
-                    endif
-                    !!************************************************************************!
-                    press_Excess=0.0_db
-                    psid1=0.0_db
-                    psid2=0.0_db
-                    psid3=0.0_db
-                    psid4=0.0_db
-                    ncontact=0
-                    if(psi(i,j,k).lt.-0.9_db)then
+                        psi_z=(1.0_db/cssq)*(p1cg*(psi(i,j,k+1)-psi(i,j,k-1)) + &
+                                            p2cg*(psi(i+1,j,k+1)+psi(i-1,j,k+1)+ psi(i,j+1,k+1)+psi(i,j-1,k+1)) &
+                                        -p2cg*(psi(i+1,j,k-1)+psi(i-1,j,k-1)+psi(i,j+1,k-1)+psi(i,j-1,k-1)) &
+                                        +p3cg*(psi(i+1,j+1,k+1)+psi(i-1,j+1,k+1)+psi(i+1,j-1,k+1)+psi(i-1,j-1,k+1)) &
+                                        -p3cg*(psi(i+1,j+1,k-1)+psi(i-1,j+1,k-1)+psi(i+1,j-1,k-1)+psi(i-1,j-1,k-1)))
                         
-                        if (psi(i+3,j,k).gt.-0.85 .and. psi(i+3,j,k).lt.0.0_db .and. psi(i-3,j,k).gt.-0.85 .and. psi(i-3,j,k).lt.0.0_db)then !&
-                            psid1=psi(i+2,j,k) + psi(i-2,j,k)
-                            ncontact=ncontact+1
-                        else
-                            psid1=-2.0_db
-                        endif
-                        if (psi(i,j+3,k).gt.-0.85 .and. psi(i,j+3,k).lt.0.0_db .and. psi(i,j-3,k).gt.-0.85 .and. psi(i,j-3,k).lt.0.0_db)then
-                            psid2=psi(i,j+2,k) + psi(i,j-2,k)
-                            ncontact=ncontact+1
-                        else
-                            psid2=-2.0_db
-                        endif
-                        if (psi(i,j,k+3).gt.-0.85 .and. psi(i,j,k+3).lt.0.0_db .and. psi(i,j,k-3).gt.-0.85 .and. psi(i,j,k-3).lt.0.0_db)then
-                            psid3=psi(i,j,k+2) + psi(i,j,k-2)
-                            ncontact=ncontact+1
-                        else
-                            psid3=-2.0_db
-                        endif
-                        if (psi(i+2,j+2,k).gt.-0.85 .and. psi(i+2,j+2,k).lt.0.0_db .and. psi(i-2,j-2,k).gt.-0.85 .and. psi(i-2,j-2,k).lt.0.0_db)then
-                            psid4=psi(i+1,j+1,k) + psi(i-1,j-1,k)
-                            ncontact=ncontact+1
-                        else
-                            psid4=-2.0_db
-                        endif
-                        if (psi(i+2,j,k+2).gt.-0.85 .and. psi(i+2,j,k+2).lt.0.0_db .and. psi(i-2,j,k-2).gt.-0.85 .and. psi(i-2,j,k-2).lt.0.0_db)then
-                            psid5=psi(i+1,j,k+1) + psi(i-1,j,k-1)
-                            ncontact=ncontact+1
-                        else
-                            psid5=-2.0_db
-                        endif
-                        if (psi(i,j+2,k+2).gt.-0.85 .and. psi(i,j+2,k+2).lt.0.0_db .and. psi(i,j-2,k-2).gt.-0.85 .and. psi(i,j-2,k-2).lt.0.0_db)then
-                            psid6=psi(i,j+1,k+1) + psi(i,j-1,k-1)
-                            ncontact=ncontact+1
-                        else
-                            psid6=-2.0_db
-                        endif
+                        mod_psi=sqrt(psi_x**2+psi_y**2+psi_z**2)
 
-                        if (psi(i-2,j+2,k).gt.-0.85 .and. psi(i-2,j+2,k).lt.0.0_db .and. psi(i+2,j-2,k).gt.-0.85 .and. psi(i+2,j-2,k).lt.0.0_db)then
-                            psid7=psi(i+1,j-1,k) + psi(i-1,j+1,k)
-                            ncontact=ncontact+1
-                        else
-                            psid7=-2.0_db
+                        mod_psi_sq=psi_x**2 + psi_y**2 +psi_z**2 
+                        
+                        rtot=0.0_db
+                        
+                        rtot=rhoA(i,j,k)+rhoB(i,j,k)
+                        
+                        rprod=rhoA(i,j,k)*rhoB(i,j,k)
+                        
+                        nu_avg=1.0_db/(rhoA(i,j,k)*one_ov_nu1/rtot + rhoB(i,j,k)*one_ov_nu2/rtot)
+                        
+                        omega=2.0_db/(6.0_db*nu_avg + 1.0_db)
+                        
+                        st_coeff=(9.0_db/4.0_db)*sigma*omega
+                        addendum0=0.0_db
+                        addendum1=0.0_db
+                        addendum3=0.0_db
+                        addendum5=0.0_db
+                        addendum7=0.0_db
+                        addendum10=0.0_db
+                        addendum11=0.0_db
+                        addendum13=0.0_db
+                        addendum15=0.0_db
+                        addendum17=0.0_db
+                        gaddendum1=0.0_db
+                        gaddendum2=0.0_db
+                        gaddendum3=0.0_db
+                        gaddendum4=0.0_db
+                        gaddendum5=0.0_db
+                        gaddendum6=0.0_db
+                        gaddendum7=0.0_db
+                        gaddendum8=0.0_db 
+                        gaddendum9=0.0_db
+                        gaddendum10=0.0_db
+                        gaddendum11=0.0_db
+                        gaddendum12=0.0_db
+                        gaddendum13=0.0_db
+                        gaddendum14=0.0_db
+                        gaddendum15=0.0_db
+                        gaddendum16=0.0_db
+                        gaddendum17=0.0_db
+                        gaddendum18=0.0_db
+                        if (mod_psi>0.001)then
+                            addendum0=-st_coeff*mod_psi*b0
+                            addendum1=st_coeff*mod_psi*(p1*psi_x**2/mod_psi_sq - b1)
+                            !addendum2=st_coeff*mod_psi*(p1*(-psi_x)**2/mod_psi_sq - b1)
+                            addendum3=st_coeff*mod_psi*(p1*psi_y**2/mod_psi_sq - b1)
+                            !addendum4=st_coeff*mod_psi*(p1*(-psi_y)**2/mod_psi_sq - b1)
+                            addendum5=st_coeff*mod_psi*(p1*psi_z**2/mod_psi_sq - b1)
+                            !addendum6=st_coeff*mod_psi*(p1*(-psi_z)**2/mod_psi_sq - b1)
+                            !
+                            addendum7=st_coeff*mod_psi*(p2*(psi_x+psi_y)**2/mod_psi_sq - b2)
+                            !addendum8=st_coeff*mod_psi*(p2*(-psi_x-psi_y)**2/mod_psi_sq - b2)
+                            !addendum9=st_coeff*mod_psi*(p2*(psi_x-psi_y)**2/mod_psi_sq - b2)
+                            addendum10=st_coeff*mod_psi*(p2*(-psi_x+psi_y)**2/mod_psi_sq - b2)
+                            addendum11=st_coeff*mod_psi*(p2*(psi_y+psi_z)**2/mod_psi_sq - b2)
+                            !addendum12=st_coeff*mod_psi*(p2*(-psi_y-psi_z)**2/mod_psi_sq - b2)
+                            addendum13=st_coeff*mod_psi*(p2*(psi_y-psi_z)**2/mod_psi_sq - b2)
+                            !addendum14=st_coeff*mod_psi*(p2*(-psi_y+psi_z)**2/mod_psi_sq - b2)
+                            addendum15=st_coeff*mod_psi*(p2*(psi_x+psi_z)**2/mod_psi_sq - b2)
+                            !addendum16=st_coeff*mod_psi*(p2*(-psi_x-psi_z)**2/mod_psi_sq - b2)
+                            addendum17=st_coeff*mod_psi*(p2*(-psi_x+psi_z)**2/mod_psi_sq - b2)
+                            !addendum18=st_coeff*mod_psi*(p2*(+psi_x-psi_z)**2/mod_psi_sq - b2)
+                            !
+                            gaddendum1=p1*(rtot)*(rprod*beta*psi_x/mod_psi/rtot**2)
+                            gaddendum2=-gaddendum1 !p1*(rtot)*(rprod*beta*(-psi_x/mod_psi)/rtot**2)
+                            gaddendum3=p1*(rtot)*(rprod*beta*psi_y/mod_psi/rtot**2)
+                            gaddendum4=-gaddendum3 !p1*(rtot)*(rprod*beta*(-psi_y/mod_psi)/rtot**2)
+                            gaddendum5=p1*(rtot)*(rprod*beta*psi_z/mod_psi/rtot**2)
+                            gaddendum6=-gaddendum5 !p1*(rtot)*(rprod*beta*(-psi_z/mod_psi)/rtot**2)
+                            !
+                            gaddendum7=p2*(rtot)*(rprod*beta*(psi_x/mod_psi+psi_y/mod_psi)/rtot**2)
+                            gaddendum8=-gaddendum7 !p2*(rtot)*(rprod*beta*(-psi_x/mod_psi-psi_y/mod_psi)/rtot**2)
+                            gaddendum9=p2*(rtot)*(rprod*beta*(psi_x/mod_psi-psi_y/mod_psi)/rtot**2)
+                            gaddendum10=-gaddendum9 !p2*(rtot)*(rprod*beta*(-psi_x/mod_psi+psi_y/mod_psi)/rtot**2)
+                            gaddendum11=p2*(rtot)*(rprod*beta*(psi_y/mod_psi+psi_z/mod_psi)/rtot**2)
+                            gaddendum12=-gaddendum11 !p2*(rtot)*(rprod*beta*(-psi_y/mod_psi-psi_z/mod_psi)/rtot**2)
+                            gaddendum13=p2*(rtot)*(rprod*beta*(psi_y/mod_psi-psi_z/mod_psi)/rtot**2)
+                            gaddendum14=-gaddendum13 !p2*(rtot)*(rprod*beta*(-psi_y/mod_psi+psi_z/mod_psi)/rtot**2)
+                            gaddendum15=p2*(rtot)*(rprod*beta*(psi_x/mod_psi+psi_z/mod_psi)/rtot**2)
+                            gaddendum16=-gaddendum15 !p2*(rtot)*(rprod*beta*(-psi_x/mod_psi-psi_z/mod_psi)/rtot**2)
+                            gaddendum17=p2*(rtot)*(rprod*beta*(-psi_x/mod_psi+psi_z/mod_psi)/rtot**2)
+                            gaddendum18=-gaddendum17 !p2*(rtot)*(rprod*beta*(+psi_x/mod_psi-psi_z/mod_psi)/rtot**2)
                         endif
-                        if (psi(i-2,j,k+2).gt.-0.85 .and. psi(i-2,j,k+2).lt.0.0_db .and. psi(i+2,j,k-2).gt.-0.85 .and. psi(i+2,j,k-2).lt.0.0_db)then
-                            psid8=psi(i+1,j,k-1) + psi(i-1,j,k+1)
-                            ncontact=ncontact+1
-                        else
-                            psid8=-2.0_db
+                    !!*******************************near contact***************************!
+                        press_Excess=0.0_db
+                        psid1=0.0_db
+                        psid2=0.0_db
+                        psid3=0.0_db
+                        psid4=0.0_db
+                        ncontact=0
+                        if(psi(i,j,k).lt.-0.9_db)then
+                            
+                            if (psi(i+3,j,k).gt.-0.85 .and. psi(i+3,j,k).lt.0.0_db .and. psi(i-3,j,k).gt.-0.85 .and. psi(i-3,j,k).lt.0.0_db)then !&
+                                psid1=psi(i+2,j,k) + psi(i-2,j,k)
+                                ncontact=ncontact+1
+                            else
+                                psid1=-2.0_db
+                            endif
+                            if (psi(i,j+3,k).gt.-0.85 .and. psi(i,j+3,k).lt.0.0_db .and. psi(i,j-3,k).gt.-0.85 .and. psi(i,j-3,k).lt.0.0_db)then
+                                psid2=psi(i,j+2,k) + psi(i,j-2,k)
+                                ncontact=ncontact+1
+                            else
+                                psid2=-2.0_db
+                            endif
+                            if (psi(i,j,k+3).gt.-0.85 .and. psi(i,j,k+3).lt.0.0_db .and. psi(i,j,k-3).gt.-0.85 .and. psi(i,j,k-3).lt.0.0_db)then
+                                psid3=psi(i,j,k+2) + psi(i,j,k-2)
+                                ncontact=ncontact+1
+                            else
+                                psid3=-2.0_db
+                            endif
+                            if (psi(i+3,j+3,k).gt.-0.85 .and. psi(i+3,j+3,k).lt.0.0_db .and. psi(i-3,j-3,k).gt.-0.85 .and. psi(i-3,j-3,k).lt.0.0_db)then
+                                psid4=psi(i+2,j+2,k) + psi(i-2,j-2,k)
+                                ncontact=ncontact+1
+                            else
+                                psid4=-2.0_db
+                            endif
+                            if (psi(i+3,j,k+3).gt.-0.85 .and. psi(i+3,j,k+3).lt.0.0_db .and. psi(i-3,j,k-3).gt.-0.85 .and. psi(i-3,j,k-3).lt.0.0_db)then
+                                psid5=psi(i+2,j,k+2) + psi(i-2,j,k-2)
+                                ncontact=ncontact+1
+                            else
+                                psid5=-2.0_db
+                            endif
+                            if (psi(i,j+3,k+3).gt.-0.85 .and. psi(i,j+3,k+3).lt.0.0_db .and. psi(i,j-3,k-3).gt.-0.85 .and. psi(i,j-3,k-3).lt.0.0_db)then
+                                psid6=psi(i,j+2,k+2) + psi(i,j-2,k-2)
+                                ncontact=ncontact+1
+                            else
+                                psid6=-2.0_db
+                            endif
+
+                            if (psi(i-3,j+3,k).gt.-0.85 .and. psi(i-3,j+3,k).lt.0.0_db .and. psi(i+3,j-3,k).gt.-0.85 .and. psi(i+3,j-3,k).lt.0.0_db)then
+                                psid7=psi(i+2,j-2,k) + psi(i-2,j+2,k)
+                                ncontact=ncontact+1
+                            else
+                                psid7=-2.0_db
+                            endif
+                            if (psi(i-3,j,k+3).gt.-0.85 .and. psi(i-3,j,k+3).lt.0.0_db .and. psi(i+3,j,k-3).gt.-0.85 .and. psi(i+3,j,k-3).lt.0.0_db)then
+                                psid8=psi(i+2,j,k-2) + psi(i-2,j,k+2)
+                                ncontact=ncontact+1
+                            else
+                                psid8=-2.0_db
+                            endif
+                            if (psi(i,j-3,k+3).gt.-0.85 .and. psi(i,j-3,k+3).lt.0.0_db .and. psi(i,j+3,k-3).gt.-0.85 .and. psi(i,j+3,k-3).lt.0.0_db)then
+                                psid9=psi(i,j+2,k-2) + psi(i,j-2,k+2)
+                                ncontact=ncontact+1
+                            else
+                                psid9=-2.0_db
+                            endif
+                            if(ncontact.gt.0)then
+                                press_excess=max_press_excess*(18.0_db+psid1+psid2+psid3+psid4+psid5+psid6+psid7+psid8+psid9)/real(ncontact,4)
+                            endif
                         endif
-                        if (psi(i,j-2,k+2).gt.-0.85 .and. psi(i,j-2,k+2).lt.0.0_db .and. psi(i,j+2,k-2).gt.-0.85 .and. psi(i,j+2,k-2).lt.0.0_db)then
-                            psid9=psi(i,j+1,k-1) + psi(i,j-1,k+1)
-                            ncontact=ncontact+1
-                        else
-                            psid9=-2.0_db
-                        endif
-                        if(ncontact.gt.0)then
-                            press_excess=max_press_excess*(18.0_db+psid1+psid2+psid3+psid4+psid5+psid6+psid7+psid8+psid9)/real(ncontact,4)
-                        endif
-                    endif
-                    !*************************************************************************!
-                    !0
-                    feq=p0*(rtot+press_excess-uu)
-                    fpc=feq + (1.0_db-omega)*pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k))) + addendum0
-                    f0(i,j,k)=fpc*rhoA(i,j,k)/rtot
-                    g0(i,j,k)=fpc*rhoB(i,j,k)/rtot
-                    
-                    !1
-                    udotc=u(i,j,k)/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p1*(rtot+press_excess+(temp + udotc))
-                    fneq1=(1.0_db-omega)*pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
-                    fpc=feq+fneq1+fx*p1dcssq + addendum1
-                    f1(i+1,j,k)=fpc*rhoA(i,j,k)/rtot + gaddendum1
-                    g1(i+1,j,k)=fpc*rhob(i,j,k)/rtot - gaddendum1
-                    
-                    !2
-                    feq=p1*(rtot+press_excess+(temp - udotc))
-                    fpc=feq + fneq1 - fx*p1dcssq + addendum2
-                    f2(i-1,j,k)=fpc*rhoA(i,j,k)/rtot + gaddendum2
-                    g2(i-1,j,k)=fpc*rhob(i,j,k)/rtot - gaddendum2
-                    !3
-                    udotc=v(i,j,k)/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p1*(rtot+press_excess+(temp + udotc))
-                    fneq3=(1.0_db-omega)*pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
-                    fpc=feq+fneq3 + fy*p1dcssq+addendum3
-                    f3(i,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum3
-                    g3(i,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum3
-                    
-                    !4
-                    feq=p1*(rtot+press_excess+(temp - udotc))
-                    fpc=feq+fneq3- fy*p1dcssq+addendum4
-                    f4(i,j-1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum4
-                    g4(i,j-1,k)=fpc*rhob(i,j,k)/rtot - gaddendum4
+                    !******************************collision+stream*****************************!
+                        !0
+                        uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq 
 
-                    !7
-                    udotc=(u(i,j,k)+v(i,j,k))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p2*(rtot+press_excess+(temp + udotc))
-                    fneq7=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k))
-                    fpc=feq+fneq7+ (fx+fy)*p2dcssq + addendum7
-                    f7(i+1,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum7
-                    g7(i+1,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum7
+                        feq=p0*(rtot+press_excess-uu)
+                        fpc=feq + addendum0 + (1.0_db-omega)*pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k))) 
+                        f0(i,j,k)=fpc*rhoA(i,j,k)/rtot
+                        g0(i,j,k)=fpc*rhoB(i,j,k)/rtot
+                        !1
+                        udotc=u(i,j,k)/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p1*(rtot+press_excess+(temp + udotc))
+                        fneq1=(1.0_db-omega)*pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
+                        fpc=feq + addendum1+fneq1+fx*p1dcssq 
+                        f1(i+1,j,k)=fpc*rhoA(i,j,k)/rtot + gaddendum1
+                        g1(i+1,j,k)=fpc*rhob(i,j,k)/rtot - gaddendum1
+                        
+                        !2
+                        feq=p1*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum1+ fneq1 - fx*p1dcssq 
+                        f2(i-1,j,k)=fpc*rhoA(i,j,k)/rtot + gaddendum2
+                        g2(i-1,j,k)=fpc*rhob(i,j,k)/rtot - gaddendum2
+                        
+                        !3
+                        udotc=v(i,j,k)/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p1*(rtot+press_excess+(temp + udotc))
+                        fneq3=(1.0_db-omega)*pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
+                        fpc=feq +addendum3+fneq3 + fy*p1dcssq
+                        f3(i,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum3
+                        g3(i,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum3
+                        
+                        !4
+                        feq=p1*(rtot+press_excess+(temp - udotc))
+                        fpc=feq +addendum3+fneq3- fy*p1dcssq
+                        f4(i,j-1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum4
+                        g4(i,j-1,k)=fpc*rhob(i,j,k)/rtot - gaddendum4
 
-                    !8
-                    feq=p2*(rtot+press_excess+(temp - udotc))
-                    fpc=feq + fneq7- (fx+fy)*p2dcssq + addendum8
-                    f8(i-1,j-1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum8
-                    g8(i-1,j-1,k)=fpc*rhob(i,j,k)/rtot - gaddendum8 
+                        !7
+                        udotc=(u(i,j,k)+v(i,j,k))/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p2*(rtot+press_excess+(temp + udotc))
+                        fneq7=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k))
+                        fpc=feq + addendum7+fneq7+ (fx+fy)*p2dcssq 
+                        f7(i+1,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum7
+                        g7(i+1,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum7
 
-                    !10
-                    udotc=(-u(i,j,k)+v(i,j,k))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p2*(rtot+press_excess+(temp + udotc))
-                    fneq10=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k))
-                    fpc=feq + fneq10 + (fy-fx)*p2dcssq + addendum10
-                    f10(i-1,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum10
-                    g10(i-1,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum10
+                        !8
+                        feq=p2*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum7+ fneq7- (fx+fy)*p2dcssq 
+                        f8(i-1,j-1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum8
+                        g8(i-1,j-1,k)=fpc*rhob(i,j,k)/rtot - gaddendum8 
+                        
+                        !10
+                        udotc=(-u(i,j,k)+v(i,j,k))/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p2*(rtot+press_excess+(temp + udotc))
+                        fneq10=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k))
+                        fpc=feq + addendum10+ fneq10 + (fy-fx)*p2dcssq 
+                        f10(i-1,j+1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum10
+                        g10(i-1,j+1,k)=fpc*rhob(i,j,k)/rtot - gaddendum10
 
-                    !9
-                    feq=p2*(rtot+press_excess+(temp - udotc))
-                    fpc=feq + fneq10 + (fx-fy)*p2dcssq + addendum9
-                    f9(i+1,j-1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum9
-                    g9(i+1,j-1,k)=fpc*rhob(i,j,k)/rtot - gaddendum9
+                        !9
+                        feq=p2*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum10+ fneq10 + (fx-fy)*p2dcssq 
+                        f9(i+1,j-1,k)=fpc*rhoA(i,j,k)/rtot + gaddendum9
+                        g9(i+1,j-1,k)=fpc*rhob(i,j,k)/rtot - gaddendum9
 
-                    !5
-                    udotc=w(i,j,k)/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p1*(rtot+press_excess+(temp + udotc))
-                    fneq5=(1.0_db-omega)*pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
-                    fpc=feq+fneq5 + fz*p1dcssq + addendum5
-                    f5(i,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum5
-                    g5(i,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum5
+                        !5
+                        udotc=w(i,j,k)/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p1*(rtot+press_excess+(temp + udotc))
+                        fneq5=(1.0_db-omega)*pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
+                        fpc=feq + addendum5+fneq5 + fz*p1dcssq 
+                        f5(i,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum5
+                        g5(i,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum5
 
-                    !6
-                    feq=p1*(rtot+press_excess+(temp - udotc))
-                    fpc=feq+fneq5 - fz*p1dcssq + addendum6
-                    f6(i,j,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum6
-                    g6(i,j,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum6
+                        !6
+                        feq=p1*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum5 +fneq5 - fz*p1dcssq 
+                        f6(i,j,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum6
+                        g6(i,j,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum6
 
-                    !15
-                    udotc=(u(i,j,k)+w(i,j,k))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p2*(rtot+press_excess+(temp + udotc))
-                    fneq15=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k))
-                    fpc=feq+fneq15 + (fx+fz)*p2dcssq + addendum15
-                    f15(i+1,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum15
-                    g15(i+1,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum15
-                    
-                    !16
-                    feq=p2*(rtot+press_excess+(temp - udotc))
-                    fpc=feq+fneq15 - (fx+fz)*p2dcssq + addendum16
-                    f16(i-1,j,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum16
-                    g16(i-1,j,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum16
+                        !15
+                        udotc=(u(i,j,k)+w(i,j,k))/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p2*(rtot+press_excess+(temp + udotc))
+                        fneq15=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k))
+                        fpc=feq + addendum15+fneq15 + (fx+fz)*p2dcssq 
+                        f15(i+1,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum15
+                        g15(i+1,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum15
+                        
+                        !16
+                        feq=p2*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum15 +fneq15 - (fx+fz)*p2dcssq 
+                        f16(i-1,j,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum16
+                        g16(i-1,j,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum16
 
-                    !17
-                    udotc=(-u(i,j,k)+w(i,j,k))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p2*(rtot+press_excess+(temp + udotc))
-                    fneq17=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k))
-                    fpc=feq+fneq17 +(fz-fx)*p2dcssq +addendum17
-                    f17(i-1,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum17
-                    g17(i-1,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum17
-                    
-                    !18
-                    feq=p2*(rtot+press_excess+(temp - udotc))
-                    fpc=feq+fneq17 + (fx-fz)*p2dcssq + addendum18
-                    f18(i+1,j,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum18
-                    g18(i+1,j,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum18
+                        !17
+                        udotc=(-u(i,j,k)+w(i,j,k))/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p2*(rtot+press_excess+(temp + udotc))
+                        fneq17=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k))
+                        fpc=feq +addendum17+fneq17 +(fz-fx)*p2dcssq 
+                        f17(i-1,j,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum17
+                        g17(i-1,j,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum17
+                        
+                        !18
+                        feq=p2*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum17+fneq17 + (fx-fz)*p2dcssq 
+                        f18(i+1,j,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum18
+                        g18(i+1,j,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum18
 
-                    !11
-                    udotc=(v(i,j,k)+w(i,j,k))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p2*(rtot+press_excess+(temp + udotc))
-                    fneq11=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k))
-                    fpc=feq+fneq11+(fy+fz)*p2dcssq + addendum11
-                    f11(i,j+1,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum11
-                    g11(i,j+1,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum11
-                    
-                    !12
-                    feq=p2*(rtot+press_excess+(temp - udotc))
-                    fpc=feq+fneq11 - (fy+fz)*p2dcssq + addendum12
-                    f12(i,j-1,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum12
-                    g12(i,j-1,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum12
-                    
-                    !13
-                    udotc=(v(i,j,k)-w(i,j,k))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    feq=p2*(rtot+press_excess+(temp + udotc))
-                    fneq13=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k))
-                    fpc=feq+fneq13 + (fy-fz)*p2dcssq + addendum13
-                    f13(i,j+1,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum13
-                    g13(i,j+1,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum13
-                    
-                    !14
-                    feq=p2*(rtot+press_excess+(temp - udotc))
-                    fpc=feq+fneq13 + (fz-fy)*p2dcssq + addendum14
-                    f14(i,j-1,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum14
-                    g14(i,j-1,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum14
+                        !11
+                        udotc=(v(i,j,k)+w(i,j,k))/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p2*(rtot+press_excess+(temp + udotc))
+                        fneq11=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k))
+                        fpc=feq + addendum11+fneq11+(fy+fz)*p2dcssq 
+                        f11(i,j+1,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum11
+                        g11(i,j+1,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum11
+                        
+                        !12
+                        feq=p2*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum11+fneq11 - (fy+fz)*p2dcssq 
+                        f12(i,j-1,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum12
+                        g12(i,j-1,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum12
+
+                        !13
+                        udotc=(v(i,j,k)-w(i,j,k))/cssq
+                        temp = -uu + 0.5_db*udotc*udotc
+                        feq=p2*(rtot+press_excess+(temp + udotc))
+                        fneq13=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k))
+                        fpc=feq + addendum13!+fneq13 + (fy-fz)*p2dcssq 
+                        f13(i,j+1,k-1)=fpc*rhoA(i,j,k)/rtot + gaddendum13
+                        g13(i,j+1,k-1)=fpc*rhob(i,j,k)/rtot - gaddendum13
+                        
+                        !14
+                        feq=p2*(rtot+press_excess+(temp - udotc))
+                        fpc=feq + addendum13!+fneq13 + (fz-fy)*p2dcssq 
+                        f14(i,j-1,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum14
+                        g14(i,j-1,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum14
                 enddo
             enddo
         enddo
-        !******************************************call bcs************************
-        !periodic along y
-        !x=1     
-        f1(2,:,:)=f1(nx,:,:)
-        f7(2,:,:)=f7(nx,:,:)
-        f9(2,:,:)=f9(nx,:,:)
-        f15(2,:,:)=f15(nx,:,:)
-        f18(2,:,:)=f18(nx,:,:)
-        !x=nx 
-        f2(nx-1,:,:)=f2(1,:,:)
-        f8(nx-1,:,:)=f8(1,:,:)
-        f10(nx-1,:,:)=f10(1,:,:)
-        f16(nx-1,:,:)=f16(1,:,:)
-        f17(nx-1,:,:)=f17(1,:,:)
+        !******************************************call bcs(other than no slip)************************
+            !periodic along y
+            !x=1     
+            ! f1(2,:,:)=f1(nx,:,:)
+            ! f7(2,:,:)=f7(nx,:,:)
+            ! f9(2,:,:)=f9(nx,:,:)
+            ! f15(2,:,:)=f15(nx,:,:)
+            ! f18(2,:,:)=f18(nx,:,:)
+            ! !x=nx 
+            ! f2(nx-1,:,:)=f2(1,:,:)
+            ! f8(nx-1,:,:)=f8(1,:,:)
+            ! f10(nx-1,:,:)=f10(1,:,:)
+            ! f16(nx-1,:,:)=f16(1,:,:)
+            ! f17(nx-1,:,:)=f17(1,:,:)
 
-        !y=1
-        f3(:,2,:)=f3(:,ny,:)
-        f7(:,2,:)=f7(:,ny,:)
-        f10(:,2,:)=f10(:,ny,:)
-        f11(:,2,:)=f11(:,ny,:)
-        f13(:,2,:)=f13(:,ny,:)
-        !y=ny
-        f4(:,ny-1,:)=f4(:,1,:)
-        f8(:,ny-1,:)=f8(:,1,:)
-        f9(:,ny-1,:)=f9(:,1,:)
-        f12(:,ny-1,:)=f12(:,1,:)
-        f14(:,ny-1,:)=f14(:,1,:)
+            ! !y=1
+            ! f3(:,2,:)=f3(:,ny,:)
+            ! f7(:,2,:)=f7(:,ny,:)
+            ! f10(:,2,:)=f10(:,ny,:)
+            ! f11(:,2,:)=f11(:,ny,:)
+            ! f13(:,2,:)=f13(:,ny,:)
+            ! !y=ny
+            ! f4(:,ny-1,:)=f4(:,1,:)
+            ! f8(:,ny-1,:)=f8(:,1,:)
+            ! f9(:,ny-1,:)=f9(:,1,:)
+            ! f12(:,ny-1,:)=f12(:,1,:)
+            ! f14(:,ny-1,:)=f14(:,1,:)
         !$acc end kernels 
         !****************************************writeonfile***************************************************!
             if(mod(step,stamp).eq.0)then
@@ -779,7 +789,7 @@ program lb_openacc
             open(107, file = 'rhoA_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
             open(108, file = 'rhoB_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
             open(109, file = 'u_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(110, file = 'v_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+            open(110, file = 'v_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
             do i=1,nx
                 do j=1,ny
                     write(106,*) psi(i,j,nz/2)  
@@ -816,34 +826,34 @@ program lb_openacc
             open(112, file = 'rhoA_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
             open(113, file = 'rhoB_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
             open(114, file = 'v_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(115, file = 'w_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            do i=1,nx
-                do j=1,ny
-                    write(111,*) psi(i,j,nz/2)  
+            open(115, file = 'w_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+            do j=1,ny
+                do k=1,nz
+                    write(111,*) psi(nx/2,j,k)  
                 enddo
             enddo
             close(111)
-            do i=1,nx
-                do j=1,ny
-                    write(112,*) rhoA(i,j,nz/2)  
+            do j=1,ny
+                do k=1,nz
+                    write(112,*) rhoA(nx/2,j,k)   
                 enddo
             enddo
             close(112)
-            do i=1,nx
-                do j=1,ny
-                    write(113,*) rhoB(i,j,nz/2)     
+            do j=1,ny
+                do k=1,nz
+                    write(113,*) rhoB(nx/2,j,k)    
                 enddo
             enddo
             close(113)
-            do i=1,nx
-                do j=1,ny
-                    write(114,*) v(i,j,nz/2)     
+            do j=1,ny
+                do k=1,nz
+                    write(114,*) v(nx/2,j,k)      
                 enddo
             enddo
             close(114)
-            do i=1,nx
-                do j=1,ny
-                    write(115,*) w(i,j,nz/2)     
+            do j=1,ny
+                do k=1,nz
+                    write(115,*) w(nx/2,j,k)     
                 enddo
             enddo
             close(115)
@@ -854,6 +864,7 @@ program lb_openacc
     enddo 
     call cpu_time(ts2)
     !$acc end data
+    write(6,*) 'elapsed time:', ts2-ts1, 'seconds'
    contains 
 
     function dimenumb(inum)
