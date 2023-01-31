@@ -133,7 +133,7 @@ program lb_openacc
         p2cg=(1.0_db/6.0_db)**2 * (2.0_db/3.0_db)
         p3cg=(1.0_db/6.0_db)**3
         press_excess=0.0_db
-        max_press_excess=0.02
+        max_press_excess=0.01
     !********************************initialization of macrovars ************************    
         u=0.0_db
         v=0.0_db
@@ -147,7 +147,7 @@ program lb_openacc
                 do k=nz/2-radius,nz/2+radius
                     if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
                         psi(i,j,k)=1.0_db
-                        u(i,j,k)=0.025_db
+                        u(i,j,k)=0.05_db
                     endif
                 enddo
             enddo
@@ -157,7 +157,7 @@ program lb_openacc
                 do k=nz/2-radius,nz/2+radius
                     if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
                         psi(i,j,k)=1.0_db
-                        u(i,j,k)=-0.025_db
+                        u(i,j,k)=-0.05_db
                     endif
                 enddo
             enddo
@@ -345,7 +345,7 @@ program lb_openacc
                         pxz(i,j,k)=fneq15+fneq16-fneq17-fneq18
                         pyz(i,j,k)=fneq11+fneq12-fneq13-fneq14
                         !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
-                        if(isfluid(i,j,k).eq.0)then
+                        if(isfluid(i,j,k).eq.33)then
                             f0(i,j,k)=(p0 + pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
                             f1(i,j,k)=(p1 + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
                             f2(i,j,k)=(p1 + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
@@ -516,63 +516,63 @@ program lb_openacc
                         ncontact=0
                         if(psi(i,j,k).lt.-0.9_db)then
                             
-                            if (psi(i+3,j,k).gt.-0.85 .and. psi(i+3,j,k).lt.0.0_db .and. psi(i-3,j,k).gt.-0.85 .and. psi(i-3,j,k).lt.0.0_db)then !&
-                                psid1=psi(i+2,j,k) + psi(i-2,j,k)
+                            if (psi(i+3,j,k).gt.-0.85 .and. psi(i-3,j,k).gt.-0.85)then!(psi(i+3,j,k).gt.-0.85 .and. psi(i+3,j,k).lt.0.0_db .and. psi(i-3,j,k).gt.-0.85 .and. psi(i-3,j,k).lt.0.0_db)then !&
+                                psid1=abs(psi(i+2,j,k) + psi(i-2,j,k))
                                 ncontact=ncontact+1
                             else
-                                psid1=-2.0_db
+                                psid1=2.0_db
                             endif
-                            if (psi(i,j+3,k).gt.-0.85 .and. psi(i,j+3,k).lt.0.0_db .and. psi(i,j-3,k).gt.-0.85 .and. psi(i,j-3,k).lt.0.0_db)then
-                                psid2=psi(i,j+2,k) + psi(i,j-2,k)
+                            if (psi(i,j+3,k).gt.-0.85 .and. psi(i,j-3,k).gt.-0.85)then!(psi(i,j+3,k).gt.-0.85 .and. psi(i,j+3,k).lt.0.0_db .and. psi(i,j-3,k).gt.-0.85 .and. psi(i,j-3,k).lt.0.0_db)then
+                                psid2=abs(psi(i,j+2,k) + psi(i,j-2,k))
                                 ncontact=ncontact+1
                             else
-                                psid2=-2.0_db
+                                psid2=2.0_db
                             endif
-                            if (psi(i,j,k+3).gt.-0.85 .and. psi(i,j,k+3).lt.0.0_db .and. psi(i,j,k-3).gt.-0.85 .and. psi(i,j,k-3).lt.0.0_db)then
-                                psid3=psi(i,j,k+2) + psi(i,j,k-2)
+                            if (psi(i,j,k+3).gt.-0.85 .and. psi(i,j,k-3).gt.-0.85)then!(psi(i,j,k+3).gt.-0.85 .and. psi(i,j,k+3).lt.0.0_db .and. psi(i,j,k-3).gt.-0.85 .and. psi(i,j,k-3).lt.0.0_db)then
+                                psid3=abs(psi(i,j,k+2) + psi(i,j,k-2))
                                 ncontact=ncontact+1
                             else
-                                psid3=-2.0_db
+                                psid3=2.0_db
                             endif
-                            if (psi(i+3,j+3,k).gt.-0.85 .and. psi(i+3,j+3,k).lt.0.0_db .and. psi(i-3,j-3,k).gt.-0.85 .and. psi(i-3,j-3,k).lt.0.0_db)then
-                                psid4=psi(i+2,j+2,k) + psi(i-2,j-2,k)
+                            if (psi(i+3,j+3,k).gt.-0.85 .and. psi(i-3,j-3,k).gt.-0.85)then!(psi(i+3,j+3,k).gt.-0.85 .and. psi(i+3,j+3,k).lt.0.0_db .and. psi(i-3,j-3,k).gt.-0.85 .and. psi(i-3,j-3,k).lt.0.0_db)then
+                                psid4=abs(psi(i+2,j+2,k) + psi(i-2,j-2,k))
                                 ncontact=ncontact+1
                             else
-                                psid4=-2.0_db
+                                psid4=2.0_db
                             endif
-                            if (psi(i+3,j,k+3).gt.-0.85 .and. psi(i+3,j,k+3).lt.0.0_db .and. psi(i-3,j,k-3).gt.-0.85 .and. psi(i-3,j,k-3).lt.0.0_db)then
-                                psid5=psi(i+2,j,k+2) + psi(i-2,j,k-2)
+                            if (psi(i+3,j,k+3).gt.-0.85.and. psi(i-3,j,k-3).gt.-0.85)then!(psi(i+3,j,k+3).gt.-0.85 .and. psi(i+3,j,k+3).lt.0.0_db .and. psi(i-3,j,k-3).gt.-0.85 .and. psi(i-3,j,k-3).lt.0.0_db)then
+                                psid5=abs(psi(i+2,j,k+2) + psi(i-2,j,k-2))
                                 ncontact=ncontact+1
                             else
-                                psid5=-2.0_db
+                                psid5=2.0_db
                             endif
-                            if (psi(i,j+3,k+3).gt.-0.85 .and. psi(i,j+3,k+3).lt.0.0_db .and. psi(i,j-3,k-3).gt.-0.85 .and. psi(i,j-3,k-3).lt.0.0_db)then
-                                psid6=psi(i,j+2,k+2) + psi(i,j-2,k-2)
+                            if (psi(i,j+3,k+3).gt.-0.85 .and. psi(i,j-3,k-3).gt.-0.85)then!(psi(i,j+3,k+3).gt.-0.85 .and. psi(i,j+3,k+3).lt.0.0_db .and. psi(i,j-3,k-3).gt.-0.85 .and. psi(i,j-3,k-3).lt.0.0_db)then
+                                psid6=abs(psi(i,j+2,k+2) + psi(i,j-2,k-2))
                                 ncontact=ncontact+1
                             else
-                                psid6=-2.0_db
+                                psid6=2.0_db
                             endif
 
-                            if (psi(i-3,j+3,k).gt.-0.85 .and. psi(i-3,j+3,k).lt.0.0_db .and. psi(i+3,j-3,k).gt.-0.85 .and. psi(i+3,j-3,k).lt.0.0_db)then
-                                psid7=psi(i+2,j-2,k) + psi(i-2,j+2,k)
+                            if (psi(i-3,j+3,k).gt.-0.85.and. psi(i+3,j-3,k).gt.-0.85)then!(psi(i-3,j+3,k).gt.-0.85 .and. psi(i-3,j+3,k).lt.0.0_db .and. psi(i+3,j-3,k).gt.-0.85 .and. psi(i+3,j-3,k).lt.0.0_db)then
+                                psid7=abs(psi(i+2,j-2,k) + psi(i-2,j+2,k))
                                 ncontact=ncontact+1
                             else
-                                psid7=-2.0_db
+                                psid7=2.0_db
                             endif
-                            if (psi(i-3,j,k+3).gt.-0.85 .and. psi(i-3,j,k+3).lt.0.0_db .and. psi(i+3,j,k-3).gt.-0.85 .and. psi(i+3,j,k-3).lt.0.0_db)then
-                                psid8=psi(i+2,j,k-2) + psi(i-2,j,k+2)
+                            if (psi(i-3,j,k+3).gt.-0.85.and. psi(i+3,j,k-3).gt.-0.85)then!(psi(i-3,j,k+3).gt.-0.85 .and. psi(i-3,j,k+3).lt.0.0_db .and. psi(i+3,j,k-3).gt.-0.85 .and. psi(i+3,j,k-3).lt.0.0_db)then
+                                psid8=abs(psi(i+2,j,k-2) + psi(i-2,j,k+2))
                                 ncontact=ncontact+1
                             else
-                                psid8=-2.0_db
+                                psid8=2.0_db
                             endif
-                            if (psi(i,j-3,k+3).gt.-0.85 .and. psi(i,j-3,k+3).lt.0.0_db .and. psi(i,j+3,k-3).gt.-0.85 .and. psi(i,j+3,k-3).lt.0.0_db)then
-                                psid9=psi(i,j+2,k-2) + psi(i,j-2,k+2)
+                            if (psi(i,j-3,k+3).gt.-0.85.and. psi(i,j+3,k-3).gt.-0.85)then!(psi(i,j-3,k+3).gt.-0.85 .and. psi(i,j-3,k+3).lt.0.0_db .and. psi(i,j+3,k-3).gt.-0.85 .and. psi(i,j+3,k-3).lt.0.0_db)then
+                                psid9=abs(psi(i,j+2,k-2) + psi(i,j-2,k+2))
                                 ncontact=ncontact+1
                             else
-                                psid9=-2.0_db
+                                psid9=2.0_db
                             endif
                             if(ncontact.gt.0)then
-                                press_excess=max_press_excess*(18.0_db+psid1+psid2+psid3+psid4+psid5+psid6+psid7+psid8+psid9)/real(ncontact,4)
+                                press_excess=max_press_excess*(18.0_db-psid1-psid2-psid3-psid4-psid5-psid6-psid7-psid8-psid9)/real(ncontact,4)
                             endif
                         endif
                     !******************************collision+stream*****************************!
@@ -723,30 +723,45 @@ program lb_openacc
         !******************************************call bcs(other than no slip)************************
             !periodic along y
             !x=1     
-            ! f1(2,:,:)=f1(nx,:,:)
-            ! f7(2,:,:)=f7(nx,:,:)
-            ! f9(2,:,:)=f9(nx,:,:)
-            ! f15(2,:,:)=f15(nx,:,:)
-            ! f18(2,:,:)=f18(nx,:,:)
-            ! !x=nx 
-            ! f2(nx-1,:,:)=f2(1,:,:)
-            ! f8(nx-1,:,:)=f8(1,:,:)
-            ! f10(nx-1,:,:)=f10(1,:,:)
-            ! f16(nx-1,:,:)=f16(1,:,:)
-            ! f17(nx-1,:,:)=f17(1,:,:)
+            f1(1,:,:)=f1(nx,:,:)
+            f7(1,:,:)=f7(nx,:,:)
+            f9(1,:,:)=f9(nx,:,:)
+            f15(1,:,:)=f15(nx,:,:)
+            f18(1,:,:)=f18(nx,:,:)
+            !x=nx 
+            f2(nx,:,:)=f2(1,:,:)
+            f8(nx,:,:)=f8(1,:,:)
+            f10(nx,:,:)=f10(1,:,:)
+            f16(nx,:,:)=f16(1,:,:)
+            f17(nx,:,:)=f17(1,:,:)
 
-            ! !y=1
-            ! f3(:,2,:)=f3(:,ny,:)
-            ! f7(:,2,:)=f7(:,ny,:)
-            ! f10(:,2,:)=f10(:,ny,:)
-            ! f11(:,2,:)=f11(:,ny,:)
-            ! f13(:,2,:)=f13(:,ny,:)
-            ! !y=ny
-            ! f4(:,ny-1,:)=f4(:,1,:)
-            ! f8(:,ny-1,:)=f8(:,1,:)
-            ! f9(:,ny-1,:)=f9(:,1,:)
-            ! f12(:,ny-1,:)=f12(:,1,:)
-            ! f14(:,ny-1,:)=f14(:,1,:)
+            !y=1
+            f3(:,1,:)=f3(:,ny,:)
+            f7(:,1,:)=f7(:,ny,:)
+            f10(:,1,:)=f10(:,ny,:)
+            f11(:,1,:)=f11(:,ny,:)
+            f13(:,1,:)=f13(:,ny,:)
+            !y=ny
+            f4(:,ny,:)=f4(:,1,:)
+            f8(:,ny,:)=f8(:,1,:)
+            f9(:,ny,:)=f9(:,1,:)
+            f12(:,ny,:)=f12(:,1,:)
+            f14(:,ny,:)=f14(:,1,:)
+            !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+            !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+            !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+            !z=1
+            f5(:,:,1)=f5(:,:,nz)
+            f11(:,:,1)=f11(:,:,nz)
+            f14(:,:,1)=f14(:,:,nz)
+            f15(:,:,1)=f15(:,:,nz)
+            f17(:,:,1)=f17(:,:,nz)
+            !z=nz
+            f6(:,:,nz)=f6(:,:,1)
+            f12(:,:,nz)=f12(:,:,1)
+            f13(:,:,nz)=f13(:,:,1)
+            f16(:,:,nz)=f16(:,:,1)
+            f18(:,:,nz)=f18(:,:,1)
         !$acc end kernels 
         !****************************************writeonfile***************************************************!
             if(mod(step,stamp).eq.0)then
