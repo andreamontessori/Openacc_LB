@@ -65,9 +65,9 @@ program lb_openacc
     !#endif
 
     !**************************************user parameters**************************
-        nx=350
-        ny=350
-        nz=350
+        nx=250
+        ny=250
+        nz=250
         nsteps=15000
         stamp=500
         fx=0.0_db*10.0**(-7)
@@ -89,7 +89,7 @@ program lb_openacc
         allocate(pyz(1:nx,1:ny,1:nz),pzz(1:nx,1:ny,1:nz),psi(0:nx+1,0:ny+1,0:nz+1))
         allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
     
-    !***************************************lattice vars*************************************!
+    !***************************************lattice/vars*************************************!
         !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
         !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
         !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
@@ -142,26 +142,30 @@ program lb_openacc
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
         psi=-1.0_db
         radius=50
-        do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
-            do j=ny/2-radius,ny/2+radius
-                do k=nz/2-radius,nz/2+radius
-                    if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
-                        psi(i,j,k)=1.0_db
-                        u(i,j,k)=0.05_db
-                    endif
+        !*****************************************impacting droplets***************************!
+            do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
+                do j=ny/2-radius,ny/2+radius
+                    do k=nz/2+42-radius,nz/2+42+radius
+                        if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2+42))**2<=radius**2)then
+                            psi(i,j,k)=1.0_db
+                            u(i,j,k)=0.075_db
+                        endif
+                    enddo
                 enddo
             enddo
-        enddo
-        do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
-            do j=ny/2-radius,ny/2+radius
-                do k=nz/2-radius,nz/2+radius
-                    if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-nz/2)**2<=radius**2)then
-                        psi(i,j,k)=1.0_db
-                        u(i,j,k)=-0.05_db
-                    endif
+            do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
+                do j=ny/2-radius,ny/2+radius
+                    do k=nz/2-42-radius,nz/2-42+radius
+                        if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2-42))**2<=radius**2)then
+                            psi(i,j,k)=1.0_db
+                            u(i,j,k)=-0.075_db
+                        endif
+                    enddo
                 enddo
             enddo
-        enddo
+        
+        !*****************************************Spinodal decomposition*****************************
+        
         rhoB=0.5*(1.0_db-psi(1:nx,1:ny,1:nz))
         rhoA=1.0_db-rhoB
     !*************************************set distros************************!
@@ -220,6 +224,7 @@ program lb_openacc
         write(6,*) 'beta',beta
         write(6,*) 'sigma',sigma
         write(6,*) 'surface_tens_coeff',st_coeff
+        write(6,*) 'max press excess',max_press_excess
         write(6,*) '*******************INPUT data*****************'
         write(6,*) 'nx',nx
         write(6,*) 'ny',ny
