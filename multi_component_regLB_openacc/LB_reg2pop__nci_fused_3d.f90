@@ -31,7 +31,7 @@ program lb_openacc
         real(kind=db) :: gaddendum9,gaddendum10,gaddendum11,gaddendum12,gaddendum13,gaddendum14,gaddendum15,gaddendum16,gaddendum17,gaddendum18
         real(kind=db) :: psi_x,psi_y,psi_z,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma
         real(kind=db) :: one_ov_nu2,one_ov_nu1,nu_avg,rtot,rprod
-        real(kind=db) :: press_excess,max_press_excess
+        real(kind=db) :: press_excess,max_press_excess,rr
 
         integer(kind=4), allocatable,dimension(:,:,:)   :: isfluid
         real(kind=db), allocatable, dimension(:,:,:) :: psi,rhoA,rhoB,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
@@ -68,8 +68,8 @@ program lb_openacc
         nx=250
         ny=250
         nz=250
-        nsteps=15000
-        stamp=500
+        nsteps=100
+        stamp=100
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
@@ -142,7 +142,7 @@ program lb_openacc
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
         psi=-1.0_db
         radius=50
-        !*****************************************impacting droplets***************************!
+        !*****************************************Impacting droplets***************************!
             do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
                 do j=ny/2-radius,ny/2+radius
                     do k=nz/2+42-radius,nz/2+42+radius
@@ -164,8 +164,18 @@ program lb_openacc
                 enddo
             enddo
         
-        !*****************************************Spinodal decomposition*****************************
-        
+        !*****************************************Spinodal decomposition***********************!
+            do k=20,nz-20
+                do j=20,ny-20
+                    do i=20,nx-20
+                        call random_number(rr)
+                        if(rr.gt.0.5) psi(i,j,k)=1.0_db
+                        if(rr.le.0.5) psi(i,j,k)=-1.0_db
+                    enddo
+                enddo
+            enddo
+        !*****************************************dense emulsion in channel********************!
+        !*****************************************turbulent emulsion********************!
         rhoB=0.5*(1.0_db-psi(1:nx,1:ny,1:nz))
         rhoA=1.0_db-rhoB
     !*************************************set distros************************!
