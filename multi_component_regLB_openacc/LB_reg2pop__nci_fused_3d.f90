@@ -6,7 +6,7 @@ program lb_openacc
     implicit none
     !************************************block of vars*******************************************!
         integer, parameter :: db=4 !kind(1.0)
-        integer(kind=8) :: i,j,k
+        integer(kind=8) :: i,j,k,k_init,k_end,j_init,j_end,i_init,i_end
         integer(kind=8) :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus
         integer,save :: iframe=0
         
@@ -14,7 +14,7 @@ program lb_openacc
         
         real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
         real(kind=4)  :: p1cg,p2cg,p3cg
-        real(kind=db) :: visc_LB,uu,udotc,omega,feq,geq,fpc
+        real(kind=db) :: visc_LB,uu,udotc,omega,feq,geq,fpc,gpc,hpc
         real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
         real(kind=db) :: radius
 
@@ -31,7 +31,7 @@ program lb_openacc
         real(kind=db) :: gaddendum9,gaddendum10,gaddendum11,gaddendum12,gaddendum13,gaddendum14,gaddendum15,gaddendum16,gaddendum17,gaddendum18
         real(kind=db) :: psi_x,psi_y,psi_z,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma
         real(kind=db) :: one_ov_nu2,one_ov_nu1,nu_avg,rtot,rprod
-        real(kind=db) :: press_excess,max_press_excess,rr
+        real(kind=db) :: press_excess,max_press_excess,rr 
 
         integer(kind=4), allocatable,dimension(:,:,:)   :: isfluid
         real(kind=db), allocatable, dimension(:,:,:) :: psi,rhoA,rhoB,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
@@ -39,6 +39,7 @@ program lb_openacc
         real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
         real(kind=db), allocatable, dimension(:,:,:) :: g0,g1,g2,g3,g4,g5,g6,g7,g8,g9
         real(kind=db), allocatable, dimension(:,:,:) :: g10,g11,g12,g13,g14,g15,g16,g17,g18
+        real(kind=db), allocatable,dimension(:,:,:) :: random_field
 
        
    
@@ -48,11 +49,11 @@ program lb_openacc
         nlinks=18 !pari!
         cssq=1.0_db/3.0_db
         !fluid 1
-        tau=0.65_db
+        tau=1.0_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu1=1.0_db/visc_LB
         !fluid2
-        tau=0.65_db
+        tau=1.0_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
@@ -65,14 +66,14 @@ program lb_openacc
     !#endif
 
     !**************************************user parameters**************************
-        nx=250
-        ny=250
-        nz=250
-        nsteps=100
-        stamp=100
+        nx=30!250
+        ny=200!250
+        nz=200!250
+        nsteps=6000
+        stamp=600
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
-        fz=0.0_db*10.0**(-5)
+        fz=5.0_db*10.0**(-5)
     !*****************************************allocation*******************************************************
         allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))
@@ -88,6 +89,7 @@ program lb_openacc
         allocate(pxx(1:nx,1:ny,1:nz),pxy(1:nx,1:ny,1:nz),pxz(1:nx,1:ny,1:nz),pyy(1:nx,1:ny,1:nz))  
         allocate(pyz(1:nx,1:ny,1:nz),pzz(1:nx,1:ny,1:nz),psi(0:nx+1,0:ny+1,0:nz+1))
         allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
+        allocate(random_field(25,25,25))
     
     !***************************************lattice/vars*************************************!
         !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
@@ -107,6 +109,18 @@ program lb_openacc
         isfluid(:,ny,:)=0 !rear
         isfluid(:,:,1)=0 !bottom
         isfluid(:,:,nz)=0 !top
+
+        !***********************************read geometry if any**************************
+            ! open(231, file = 'isfl.txt', status = 'old',action='read')
+            ! do j=1,ny
+            !     do k=1,nz
+            !         read(231,*) isfluid(1,j,k)
+            !     enddo
+            ! enddo
+            ! close(231)
+            ! do i=2,nx
+            !     isfluid(i,:,:)=isfluid(1,:,:)
+            ! enddo
     !********************************hermite projection vars**********
         pi2cssq0=p0/(2.0_db*cssq**2)
         pi2cssq1=p1/(2.0_db*cssq**2)
@@ -133,7 +147,7 @@ program lb_openacc
         p2cg=(1.0_db/6.0_db)**2 * (2.0_db/3.0_db)
         p3cg=(1.0_db/6.0_db)**3
         press_excess=0.0_db
-        max_press_excess=0.01
+        max_press_excess=0.0_db!25
     !********************************initialization of macrovars ************************    
         u=0.0_db
         v=0.0_db
@@ -141,36 +155,84 @@ program lb_openacc
         rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
         psi=-1.0_db
-        radius=50
+        radius=20
         !*****************************************Impacting droplets***************************!
-            do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
-                do j=ny/2-radius,ny/2+radius
-                    do k=nz/2+42-radius,nz/2+42+radius
-                        if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2+42))**2<=radius**2)then
-                            psi(i,j,k)=1.0_db
-                            u(i,j,k)=0.075_db
-                        endif
-                    enddo
-                enddo
-            enddo
-            do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
-                do j=ny/2-radius,ny/2+radius
-                    do k=nz/2-42-radius,nz/2-42+radius
-                        if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2-42))**2<=radius**2)then
-                            psi(i,j,k)=1.0_db
-                            u(i,j,k)=-0.075_db
-                        endif
-                    enddo
-                enddo
-            enddo
+            ! do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
+            !     do j=ny/2-radius,ny/2+radius
+            !         do k=nz/2+42-radius,nz/2+42+radius
+            !             if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2+42))**2<=radius**2)then
+            !                 psi(i,j,k)=1.0_db
+            !                 u(i,j,k)=0.075_db
+            !             endif
+            !         enddo
+            !     enddo
+            ! enddo
+            ! do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
+            !     do j=ny/2-radius,ny/2+radius
+            !         do k=nz/2-42-radius,nz/2-42+radius
+            !             if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2-42))**2<=radius**2)then
+            !                 psi(i,j,k)=1.0_db
+            !                 u(i,j,k)=-0.075_db
+            !             endif
+            !         enddo
+            !     enddo
+            ! enddo
         
         !*****************************************Spinodal decomposition***********************!
-            do k=20,nz-20
-                do j=20,ny-20
-                    do i=20,nx-20
-                        call random_number(rr)
-                        if(rr.gt.0.5) psi(i,j,k)=1.0_db
-                        if(rr.le.0.5) psi(i,j,k)=-1.0_db
+            ! do k=1,25
+            !     do j=1,25
+            !         do i=1,25
+            !             call random_number(rr)
+            !             random_field(i,j,k)=rr
+            !         enddo
+            !     enddo
+            ! enddo
+            ! !
+            ! do k=1,25
+            !     k_init=k_end+1
+            !     k_end=k_end+10
+            !     do j=1,25
+            !         j_init=j_end+1
+            !         j_end=j_end+10
+            !         do i=1,25
+            !             i_init=i_end+1
+            !             i_end=i_end+10
+            !             if(random_field(i,j,k).gt.0.2) psi(i_init:i_end,j_init:j_end,k_init:k_end)=1.0_db
+            !         enddo
+            !         i_init=0
+            !         i_end=0
+            !     enddo
+            !     j_init=0
+            !     j_end=0
+            ! enddo
+        !************************read initial conditions for macrovars*************************!
+            ! open(231, file = 'psi.txt', status = 'old',action='read')
+            ! do j=1,ny
+            !     do k=1,nz
+            !         read(231,*) psi(15,j,k)
+            !     enddo
+            ! enddo
+            ! close(231)
+            ! do i=2,nx-1
+            !     psi(i,:,:)=psi(15,:,:)
+            ! enddo
+            ! open(231, file = 'psi.out', status = 'replace')
+
+            ! do i=1,nx
+            !     do j=1,ny
+            !         do k=1,nz
+            !         write(231,*) psi(i,j,k)  
+            !         enddo
+            !     enddo
+            ! enddo
+            ! close(231)
+        !************************************single cylindrical droplets*******************!
+            do i=3,nx-2
+                do j=ny/2-radius,ny/2+radius
+                    do k=nz/2-radius,nz/2+radius
+                        if ((j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
+                            psi(i,j,k)=1.0_db
+                        endif
                     enddo
                 enddo
             enddo
@@ -246,7 +308,7 @@ program lb_openacc
         write(6,*) 'max fx',huge(fz)
         write(6,*) '*******************************************'
     !*****************************************copy data on gpu*********************************************!
-    !$acc data copy(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,isfluid,p0,p1,p2,&
+        !$acc data copy(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,isfluid,p0,p1,p2,&
              !$acc& pxx,pyy,pzz,pxy,pxz,pyz,rhoA,rhoB,u,v,w,psi, &
              !$acc& g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15,g16,g17,g18)
     
@@ -260,7 +322,7 @@ program lb_openacc
         do k=1,nz
             do j=1,ny
                 do i=1,nx
-                    if(isfluid(i,j,k).eq.1.or.isfluid(i,j,k).eq.0)then
+                    if(isfluid(i,j,k).eq.1)then
                         ft0=f0(i,j,k)+g0(i,j,k)
                         ft1=f1(i,j,k)+g1(i,j,k)
                         ft2=f2(i,j,k)+g2(i,j,k)
@@ -349,66 +411,16 @@ program lb_openacc
                         temp = -uu + 0.5_db*udotc*udotc
                         fneq17=ft17-p2*(rtot+(temp + udotc))
                         fneq18=ft18-p2*(rtot+(temp - udotc))
-                        
                         !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
                         !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
                         !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
                         pxx(i,j,k)=fneq1+fneq2+fneq7+fneq8+fneq9+fneq10+fneq15+fneq16+fneq17+fneq18
                         pyy(i,j,k)=fneq3+fneq4+fneq7+fneq8+fneq9+fneq10+fneq11+fneq12+fneq13+fneq14
                         pzz(i,j,k)=fneq5+fneq6+fneq11+fneq12+fneq13+fneq14+fneq15+fneq16+fneq17+fneq18
-                        pxy(i,j,k)= fneq7+fneq8-fneq9-fneq10
+                        pxy(i,j,k)=fneq7+fneq8-fneq9-fneq10
                         pxz(i,j,k)=fneq15+fneq16-fneq17-fneq18
                         pyz(i,j,k)=fneq11+fneq12-fneq13-fneq14
-                        !no slip everywhere, always before fused: to be modified for generic pressure/velocity bcs
-                        if(isfluid(i,j,k).eq.33)then
-                            f0(i,j,k)=(p0 + pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
-                            f1(i,j,k)=(p1 + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
-                            f2(i,j,k)=(p1 + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
-                            f3(i,j,k)=(p1 + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
-                            f4(i,j,k)=(p1 + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k))))*rhoA(i,j,k)/rtot
-                            f5(i,j,k)=(p1 + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k))))*rhoA(i,j,k)/rtot
-                            f6(i,j,k)=(p1 + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k))))*rhoA(i,j,k)/rtot
-
-                            f7(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k)))*rhoA(i,j,k)/rtot
-                            f8(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k)))*rhoA(i,j,k)/rtot
-                            f9(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k)))*rhoA(i,j,k)/rtot
-                            f10(i,j,k)=(p2 +pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k)))*rhoA(i,j,k)/rtot
-
-                            f11(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k)))*rhoA(i,j,k)/rtot
-                            f12(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k)))*rhoA(i,j,k)/rtot
-                            f13(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k)))*rhoA(i,j,k)/rtot
-                            f14(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k)))*rhoA(i,j,k)/rtot
-
-                            f15(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k)))*rhoA(i,j,k)/rtot
-                            f16(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k)))*rhoA(i,j,k)/rtot
-                            f17(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k)))*rhoA(i,j,k)/rtot
-                            f18(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k)))*rhoA(i,j,k)/rtot
-                            !
-                            g0(i,j,k)=(p0 + pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k))))*rhob(i,j,k)/rtot
-                            g1(i,j,k)=(p1 + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))))*rhob(i,j,k)/rtot
-                            g2(i,j,k)=(p1 + pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))))*rhob(i,j,k)/rtot
-                            g3(i,j,k)=(p1 + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k))))*rhob(i,j,k)/rtot
-                            g4(i,j,k)=(p1 + pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k))))*rhob(i,j,k)/rtot
-                            g5(i,j,k)=(p1 + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k))))*rhob(i,j,k)/rtot
-                            g6(i,j,k)=(p1 + pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k))))*rhob(i,j,k)/rtot
-
-                            g7(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k)))*rhob(i,j,k)/rtot
-                            g8(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k)))*rhob(i,j,k)/rtot
-                            g9(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k)))*rhob(i,j,k)/rtot
-                            g10(i,j,k)=(p2 +pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k)))*rhob(i,j,k)/rtot
-
-                            g11(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k)))*rhob(i,j,k)/rtot
-                            g12(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k)))*rhob(i,j,k)/rtot
-                            g13(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k)))*rhob(i,j,k)/rtot
-                            g14(i,j,k)=(p2 + pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k)))*rhob(i,j,k)/rtot
-
-                            g15(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k)))*rhob(i,j,k)/rtot
-                            g16(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k)))*rhob(i,j,k)/rtot
-                            g17(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k)))*rhob(i,j,k)/rtot
-                            g18(i,j,k)=(p2 + pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k)))*rhob(i,j,k)/rtot
-                        endif
                     endif
-                    
                 enddo
             enddo
         enddo
@@ -416,6 +428,7 @@ program lb_openacc
         do k=1,nz
             do j=1,ny
                 do i=1,nx  
+                    if(isfluid(i,j,k).eq.1)then 
                     !!*******************************chromodynamics***************************!
                         psi_x=(1.0_db/cssq)*(p1cg*(psi(i+1,j,k)-psi(i-1,j,k)) + &
                                             p2cg*(psi(i+1,j+1,k)+psi(i+1,j-1,k)+psi(i+1,j,k+1)+psi(i+1,j,k-1)) &
@@ -529,7 +542,7 @@ program lb_openacc
                         psid3=0.0_db
                         psid4=0.0_db
                         ncontact=0
-                        if(psi(i,j,k).lt.-0.9_db)then
+                        if(psi(i,j,k).lt.-0.9_db .and. i.gt.3 .and. i.lt.nx-2 .and. j.gt.3 .and. j.lt.ny-2 .and. k.gt.3 .and. k.lt.nz-2)then
                             
                             if (psi(i+3,j,k).gt.-0.85 .and. psi(i-3,j,k).gt.-0.85)then!(psi(i+3,j,k).gt.-0.85 .and. psi(i+3,j,k).lt.0.0_db .and. psi(i-3,j,k).gt.-0.85 .and. psi(i-3,j,k).lt.0.0_db)then !&
                                 psid1=abs(psi(i+2,j,k) + psi(i-2,j,k))
@@ -732,169 +745,246 @@ program lb_openacc
                         fpc=feq + addendum13+fneq13 + (fz-fy)*p2dcssq 
                         f14(i,j-1,k+1)=fpc*rhoA(i,j,k)/rtot + gaddendum14
                         g14(i,j-1,k+1)=fpc*rhob(i,j,k)/rtot - gaddendum14
+                    endif
                 enddo
             enddo
         enddo
-        !******************************************call bcs(other than no slip)************************
-            !periodic along y
-            !x=1     
-            f1(1,:,:)=f1(nx,:,:)
-            f7(1,:,:)=f7(nx,:,:)
-            f9(1,:,:)=f9(nx,:,:)
-            f15(1,:,:)=f15(nx,:,:)
-            f18(1,:,:)=f18(nx,:,:)
-            !x=nx 
-            f2(nx,:,:)=f2(1,:,:)
-            f8(nx,:,:)=f8(1,:,:)
-            f10(nx,:,:)=f10(1,:,:)
-            f16(nx,:,:)=f16(1,:,:)
-            f17(nx,:,:)=f17(1,:,:)
+        !********************************boundaray conditions no slip********************************!
+            !$acc loop independent 
+            do k=1,nz
+                !$acc loop independent 
+                do j=1,ny
+                    !$acc loop independent 
+                    do i=1,nx
+                        if(isfluid(i,j,k).eq.0)then
+                            
+                            f18(i+1,j,k-1)=f17(i,j,k) !gpc 
+                            f17(i-1,j,k+1)=f18(i,j,k) !hpc
 
-            !y=1
-            f3(:,1,:)=f3(:,ny,:)
-            f7(:,1,:)=f7(:,ny,:)
-            f10(:,1,:)=f10(:,ny,:)
-            f11(:,1,:)=f11(:,ny,:)
-            f13(:,1,:)=f13(:,ny,:)
-            !y=ny
-            f4(:,ny,:)=f4(:,1,:)
-            f8(:,ny,:)=f8(:,1,:)
-            f9(:,ny,:)=f9(:,1,:)
-            f12(:,ny,:)=f12(:,1,:)
-            f14(:,ny,:)=f14(:,1,:)
-            !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
-            !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
-            !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
-            !z=1
-            f5(:,:,1)=f5(:,:,nz)
-            f11(:,:,1)=f11(:,:,nz)
-            f14(:,:,1)=f14(:,:,nz)
-            f15(:,:,1)=f15(:,:,nz)
-            f17(:,:,1)=f17(:,:,nz)
-            !z=nz
-            f6(:,:,nz)=f6(:,:,1)
-            f12(:,:,nz)=f12(:,:,1)
-            f13(:,:,nz)=f13(:,:,1)
-            f16(:,:,nz)=f16(:,:,1)
-            f18(:,:,nz)=f18(:,:,1)
+                            f16(i-1,j,k-1)=f15(i,j,k) !gpc 
+                            f15(i+1,j,k+1)=f16(i,j,k) !hpc
+
+                            f14(i,j-1,k+1)=f13(i,j,k)!gpc 
+                            f13(i,j+1,k-1)=f14(i,j,k)!hpc
+                            
+                            f12(i,j-1,k-1)=f11(i,j,k)!gpc 
+                            f11(i,j+1,k+1)=f12(i,j,k)!hpc
+
+                            f10(i-1,j+1,k)=f9(i,j,k)!gpc 
+                            f9(i+1,j-1,k)=f10(i,j,k)!hpc
+
+                            f8(i-1,j-1,k)=f7(i,j,k)!gpc 
+                            f7(i+1,j+1,k)=f8(i,j,k)!hpc
+
+                            f6(i,j,k-1)=f5(i,j,k)!gpc 
+                            f5(i,j,k+1)=f6(i,j,k)!hpc 
+
+
+                            f4(i,j-1,k)=f3(i,j,k)!gpc 
+                            f3(i,j+1,k)=f4(i,j,k)!hpc 
+
+                            f2(i-1,j,k)=f1(i,j,k)!gpc 
+                            f1(i+1,j,k)=f2(i,j,k)!hpc 
+                            !************************!
+                            g18(i+1,j,k-1)=g17(i,j,k) !gpc 
+                            g17(i-1,j,k+1)=g18(i,j,k) !hpc
+
+                            g16(i-1,j,k-1)=g15(i,j,k) !gpc 
+                            g15(i+1,j,k+1)=g16(i,j,k) !hpc
+
+                            g14(i,j-1,k+1)=g13(i,j,k)!gpc 
+                            g13(i,j+1,k-1)=g14(i,j,k)!hpc
+                            
+                            g12(i,j-1,k-1)=g11(i,j,k)!gpc 
+                            g11(i,j+1,k+1)=g12(i,j,k)!hpc
+
+                            g10(i-1,j+1,k)=g9(i,j,k)!gpc 
+                            g9(i+1,j-1,k)=g10(i,j,k)!hpc
+
+                            g8(i-1,j-1,k)=g7(i,j,k)!gpc 
+                            g7(i+1,j+1,k)=g8(i,j,k)!hpc
+
+                            g6(i,j,k-1)=g5(i,j,k)!gpc 
+                            g5(i,j,k+1)=g6(i,j,k)!hpc 
+
+
+                            g4(i,j-1,k)=g3(i,j,k)!gpc 
+                            g3(i,j+1,k)=g4(i,j,k)!hpc 
+
+                            g2(i-1,j,k)=g1(i,j,k)!gpc 
+                            g1(i+1,j,k)=g2(i,j,k)!hpc
+                    
+                        endif
+                    enddo
+                enddo
+            enddo
+        !*********************************call bcs(other than no slip)************************
+            !$acc loop independent 
+            do j=1,ny
+                !$acc loop independent 
+                do i=1,nx
+                          
+                    !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+                    !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+                    !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+                    psi(i,j,1)=psi(i,j,nz-1)
+                    psi(i,j,nz)=psi(i,j,2)
+                    f5(i,j,2)=f5(i,j,nz)
+                    f11(i,j,2)=f11(i,j,nz)
+                    f14(i,j,2)=f14(i,j,nz)
+                    f15(i,j,2)=f15(i,j,nz)
+                    f17(i,j,2)=f17(i,j,nz)
+
+                    f6(i,j,nz-1)=f6(i,j,1)
+                    f12(i,j,nz-1)=f12(i,j,1)
+                    f13(i,j,nz-1)=f13(i,j,1)
+                    f16(i,j,nz-1)=f16(i,j,1)
+                    f18(i,j,nz-1)=f18(i,j,1)
+
+                    g5(i,j,2)=g5(i,j,nz)
+                    g11(i,j,2)=g11(i,j,nz)
+                    g14(i,j,2)=g14(i,j,nz)
+                    g15(i,j,2)=g15(i,j,nz)
+                    g17(i,j,2)=g17(i,j,nz)
+
+                    g6(i,j,nz-1)=g6(i,j,1)
+                    g12(i,j,nz-1)=g12(i,j,1)
+                    g13(i,j,nz-1)=g13(i,j,1)
+                    g16(i,j,nz-1)=g16(i,j,1)
+                    g18(i,j,nz-1)=g18(i,j,1)
+
+                    
+                enddo
+            enddo
+        !
         !$acc end kernels 
         !****************************************writeonfile***************************************************!
             if(mod(step,stamp).eq.0)then
-            !$acc update self(psi(1:nx,ny/2,1:nz),rhoB(1:nx,ny/2,1:nz),rhoA(1:nx,ny/2,1:nz),u(1:nx,ny/2,1:nz),w(1:nx,ny/2,1:nz))
-            iframe=iframe+1
-            !xz
-            open(101, file = 'psi_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(102, file = 'rhoA_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(103, file = 'rhoB_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(104, file = 'u_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(105, file = 'w_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            do i=1,nx
-                do j=1,nz
-                    write(101,*) psi(i,ny/2,j)  
+                !$acc update self(psi(1:nx,ny/2,1:nz),rhoB(1:nx,ny/2,1:nz),rhoA(1:nx,ny/2,1:nz),u(1:nx,ny/2,1:nz),w(1:nx,ny/2,1:nz))
+                iframe=iframe+1
+                !xz
+                open(101, file = 'psi_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(102, file = 'rhoA_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(103, file = 'rhoB_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(104, file = 'u_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(105, file = 'w_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                do i=1,nx
+                    do j=1,nz
+                        write(101,*) psi(i,ny/2,j)  
+                    enddo
                 enddo
-            enddo
-            close(101)
-            do i=1,nx
-                do j=1,nz
-                    write(102,*) rhoA(i,ny/2,j) 
+                close(101)
+                do i=1,nx
+                    do j=1,nz
+                        write(102,*) rhoA(i,ny/2,j) 
+                    enddo
                 enddo
-            enddo
-            close(102)
-            do i=1,nx
-                do j=1,nz
-                    write(103,*) rhoB(i,ny/2,j)   
+                close(102)
+                do i=1,nx
+                    do j=1,nz
+                        write(103,*) rhoB(i,ny/2,j)   
+                    enddo
                 enddo
-            enddo
-            close(103)
-            do i=1,nx
-                do j=1,nz
-                    write(104,*) u(i,ny/2,j)   
+                close(103)
+                do i=1,nx
+                    do j=1,nz
+                        write(104,*) u(i,ny/2,j)   
+                    enddo
                 enddo
-            enddo
-            close(104)
-            do i=1,nx
-                do j=1,nz
-                    write(105,*) w(i,ny/2,j)   
+                close(104)
+                do i=1,nx
+                    do j=1,nz
+                        write(105,*) w(i,ny/2,j)   
+                    enddo
                 enddo
-            enddo
-            close(105)
-            ! xy
-            !$acc update self(psi(1:nx,1:ny,nz/2),rhoB(1:nx,1:ny,nz/2),rhoA(1:nx,1:ny,nz/2),u(1:nx,1:ny,nz/2),v(1:nx,1:ny,nz/2))
-            open(106, file = 'psi_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(107, file = 'rhoA_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(108, file = 'rhoB_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(109, file = 'u_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(110, file = 'v_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            do i=1,nx
+                close(105)
+                ! xy
+                !$acc update self(psi(1:nx,1:ny,nz/2),rhoB(1:nx,1:ny,nz/2),rhoA(1:nx,1:ny,nz/2),u(1:nx,1:ny,nz/2),v(1:nx,1:ny,nz/2))
+                open(106, file = 'psi_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(107, file = 'rhoA_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(108, file = 'rhoB_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(109, file = 'u_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(110, file = 'v_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                do i=1,nx
+                    do j=1,ny
+                        write(106,*) psi(i,j,nz/2)  
+                    enddo
+                enddo
+                close(106)
+                do i=1,nx
+                    do j=1,ny
+                        write(107,*) rhoA(i,j,nz/2)  
+                    enddo
+                enddo
+                close(107)
+                do i=1,nx
+                    do j=1,ny
+                        write(108,*) rhoB(i,j,nz/2)     
+                    enddo
+                enddo
+                close(108)
+                do i=1,nx
+                    do j=1,ny
+                        write(109,*) u(i,j,nz/2)     
+                    enddo
+                enddo
+                close(109)
+                do i=1,nx
+                    do j=1,ny
+                        write(110,*) v(i,j,nz/2)     
+                    enddo
+                enddo
+                close(110)
+                ! yz
+                !$acc update self(psi(nx/2,1:ny,1:nz),rhoB(nx/2,1:ny,1:nz),rhoA(nx/2,1:ny,1:nz),v(nx/2,1:ny,1:nz),w(nx/2,1:ny,1:nz))
+                open(111, file = 'psi_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(112, file = 'rhoA_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(113, file = 'rhoB_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(114, file = 'v_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                open(115, file = 'w_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
                 do j=1,ny
-                    write(106,*) psi(i,j,nz/2)  
+                    do k=1,nz
+                        write(111,*) psi(nx/2,j,k)  
+                    enddo
                 enddo
-            enddo
-            close(106)
-            do i=1,nx
+                close(111)
                 do j=1,ny
-                    write(107,*) rhoA(i,j,nz/2)  
+                    do k=1,nz
+                        write(112,*) rhoA(nx/2,j,k)   
+                    enddo
                 enddo
-            enddo
-            close(107)
-            do i=1,nx
+                close(112)
                 do j=1,ny
-                    write(108,*) rhoB(i,j,nz/2)     
+                    do k=1,nz
+                        write(113,*) rhoB(nx/2,j,k)    
+                    enddo
                 enddo
-            enddo
-            close(108)
-            do i=1,nx
+                close(113)
                 do j=1,ny
-                    write(109,*) u(i,j,nz/2)     
+                    do k=1,nz
+                        write(114,*) v(nx/2,j,k)      
+                    enddo
                 enddo
-            enddo
-            close(109)
-            do i=1,nx
+                close(114)
                 do j=1,ny
-                    write(110,*) v(i,j,nz/2)     
+                    do k=1,nz
+                        write(115,*) w(nx/2,j,k)     
+                    enddo
                 enddo
-            enddo
-            close(110)
-            ! yz
-            !$acc update self(psi(nx/2,1:ny,1:nz),rhoB(nx/2,1:ny,1:nz),rhoA(nx/2,1:ny,1:nz),v(nx/2,1:ny,1:nz),w(nx/2,1:ny,1:nz))
-            open(111, file = 'psi_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(112, file = 'rhoA_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(113, file = 'rhoB_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(114, file = 'v_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            open(115, file = 'w_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-            do j=1,ny
-                do k=1,nz
-                    write(111,*) psi(nx/2,j,k)  
+                close(115)
+                write(6,*) "files updated at t=", step
+                !
+                open(117, file = 'psi3d'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                !$acc update self(psi)
+                do i=1,nx,1
+                    do j=1,ny,1
+                        do k=1,nz,1
+                            write(117,*) psi(i,j,k)     
+                        enddo
+                    enddo
                 enddo
-            enddo
-            close(111)
-            do j=1,ny
-                do k=1,nz
-                    write(112,*) rhoA(nx/2,j,k)   
-                enddo
-            enddo
-            close(112)
-            do j=1,ny
-                do k=1,nz
-                    write(113,*) rhoB(nx/2,j,k)    
-                enddo
-            enddo
-            close(113)
-            do j=1,ny
-                do k=1,nz
-                    write(114,*) v(nx/2,j,k)      
-                enddo
-            enddo
-            close(114)
-            do j=1,ny
-                do k=1,nz
-                    write(115,*) w(nx/2,j,k)     
-                enddo
-            enddo
-            close(115)
-            write(6,*) "files updated at t=", step
+                close(117)
             endif
-        
         
     enddo 
     call cpu_time(ts2)
