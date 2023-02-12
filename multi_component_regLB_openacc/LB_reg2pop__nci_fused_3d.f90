@@ -71,11 +71,11 @@ program lb_openacc
         nx=30!250
         ny=416!250
         nz=1600!250
-        nsteps=10000
+        nsteps=20000
         stamp=1000
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
-        fz=5.0_db*10.0**(-5)
+        fz=-4.0_db*10.0**(-5)
     !*****************************************allocation*******************************************************
         allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))
@@ -169,7 +169,7 @@ program lb_openacc
     !*********************************chromodynamics vars*****************************
         ! 
         beta=0.95_db
-        sigma=0.03_db
+        sigma=0.05_db
         st_coeff=(9.0_db/4.0_db)*sigma*omega
         b0=-2.0_db/9.0_db
         b1=1.0_db/54.0_db
@@ -190,8 +190,8 @@ program lb_openacc
         !*****************************************Impacting droplets***************************!
             ! do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
             !     do j=ny/2-radius,ny/2+radius
-            !         do k=nz/2+42-radius,nz/2+42+radius
-            !             if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2+42))**2<=radius**2)then
+            !         do k=nz/2-radius,nz/2+radius
+            !             if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
             !                 psi(i,j,k)=1.0_db
             !                 u(i,j,k)=0.075_db
             !             endif
@@ -200,8 +200,8 @@ program lb_openacc
             ! enddo
             ! do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
             !     do j=ny/2-radius,ny/2+radius
-            !         do k=nz/2-42-radius,nz/2-42+radius
-            !             if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2-42))**2<=radius**2)then
+            !         do k=nz/2-radius,nz/2+radius
+            !             if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
             !                 psi(i,j,k)=1.0_db
             !                 u(i,j,k)=-0.075_db
             !             endif
@@ -237,16 +237,16 @@ program lb_openacc
             !     j_end=0
             ! enddo
         !************************read initial conditions for macrovars*************************!
-            open(231, file = 'psi.txt', status = 'old',action='read')
-            do j=1,ny
-                do k=1,nz
-                    read(231,*) psi(15,j,k)
-                enddo
-            enddo
-            close(231)
-            do i=2,nx-1
-                psi(i,:,:)=psi(15,:,:)
-            enddo
+            ! open(231, file = 'psi.txt', status = 'old',action='read')
+            ! do j=1,ny
+            !     do k=1,nz
+            !         read(231,*) psi(15,j,k)
+            !     enddo
+            ! enddo
+            ! close(231)
+            ! do i=2,nx-1
+            !     psi(i,:,:)=psi(15,:,:)
+            ! enddo
             
             !open(231, file = 'psi.out', status = 'replace')
             ! do i=1,nx
@@ -258,15 +258,15 @@ program lb_openacc
             ! enddo
             ! close(231)
         !************************************single cylindrical droplets*******************!
-            ! do i=3,nx-2
-            !     do j=ny/2-radius,ny/2+radius
-            !         do k=nz/2-radius,nz/2+radius
-            !             if ((j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
-            !                 psi(i,j,k)=1.0_db
-            !             endif
-            !         enddo
-            !     enddo
-            ! enddo
+            do i=5,nx-4
+                do j=ny/2-radius,ny/2+radius
+                    do k=nz-15-radius-radius,nz-15-radius+radius
+                        if ((j-ny/2)**2+(k-(nz-15-radius))**2<=radius**2)then
+                            psi(i,j,k)=1.0_db
+                        endif
+                    enddo
+                enddo
+            enddo
         !*****************************************dense emulsion in channel********************!
         !*****************************************turbulent emulsion********************!
         rhoB=0.5*(1.0_db-psi(1:nx,1:ny,1:nz))
@@ -383,6 +383,8 @@ program lb_openacc
                             +g6(i,j,k)+g7(i,j,k)+g8(i,j,k)+g9(i,j,k)+g10(i,j,k)+g11(i,j,k) &
                             +g12(i,j,k)+g13(i,j,k)+g14(i,j,k)+g15(i,j,k)+g16(i,j,k)+g17(i,j,k) &
                             +g18(i,j,k)
+                        
+                        rtot=rhoA(i,j,k)+rhoB(i,j,k)
 
                         psi(i,j,k)= (rhoA(i,j,k)-rhoB(i,j,k))/(rhoA(i,j,k)+rhoB(i,j,k))
 
@@ -391,8 +393,6 @@ program lb_openacc
                         v(i,j,k) = (ft3+ft7+ft10+ft11+ft13)-(ft4+ft8+ft9+ft12+ft14)
 
                         w(i,j,k) = (ft5+ft11+ft14+ft15+ft17)-(ft6+ft12+ft13+ft16+ft18)
-
-                        rtot=rhoA(i,j,k)+rhoB(i,j,k)
                         
                         uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
                         !1-2
@@ -780,7 +780,7 @@ program lb_openacc
                 enddo
             enddo
         enddo
-        !********************************boundaray conditions no slip********************************!
+        !********************************boundary conditions no slip********************************!
             !$acc loop independent 
             do k=1,nz
                 !$acc loop independent 
@@ -856,31 +856,60 @@ program lb_openacc
                     !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
                     !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
                     !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
-                    psi(i,j,1)=psi(i,j,nz-1)
-                    psi(i,j,nz)=psi(i,j,2)
-                    f5(i,j,2)=f5(i,j,nz)
-                    f11(i,j,2)=f11(i,j,nz)
-                    f14(i,j,2)=f14(i,j,nz)
-                    f15(i,j,2)=f15(i,j,nz)
-                    f17(i,j,2)=f17(i,j,nz)
+                    
+                    psi(i,j,nz)=psi(i,j,nz-49)
 
-                    f6(i,j,nz-1)=f6(i,j,1)
-                    f12(i,j,nz-1)=f12(i,j,1)
-                    f13(i,j,nz-1)=f13(i,j,1)
-                    f16(i,j,nz-1)=f16(i,j,1)
-                    f18(i,j,nz-1)=f18(i,j,1)
+                    f6(i,j,nz-1)=f6(i,j,nz-50)
+                    f12(i,j,nz-1)=f12(i,j,nz-50)
+                    f13(i,j,nz-1)=f13(i,j,nz-50)
+                    f16(i,j,nz-1)=f16(i,j,nz-50)
+                    f18(i,j,nz-1)=f18(i,j,nz-50)
 
-                    g5(i,j,2)=g5(i,j,nz)
-                    g11(i,j,2)=g11(i,j,nz)
-                    g14(i,j,2)=g14(i,j,nz)
-                    g15(i,j,2)=g15(i,j,nz)
-                    g17(i,j,2)=g17(i,j,nz)
+                    g6(i,j,nz-1)=g6(i,j,nz-50)
+                    g12(i,j,nz-1)=g12(i,j,nz-50)
+                    g13(i,j,nz-1)=g13(i,j,nz-50)
+                    g16(i,j,nz-1)=g16(i,j,nz-50)
+                    g18(i,j,nz-1)=g18(i,j,nz-50)
+                    
+                    psi(i,j,1)=psi(i,j,2)
 
-                    g6(i,j,nz-1)=g6(i,j,1)
-                    g12(i,j,nz-1)=g12(i,j,1)
-                    g13(i,j,nz-1)=g13(i,j,1)
-                    g16(i,j,nz-1)=g16(i,j,1)
-                    g18(i,j,nz-1)=g18(i,j,1)
+                    f5(i,j,2)=f5(i,j,2)   + 6.0_db*p1*w(i,j,nz-2)*rhoA(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2)) 
+                    f11(i,j,2)=f11(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhoA(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2)) 
+                    f14(i,j,2)=f14(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhoA(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2))  
+                    f15(i,j,2)=f15(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhoA(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2))  
+                    f17(i,j,2)=f17(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhoA(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2)) 
+
+                    g5(i,j,2)=g5(i,j,2)   + 6.0_db*p1*w(i,j,nz-2)*rhob(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2))  
+                    g11(i,j,2)=g11(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhob(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2))  
+                    g14(i,j,2)=g14(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhob(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2))  
+                    g15(i,j,2)=g15(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhob(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2))  
+                    g17(i,j,2)=g17(i,j,2) + 6.0_db*p2*w(i,j,nz-2)*rhob(i,j,2)/(rhoA(i,j,2)+rhob(i,j,2))  
+
+                    ! psi(i,j,1)=psi(i,j,nz-1)
+                    ! psi(i,j,nz)=psi(i,j,2)
+                    ! f5(i,j,2)=f5(i,j,nz)
+                    ! f11(i,j,2)=f11(i,j,nz)
+                    ! f14(i,j,2)=f14(i,j,nz)
+                    ! f15(i,j,2)=f15(i,j,nz)
+                    ! f17(i,j,2)=f17(i,j,nz)
+
+                    ! f6(i,j,nz-1)=f6(i,j,1)
+                    ! f12(i,j,nz-1)=f12(i,j,1)
+                    ! f13(i,j,nz-1)=f13(i,j,1)
+                    ! f16(i,j,nz-1)=f16(i,j,1)
+                    ! f18(i,j,nz-1)=f18(i,j,1)
+
+                    ! g5(i,j,2)=g5(i,j,nz)
+                    ! g11(i,j,2)=g11(i,j,nz)
+                    ! g14(i,j,2)=g14(i,j,nz)
+                    ! g15(i,j,2)=g15(i,j,nz)
+                    ! g17(i,j,2)=g17(i,j,nz)
+
+                    ! g6(i,j,nz-1)=g6(i,j,1)
+                    ! g12(i,j,nz-1)=g12(i,j,1)
+                    ! g13(i,j,nz-1)=g13(i,j,1)
+                    ! g16(i,j,nz-1)=g16(i,j,1)
+                    ! g18(i,j,nz-1)=g18(i,j,1)
                 enddo
             enddo
         !$acc end kernels 
