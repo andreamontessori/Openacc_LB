@@ -21,7 +21,7 @@ program lb_openacc
         real(kind=db) :: gaddendum0,gaddendum1,gaddendum2,gaddendum3,gaddendum4,gaddendum5,gaddendum6,gaddendum7,gaddendum8
         real(kind=db) :: psi_x,psi_y,mod_psi,mod_psi_sq,st_coeff,b0,b1,b2,beta,sigma,norm_x,norm_y
         real(kind=db) :: one_ov_nu2,one_ov_nu1,nu_avg,rtot,rprod
-        real(kind=db) :: max_press_excess
+        real(kind=db) :: max_press_excess,ushifted,vshifted
         real(kind=db) :: rnd_n1,rnd_n2,drhok1,drhok2
         
         integer(kind=4), allocatable,  dimension(:,:)   :: isfluid
@@ -340,7 +340,6 @@ program lb_openacc
             do j=1,ny
                 do i=1,nx 
                     if(isfluid(i,j).eq.1)then 
-                        uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
                         !oneminusuu= -uu !1.0_db - uu
                         !0
                         !chromodynamic
@@ -398,56 +397,59 @@ program lb_openacc
                             ! se psi interfaccia vicina a 3-4-5lu è piu' grande del mio valore allora applico nci
                         endif
                         !regularized collision + perturbation + recolouring
+                        ushifted=u(i,j) + fx + float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j))
+                        vshifted=v(i,j) + fy + float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j))
+                        uu=0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq
                         feq=p(0)*(rtot-uu)
                         fpc=feq + (1.0_db-omega)*pi2cssq0*(- cssq*pyy(i,j)-cssq*pxx(i,j))  + addendum0
                         f0(i,j)=fpc*(rhoA(i,j))/rtot 
                         g0(i,j)=fpc*(rhoB(i,j))/rtot
                         !1
-                        udotc=u(i,j)/cssq
+                        udotc=ushifted/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(1)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) ) + (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq + addendum1
+                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) )+ addendum1 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
                         f1(i+1,j)= fpc*(rhoA(i,j))/rtot + gaddendum1
                         g1(i+1,j)= fpc*(rhoB(i,j))/rtot - gaddendum1
                         !3
                         feq=p(3)*(rtot+(temp - udotc))
-                        fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) - (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq + addendum3
+                        fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) + addendum3 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
                         f3(i-1,j)= fpc*(rhoA(i,j))/rtot + gaddendum3 
                         g3(i-1,j)= fpc*(rhoB(i,j))/rtot - gaddendum3 
                         !2
-                        udotc=v(i,j)/cssq
+                        udotc=vshifted/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(2)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq + addendum2 !
+                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum2 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
                         f2(i,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum2  
                         g2(i,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum2   
                         !4
                         feq=p(4)*(rtot+(temp - udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) - (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq + addendum4 
+                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum4 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
                         f4(i,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum4 
                         g4(i,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum4 
                         !5
-                        udotc=(u(i,j)+v(i,j))/cssq
+                        udotc=(ushifted+vshifted)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(5)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq + addendum5
+                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum5 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
                         f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot + gaddendum5
                         g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot - gaddendum5
                         !7
                         feq=p(7)*(rtot+(temp - udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) - (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq + addendum7
+                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum7 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
                         f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum7
                         g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum7
                         !6
-                        udotc=(-u(i,j)+v(i,j))/cssq
+                        udotc=(-ushifted+vshifted)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(6)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) +(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq + addendum6
+                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + addendum6 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
                         f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum6
                         g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum6
                         !8
                         feq=p(8)*(rtot+(temp - udotc))
-                        fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  +( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq + addendum8
+                        fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  + addendum8 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
                         f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum8 
                         g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum8 
                     endif
@@ -576,74 +578,74 @@ program lb_openacc
 
     !$acc end data
 
-contains 
+  contains 
+  !*****************************************************functions********************************************************!
+    function dimenumb(inum)
 
-function dimenumb(inum)
+    !***********************************************************************
+    !    
+    !     LBsoft function for returning the number of digits
+    !     of an integer number
+    !     originally written in JETSPIN by M. Lauricella et al.
+    !    
+    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+    !     author: M. Lauricella
+    !     last modification July 2018
+    !    
+    !***********************************************************************
 
-!***********************************************************************
-!    
-!     LBsoft function for returning the number of digits
-!     of an integer number
-!     originally written in JETSPIN by M. Lauricella et al.
-!    
-!     licensed under the 3-Clause BSD License (BSD-3-Clause)
-!     author: M. Lauricella
-!     last modification July 2018
-!    
-!***********************************************************************
+        implicit none
+
+        integer,intent(in) :: inum
+        integer :: dimenumb
+        integer :: i
+        real*8 :: tmp
+
+        i=1
+        tmp=real(inum,kind=8)
+        do
+        if(tmp< 10.d0 )exit
+        i=i+1
+        tmp=tmp/ 10.0d0
+        enddo
+
+        dimenumb=i
+
+        return
+
+        end function dimenumb
+
+    function write_fmtnumb(inum)
+
+    !***********************************************************************
+    !    
+    !     LBsoft function for returning the string of six characters
+    !     with integer digits and leading zeros to the left
+    !     originally written in JETSPIN by M. Lauricella et al.
+    !    
+    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+    !     author: M. Lauricella
+    !     last modification July 2018
+    !    
+    !***********************************************************************
 
     implicit none
 
     integer,intent(in) :: inum
-    integer :: dimenumb
-    integer :: i
-    real*8 :: tmp
-
-    i=1
-    tmp=real(inum,kind=8)
-    do
-    if(tmp< 10.d0 )exit
-    i=i+1
-    tmp=tmp/ 10.0d0
-    enddo
-
-    dimenumb=i
+    character(len=6) :: write_fmtnumb
+    integer :: numdigit,irest
+    !real*8 :: tmp
+    character(len=22) :: cnumberlabel
+    numdigit=dimenumb(inum)
+    irest=6-numdigit
+    if(irest>0)then
+        write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+        write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
+    else
+        write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+        write(write_fmtnumb,fmt=cnumberlabel)inum
+    endif
 
     return
-
-    end function dimenumb
-
-function write_fmtnumb(inum)
-
-!***********************************************************************
-!    
-!     LBsoft function for returning the string of six characters
-!     with integer digits and leading zeros to the left
-!     originally written in JETSPIN by M. Lauricella et al.
-!    
-!     licensed under the 3-Clause BSD License (BSD-3-Clause)
-!     author: M. Lauricella
-!     last modification July 2018
-!    
-!***********************************************************************
-
-implicit none
-
-integer,intent(in) :: inum
-character(len=6) :: write_fmtnumb
-integer :: numdigit,irest
-!real*8 :: tmp
-character(len=22) :: cnumberlabel
-numdigit=dimenumb(inum)
-irest=6-numdigit
-if(irest>0)then
-    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
-    write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
-else
-    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
-    write(write_fmtnumb,fmt=cnumberlabel)inum
-endif
-
-return
-end function write_fmtnumb   
+    end function write_fmtnumb   
 end program
