@@ -51,11 +51,11 @@ program lb_openacc
         nlinks=18 !pari!
         cssq=1.0_db/3.0_db
         !fluid 1
-        tau=1.0_db
+        tau=0.65_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu1=1.0_db/visc_LB
         !fluid2
-        tau=1.0_db
+        tau=0.65_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
@@ -68,14 +68,14 @@ program lb_openacc
     !#endif
 
     !**************************************user parameters**************************
-        nx=30 !250
-        ny=416 !250
-        nz=1600 !250
+        nx=350
+        ny=350
+        nz=350
         nsteps=10000
-        stamp=1000
+        stamp=500
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
-        fz=-3.0_db*10.0**(-6)
+        fz=0.0_db*10.0**(-5)
     !*****************************************allocation*******************************************************
         allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))
@@ -103,7 +103,7 @@ program lb_openacc
         p1dcssq=p1/cssq
         p2dcssq=p2/cssq
     !****************************************geometry************************
-        isfluid=3
+        isfluid=1
         isfluid(1,:,:)=0 !left
         isfluid(nx,:,:)=0 !right
         isfluid(:,1,:)=0 !front 
@@ -113,43 +113,43 @@ program lb_openacc
 
     !***********************************define/read geometry if any**************************
             
-            Lc=250+nz/2;
-            do i=Lc,nz
-                jjd=nint((i-Lc+1)*sind(30.0_db));
+            ! Lc=250+nz/2;
+            ! do i=Lc,nz
+            !     jjd=nint((i-Lc+1)*sind(30.0_db));
                 
-                if(jjd<ny/2-4)then
-                    isfluid(:,jjd:ny/2,i)=1; 
-                    jju=ny-jjd;
-                    isfluid(:,ny/2:jju,i)=1;
-                endif
-            enddo
-            Ddrop=40;
-            isfluid(:,2:ny-1,nz/2:Lc)=1;
-            isfluid(:,ny/2-(Ddrop/(2)):ny/2+(Ddrop/(2)),nz/2:nz)=1;
-            isfluid(:,:,1:nz/2)=isfluid(:,:,nz:nz/2+1:-1);
-            isfluid(1,:,:)=0 !left
-            isfluid(nx,:,:)=0 !right
-            isfluid(:,1,:)=0 !front 
-            isfluid(:,ny,:)=0 !rear
-            isfluid(:,:,1)=0 !bottom
-            isfluid(:,:,nz)=0 !top
-            do k=1,nz
-                do j=1,ny
-                    if(isfluid(nx/2,j,k).eq.3)then
-                        if(isfluid(nx/2,j+1,k).eq.1 .or. isfluid(nx/2,j-1,k).eq.1 .or. isfluid(nx/2,j,k+1).eq.1 .or. isfluid(nx/2,j,k-1).eq.1 &
-                            .or. isfluid(nx/2,j+1,k+1).eq.1 .or. isfluid(nx/2,j+1,k-1).eq.1 .or. isfluid(nx/2,j-1,k+1).eq.1 .or. isfluid(nx/2,j-1,k-1).eq.1)then
-                            isfluid(2:nx-1,j,k)=0
-                        endif
-                    endif
-                enddo
-            enddo
-            open(231, file = 'isfluid.out', status = 'replace')
-                do j=1,ny
-                    do k=1,nz
-                        write(231,*) isfluid(nx/2,j,k)  
-                    enddo
-                enddo
-            close(231)
+            !     if(jjd<ny/2-4)then
+            !         isfluid(:,jjd:ny/2,i)=1; 
+            !         jju=ny-jjd;
+            !         isfluid(:,ny/2:jju,i)=1;
+            !     endif
+            ! enddo
+            ! Ddrop=40;
+            ! isfluid(:,2:ny-1,nz/2:Lc)=1;
+            ! isfluid(:,ny/2-(Ddrop/(2)):ny/2+(Ddrop/(2)),nz/2:nz)=1;
+            ! isfluid(:,:,1:nz/2)=isfluid(:,:,nz:nz/2+1:-1);
+            ! isfluid(1,:,:)=0 !left
+            ! isfluid(nx,:,:)=0 !right
+            ! isfluid(:,1,:)=0 !front 
+            ! isfluid(:,ny,:)=0 !rear
+            ! isfluid(:,:,1)=0 !bottom
+            ! isfluid(:,:,nz)=0 !top
+            ! do k=1,nz
+            !     do j=1,ny
+            !         if(isfluid(nx/2,j,k).eq.3)then
+            !             if(isfluid(nx/2,j+1,k).eq.1 .or. isfluid(nx/2,j-1,k).eq.1 .or. isfluid(nx/2,j,k+1).eq.1 .or. isfluid(nx/2,j,k-1).eq.1 &
+            !                 .or. isfluid(nx/2,j+1,k+1).eq.1 .or. isfluid(nx/2,j+1,k-1).eq.1 .or. isfluid(nx/2,j-1,k+1).eq.1 .or. isfluid(nx/2,j-1,k-1).eq.1)then
+            !                 isfluid(2:nx-1,j,k)=0
+            !             endif
+            !         endif
+            !     enddo
+            ! enddo
+            ! open(231, file = 'isfluid.out', status = 'replace')
+            !     do j=1,ny
+            !         do k=1,nz
+            !             write(231,*) isfluid(nx/2,j,k)  
+            !         enddo
+            !     enddo
+            ! close(231)
         
     !********************************hermite projection vars**********
         pi2cssq0=p0/(2.0_db*cssq**2)
@@ -176,7 +176,7 @@ program lb_openacc
         p2cg=(1.0_db/6.0_db)**2 * (2.0_db/3.0_db)
         p3cg=(1.0_db/6.0_db)**3
         nci_loc=0
-        max_press_excess=0.01
+        max_press_excess=0.004
     !********************************initialization of macrovars ************************    
         u=0.0_db
         v=0.0_db
@@ -184,28 +184,28 @@ program lb_openacc
         rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
         psi=-1.0_db
-        radius=40
+        radius=50
         !*****************************************Impacting droplets***************************!
-            ! do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
-            !     do j=ny/2-radius,ny/2+radius
-            !         do k=nz/2-radius,nz/2+radius
-            !             if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
-            !                 psi(i,j,k)=1.0_db
-            !                 u(i,j,k)=0.05_db
-            !             endif
-            !         enddo
-            !     enddo
-            ! enddo
-            ! do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
-            !     do j=ny/2-radius,ny/2+radius
-            !         do k=nz/2-radius,nz/2+radius
-            !             if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
-            !                 psi(i,j,k)=1.0_db
-            !                 u(i,j,k)=-0.05_db
-            !             endif
-            !         enddo
-            !     enddo
-            ! enddo
+            do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
+                do j=ny/2-radius,ny/2+radius
+                    do k=nz/2-radius,nz/2+radius
+                        if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
+                            psi(i,j,k)=1.0_db
+                            u(i,j,k)=0.06_db
+                        endif
+                    enddo
+                enddo
+            enddo
+            do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
+                do j=ny/2-radius,ny/2+radius
+                    do k=nz/2-radius,nz/2+radius
+                        if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
+                            psi(i,j,k)=1.0_db
+                            u(i,j,k)=-0.06_db
+                        endif
+                    enddo
+                enddo
+            enddo
         
         !*****************************************Spinodal decomposition***********************!
             ! do k=1,25
@@ -235,16 +235,16 @@ program lb_openacc
             !     j_end=0
             ! enddo
         !************************read initial conditions for macrovars*************************!
-            open(231, file = 'psi.txt', status = 'old',action='read')
-            do j=1,ny
-                do k=1,nz
-                    read(231,*) psi(15,j,k)
-                enddo
-            enddo
-            close(231)
-            do i=4,nx-3
-                psi(i,:,:)=psi(15,:,:)
-            enddo
+            ! open(231, file = 'psi.txt', status = 'old',action='read')
+            ! do j=1,ny
+            !     do k=1,nz
+            !         read(231,*) psi(15,j,k)
+            !     enddo
+            ! enddo
+            ! close(231)
+            ! do i=4,nx-3
+            !     psi(i,:,:)=psi(15,:,:)
+            ! enddo
             
             ! open(231, file = 'psi.out', status = 'replace')
             ! do i=1,nx
@@ -618,9 +618,9 @@ program lb_openacc
                         endif
                     !******************************collision+stream*****************************!
                         !0
-                        ushifted=u(i,j,k) + fx + float(nci_loc(i,j,k))*(norm_x)*max_press_excess*abs(rhoa(i,j,k))
-                        vshifted=v(i,j,k) + fy + float(nci_loc(i,j,k))*(norm_y)*max_press_excess*abs(rhoa(i,j,k))
-                        wshifted=w(i,j,k) + fz + float(nci_loc(i,j,k))*(norm_z)*max_press_excess*abs(rhoa(i,j,k))
+                        ushifted=u(i,j,k) + fx + float(nci_loc(i,j,k))*(norm_x)*max_press_excess*abs(rhoB(i,j,k))
+                        vshifted=v(i,j,k) + fy + float(nci_loc(i,j,k))*(norm_y)*max_press_excess*abs(rhoB(i,j,k))
+                        wshifted=w(i,j,k) + fz + float(nci_loc(i,j,k))*(norm_z)*max_press_excess*abs(rhoB(i,j,k))
 
                         uu=0.5_db*(ushifted*ushifted + vshifted*vshifted + wshifted*wshifted)/cssq 
 
@@ -836,40 +836,40 @@ program lb_openacc
             enddo
         !*********************************call bcs(other than no slip)************************
        
-        !$acc loop independent 
-        do j=1,ny
-            !$acc loop independent 
-            do i=1,nx
-                psi(i,j,nz)=psi(i,j,2)
-                psi(i,j,1)=psi(i,j,ny-1)
-                !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
-                !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
-                !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
-                f6(i,j,nz-1)=f6(i,j,1)
-                f12(i,j,nz-1)=f12(i,j,1)
-                f13(i,j,nz-1)=f13(i,j,1)
-                f16(i,j,nz-1)=f16(i,j,1)
-                f18(i,j,nz-1)=f18(i,j,1)
+            ! !$acc loop independent 
+            ! do j=1,ny
+            !     !$acc loop independent 
+            !     do i=1,nx
+            !         psi(i,j,nz)=psi(i,j,2)
+            !         psi(i,j,1)=psi(i,j,ny-1)
+            !         !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+            !         !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+            !         !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+            !         f6(i,j,nz-1)=f6(i,j,1)
+            !         f12(i,j,nz-1)=f12(i,j,1)
+            !         f13(i,j,nz-1)=f13(i,j,1)
+            !         f16(i,j,nz-1)=f16(i,j,1)
+            !         f18(i,j,nz-1)=f18(i,j,1)
 
-                g6(i,j,nz-1)=g6(i,j,1)
-                g12(i,j,nz-1)=g12(i,j,1)
-                g13(i,j,nz-1)=g13(i,j,1)
-                g16(i,j,nz-1)=g16(i,j,1)
-                g18(i,j,nz-1)=g18(i,j,1)
+            !         g6(i,j,nz-1)=g6(i,j,1)
+            !         g12(i,j,nz-1)=g12(i,j,1)
+            !         g13(i,j,nz-1)=g13(i,j,1)
+            !         g16(i,j,nz-1)=g16(i,j,1)
+            !         g18(i,j,nz-1)=g18(i,j,1)
 
-                f5(i,j,2)=f5(i,j,nz)
-                f11(i,j,2)=f11(i,j,nz)
-                f14(i,j,2)=f14(i,j,nz)
-                f15(i,j,2)=f15(i,j,nz)
-                f17(i,j,2)=f17(i,j,nz)
+            !         f5(i,j,2)=f5(i,j,nz)
+            !         f11(i,j,2)=f11(i,j,nz)
+            !         f14(i,j,2)=f14(i,j,nz)
+            !         f15(i,j,2)=f15(i,j,nz)
+            !         f17(i,j,2)=f17(i,j,nz)
 
-                g5(i,j,2)=g5(i,j,nz)
-                g11(i,j,2)=g11(i,j,nz)
-                g14(i,j,2)=g14(i,j,nz)
-                g15(i,j,2)=g15(i,j,nz)
-                g17(i,j,2)=g17(i,j,nz)
-            enddo
-        enddo
+            !         g5(i,j,2)=g5(i,j,nz)
+            !         g11(i,j,2)=g11(i,j,nz)
+            !         g14(i,j,2)=g14(i,j,nz)
+            !         g15(i,j,2)=g15(i,j,nz)
+            !         g17(i,j,2)=g17(i,j,nz)
+            !     enddo
+            ! enddo
         !$acc end kernels 
         !****************************************writeonfile***************************************************!
             if(mod(step,stamp).eq.0)then
@@ -987,16 +987,16 @@ program lb_openacc
                 close(115)
                 write(6,*) "files updated at t=", step
                 !
-                open(117, file = 'psi3d'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                !$acc update self(psi)
-                do i=1,nx,5
-                    do j=1,ny,5
-                        do k=1,nz,5
-                            write(117,*) psi(i,j,k)     
-                        enddo
-                    enddo
-                enddo
-                close(117)
+                ! open(117, file = 'psi3d'//write_fmtnumb(iframe)//'.out', status = 'replace')
+                ! !$acc update self(psi)
+                ! do i=1,nx,5
+                !     do j=1,ny,5
+                !         do k=1,nz,5
+                !             write(117,*) psi(i,j,k)     
+                !         enddo
+                !     enddo
+                ! enddo
+                ! close(117)
             endif
         
     enddo 

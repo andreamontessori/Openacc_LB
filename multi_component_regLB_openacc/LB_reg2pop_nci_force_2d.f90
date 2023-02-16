@@ -38,11 +38,11 @@ program lb_openacc
         nlinks=8 !pari!
         cssq=1.0_db/3.0_db
         !fluid 1
-        tau=1.0_db
+        tau=0.650_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu1=1.0_db/visc_LB
         !fluid2
-        tau=1.0_db
+        tau=0.650_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
@@ -52,12 +52,12 @@ program lb_openacc
 !        ngpus=0
 !#endif
     !*******************************user parameters**************************
-        nx=416!500!500
-        ny=1600 !500!600
-        nsteps=50000
-        stamp=5000
+        nx=350!500!500
+        ny=350 !500!600
+        nsteps=10000
+        stamp=1000
         fx=0.0_db*10.0**(-7)
-        fy=-3.0_db*10.0**(-6)
+        fy=-0.0_db*10.0**(-6)
     !**********************************allocation****************************
         allocate(p(0:nlinks))
         allocate(f0(0:nx+1,0:ny+1),f1(0:nx+1,0:ny+1),f2(0:nx+1,0:ny+1),f3(0:nx+1,0:ny+1),f4(0:nx+1,0:ny+1))
@@ -88,7 +88,7 @@ program lb_openacc
         b2=5.0_db/108.0_db
     !*****************************************geometry************************
         radius=50
-        isfluid=3
+        isfluid=1
         isfluid(1,:)=0 !EAST
         isfluid(nx,:)=0 !WEST
         isfluid(:,1)=0 !SOUTH 
@@ -108,34 +108,34 @@ program lb_openacc
             !     enddo
             ! enddo
         !****************************************tapered**************************
-            Lc=250+ny/2;
-            do i=Lc,ny
-                jjd=nint((i-Lc+1)*sind(30.0_db));
+            ! Lc=250+ny/2;
+            ! do i=Lc,ny
+            !     jjd=nint((i-Lc+1)*sind(30.0_db));
                 
-                if(jjd<nx/2-4)then
-                    isfluid(jjd:nx/2,i)=1; 
-                    jju=nx-jjd; 
-                    isfluid(nx/2:jju,i)=1;
-                endif
-            enddo 
-            Ddrop=40;
-            isfluid(2:nx-1,ny/2:Lc)=1;
-            isfluid(nx/2-(Ddrop/(2)):nx/2+(Ddrop/(2)),ny/2:ny)=1;
-            isfluid(:,1:ny/2)=isfluid(:,ny:ny/2+1:-1);
-            isfluid(1,:)=0 !left
-            isfluid(nx,:)=0 !right
-            isfluid(:,1)=0 !front 
-            isfluid(:,ny)=0 !rear z
-            do k=1,ny 
-                do j=1,nx
-                    if(isfluid(j,k).eq.3)then
-                        if(isfluid(j+1,k).eq.1 .or. isfluid(j-1,k).eq.1 .or. isfluid(j,k+1).eq.1 .or. isfluid(j,k-1).eq.1 &
-                            .or. isfluid(j+1,k+1).eq.1 .or. isfluid(j+1,k-1).eq.1 .or. isfluid(j-1,k+1).eq.1 .or. isfluid(j-1,k-1).eq.1)then
-                            isfluid(j,k)=0
-                        endif
-                    endif
-                enddo
-            enddo
+            !     if(jjd<nx/2-4)then
+            !         isfluid(jjd:nx/2,i)=1; 
+            !         jju=nx-jjd; 
+            !         isfluid(nx/2:jju,i)=1;
+            !     endif
+            ! enddo 
+            ! Ddrop=40;
+            ! isfluid(2:nx-1,ny/2:Lc)=1;
+            ! isfluid(nx/2-(Ddrop/(2)):nx/2+(Ddrop/(2)),ny/2:ny)=1;
+            ! isfluid(:,1:ny/2)=isfluid(:,ny:ny/2+1:-1);
+            ! isfluid(1,:)=0 !left
+            ! isfluid(nx,:)=0 !right
+            ! isfluid(:,1)=0 !front 
+            ! isfluid(:,ny)=0 !rear z
+            ! do k=1,ny 
+            !     do j=1,nx
+            !         if(isfluid(j,k).eq.3)then
+            !             if(isfluid(j+1,k).eq.1 .or. isfluid(j-1,k).eq.1 .or. isfluid(j,k+1).eq.1 .or. isfluid(j,k-1).eq.1 &
+            !                 .or. isfluid(j+1,k+1).eq.1 .or. isfluid(j+1,k-1).eq.1 .or. isfluid(j-1,k+1).eq.1 .or. isfluid(j-1,k-1).eq.1)then
+            !                 isfluid(j,k)=0
+            !             endif
+            !         endif
+            !     enddo
+            ! enddo
         !****************************print geo**************************!
             !isfluid(2:nx-1,2:800)=1 !rear z
             open(231, file = 'isfluid.out', status = 'replace')
@@ -150,26 +150,26 @@ program lb_openacc
         v=0.0_db
         rhoA=0.0_db     !is to be intended as a delta rho
         rhoB=0.0_db     !is to be intended as a delta rho
-        max_press_excess=0.03 !2
+        max_press_excess=0.002 !2
         nci_loc=0
         psi=-1.0_db
         !*******************************************impacting drops****************************!
-            ! do i=(nx/2-radius-5)-radius,(nx/2-radius-5) +radius
-            !     do j=ny/2-radius,ny/2+radius
-            !         if ((i-(nx/2-radius-5))**2+(j-ny/2)**2<=radius**2)then
-            !             psi(i,j)=1.0_db
-            !             u(i,j)=0.05
-            !         endif
-            !     enddo
-            ! enddo
-            ! do i=(nx/2+radius+5)-radius,(nx/2+radius+5) +radius
-            !     do j=ny/2-radius,ny/2+radius
-            !         if ((i-(nx/2+radius+5))**2+(j-ny/2)**2<=radius**2)then
-            !             psi(i,j)=1.0_db
-            !             u(i,j)=-0.05
-            !         endif
-            !     enddo
-            ! enddo
+            do i=(nx/2-radius-5)-radius,(nx/2-radius-5) +radius
+                do j=ny/2-radius,ny/2+radius
+                    if ((i-(nx/2-radius-5))**2+(j-ny/2)**2<=radius**2)then
+                        psi(i,j)=1.0_db
+                        u(i,j)=0.05
+                    endif
+                enddo
+            enddo
+            do i=(nx/2+radius+5)-radius,(nx/2+radius+5) +radius
+                do j=ny/2-radius,ny/2+radius
+                    if ((i-(nx/2+radius+5))**2+(j-ny/2)**2<=radius**2)then
+                        psi(i,j)=1.0_db
+                        u(i,j)=-0.05
+                    endif
+                enddo
+            enddo
         !***************************************constriction drops************************************!
             ! do i=(nx/2-radius-5)-radius,(nx/2-radius-5) +radius
             !     do j=2*radius+10-2*radius,2*radius+10+2*radius
@@ -194,21 +194,21 @@ program lb_openacc
             !     enddo
             ! enddo
         !*********************************************tapered full system**********************!
-            open(231, file = 'psi.txt', status = 'old',action='read')
-            do j=1,nx
-                do k=1,ny
-                    read(231,*) psi(j,k)
-                enddo
-            enddo
-            close(231)
-            !
-            open(231, file = 'psi.out', status = 'replace')
-            do i=1,nx
-                do j=1,ny
-                    write(231,*) psi(i,j)  
-                enddo
-            enddo
-            close(231)
+            ! open(231, file = 'psi.txt', status = 'old',action='read')
+            ! do j=1,nx
+            !     do k=1,ny
+            !         read(231,*) psi(j,k)
+            !     enddo
+            ! enddo
+            ! close(231)
+            ! !
+            ! open(231, file = 'psi.out', status = 'replace')
+            ! do i=1,nx
+            !     do j=1,ny
+            !         write(231,*) psi(i,j)  
+            !     enddo
+            ! enddo
+            ! close(231)
     !*****************************************init distros*********************************!
         rhoB=0.5*(1.0_db-psi(1:nx,1:ny))
         rhoA=1.0_db-rhoB
@@ -270,9 +270,9 @@ program lb_openacc
                         rhoB(i,j)=  (g0(i,j)+g1(i,j)+g2(i,j)+g3(i,j)+g4(i,j)+g5(i,j)+g6(i,j)+g7(i,j)+g8(i,j))
                         
                         u(i,j) = (f1(i,j)+f5(i,j) +f8(i,j)-f3(i,j) -f6(i,j) -f7(i,j) + &
-                                g1(i,j)+g5(i,j) +g8(i,j)-g3(i,j) -g6(i,j) -g7(i,j)) !/rho(i,j)
+                                g1(i,j)+g5(i,j) +g8(i,j)-g3(i,j) -g6(i,j) -g7(i,j))!/(rhoa(i,j)+rhoB(i,j))
                         v(i,j) = (f5(i,j) +f2(i,j) +f6(i,j)-f7(i,j) -f4(i,j) -f8(i,j) + &
-                                g5(i,j) +g2(i,j) +g6(i,j)-g7(i,j) -g4(i,j) -g8(i,j) )
+                                g5(i,j) +g2(i,j) +g6(i,j)-g7(i,j) -g4(i,j) -g8(i,j) )!/(rhoa(i,j)+rhoB(i,j))
 
                         psi(i,j)= (rhoA(i,j)-rhoB(i,j))/(rhoA(i,j)+rhoB(i,j))  
                         nci_loc(i,j)=0    
@@ -313,21 +313,21 @@ program lb_openacc
                 do i=1,nx 
                     if(isfluid(i,j).eq.1)then
                         !************************* pressure excess **********!
-                        if(psi(i,j).lt.-0.95_db .and. i.gt.3 .and. i.lt.nx-2 .and. j.gt.3 .and. j.lt.ny-2)then
+                        if(psi(i,j).lt.-0.9_db .and. i.gt.3 .and. i.lt.nx-2 .and. j.gt.3 .and. j.lt.ny-2)then
                             
-                            if (psi(i+3,j).gt.-0.9 .and. psi(i-3,j).gt.-0.9)then !&
+                            if (psi(i+3,j).gt.-0.85 .and. psi(i-3,j).gt.-0.85)then !&
                                 nci_loc(i+3,j)=1
                                 nci_loc(i-3,j)=1
                             endif
-                            if (psi(i,j+3).gt.-0.9 .and. psi(i,j-3).gt.-0.9)then
+                            if (psi(i,j+3).gt.-0.85 .and. psi(i,j-3).gt.-0.85)then
                                nci_loc(i,j+3)=1
                                nci_loc(i,j-3)=1
                             endif
-                            if (psi(i+2,j+2).gt.-0.9 .and. psi(i-2,j-2).gt.-0.9 )then
+                            if (psi(i+2,j+2).gt.-0.85 .and. psi(i-2,j-2).gt.-0.85 )then
                                 nci_loc(i+2,j+2)=1
                                 nci_loc(i-2,j-2)=1
                             endif
-                            if (psi(i-2,j+2).gt.-0.9 .and. psi(i+2,j-2).gt.-0.9 )then
+                            if (psi(i-2,j+2).gt.-0.85 .and. psi(i+2,j-2).gt.-0.85 )then
                                 nci_loc(i-2,j+2)=1
                                 nci_loc(i+2,j-2)=1
                             endif
@@ -397,8 +397,8 @@ program lb_openacc
                             ! se psi interfaccia vicina a 3-4-5lu è piu' grande del mio valore allora applico nci
                         endif
                         !regularized collision + perturbation + recolouring
-                        ushifted=u(i,j) + fx + float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j))
-                        vshifted=v(i,j) + fy + float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j))
+                        ushifted=u(i,j) + fx + float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhob(i,j))
+                        vshifted=v(i,j) + fy + float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhob(i,j))
                         uu=0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq
                         feq=p(0)*(rtot-uu)
                         fpc=feq + (1.0_db-omega)*pi2cssq0*(- cssq*pyy(i,j)-cssq*pxx(i,j))  + addendum0
