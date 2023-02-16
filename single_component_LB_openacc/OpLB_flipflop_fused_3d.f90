@@ -13,7 +13,7 @@ program lb_openacc
     
     real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
-    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp,dummy,dummy2
+    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
     
     integer(kind=4), allocatable,  dimension(:,:,:)   :: isfluid
     
@@ -24,7 +24,7 @@ program lb_openacc
 
        
     nlinks=18 !pari!
-    tau=1.5_db
+    tau=1.0_db
     cssq=1.0_db/3.0_db
     visc_LB=cssq*(tau-0.5_db)
     one_ov_nu=1.0_db/visc_LB
@@ -35,10 +35,10 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=300
-    ny=300
-    nz=300
-    nsteps=1000
+    nx=512
+    ny=512
+    nz=512
+    nsteps=100
     stamp=1000
     fx=1.0_db*10.0**(-7)
     fy=0.0_db*10.0**(-5)
@@ -75,27 +75,27 @@ program lb_openacc
     u=0.0_db
     v=0.0_db
     w=0.0_db
-    rho=0.0_db     !is to be intended as a delta rho
+    rho=1.0_db  !not to be intended as a delta rho
     !do ll=0,nlinks
-    f0(1:nx,1:ny,1:nz)=0.0_db
-    f1(1:nx,1:ny,1:nz,:)=0.0_db
-    f2(1:nx,1:ny,1:nz,:)=0.0_db
-    f3(1:nx,1:ny,1:nz,:)=0.0_db
-    f4(1:nx,1:ny,1:nz,:)=0.0_db
-    f5(1:nx,1:ny,1:nz,:)=0.0_db
-    f6(1:nx,1:ny,1:nz,:)=0.0_db
-    f7(1:nx,1:ny,1:nz,:)=0.0_db
-    f8(1:nx,1:ny,1:nz,:)=0.0_db
-    f9(1:nx,1:ny,1:nz,:)=0.0_db
-    f10(1:nx,1:ny,1:nz,:)=0.0_db
-    f11(1:nx,1:ny,1:nz,:)=0.0_db
-    f12(1:nx,1:ny,1:nz,:)=0.0_db
-    f13(1:nx,1:ny,1:nz,:)=0.0_db
-    f14(1:nx,1:ny,1:nz,:)=0.0_db
-    f15(1:nx,1:ny,1:nz,:)=0.0_db
-    f16(1:nx,1:ny,1:nz,:)=0.0_db
-    f17(1:nx,1:ny,1:nz,:)=0.0_db
-    f18(1:nx,1:ny,1:nz,:)=0.0_db
+    f0(1:nx,1:ny,1:nz)=p0
+    f1(1:nx,1:ny,1:nz,:)=p1
+    f2(1:nx,1:ny,1:nz,:)=p1
+    f3(1:nx,1:ny,1:nz,:)=p1
+    f4(1:nx,1:ny,1:nz,:)=p1
+    f5(1:nx,1:ny,1:nz,:)=p1
+    f6(1:nx,1:ny,1:nz,:)=p1
+    f7(1:nx,1:ny,1:nz,:)=p2
+    f8(1:nx,1:ny,1:nz,:)=p2
+    f9(1:nx,1:ny,1:nz,:)=p2
+    f10(1:nx,1:ny,1:nz,:)=p2
+    f11(1:nx,1:ny,1:nz,:)=p2
+    f12(1:nx,1:ny,1:nz,:)=p2
+    f13(1:nx,1:ny,1:nz,:)=p2
+    f14(1:nx,1:ny,1:nz,:)=p2
+    f15(1:nx,1:ny,1:nz,:)=p2
+    f16(1:nx,1:ny,1:nz,:)=p2
+    f17(1:nx,1:ny,1:nz,:)=p2
+    f18(1:nx,1:ny,1:nz,:)=p2
     !enddo
     !*************************************check data ************************ 
     write(6,*) '*******************LB data*****************'
@@ -121,11 +121,10 @@ program lb_openacc
     !*************************************time loop************************  
     call cpu_time(ts1)
     do step=1,nsteps 
-        !***********************************moments collision&forcing************************ 
-        !!$acc update host(rho,u,v)
+        !***********************************moments collision bbck + forcing************************ 
         !$acc update device(nsp,nsk)
-        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18) !!private(uu,temp,udotc,feq,dummy)
-        !$acc loop private(uu,temp,udotc,feq,dummy,u,v,w,rho)
+        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18) 
+        !$acc loop independent collapse (3) private(uu,temp,udotc,u,v,w,rho)
         do k=1,nz
             do j=1,ny
                 do i=1,nx
@@ -153,130 +152,112 @@ program lb_openacc
                         udotc=u/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p1*(rho+(temp + udotc))
-                        f1(i,j,k,nsp)=f1(i,j,k,nsp) + omega*(feq - f1(i,j,k,nsp)) + fx*p1dcssq
+                        f1(i+1,j,k,nsk)=f1(i,j,k,nsp) + omega*(feq - f1(i,j,k,nsp)) + fx*p1dcssq
                         
                         !2
                         feq=p1*(rho+(temp - udotc))
-                        f2(i,j,k,nsp)=f2(i,j,k,nsp) + omega*(feq - f2(i,j,k,nsp)) - fx*p1dcssq
+                        f2(i-1,j,k,nsk)=f2(i,j,k,nsp) + omega*(feq - f2(i,j,k,nsp)) - fx*p1dcssq
                         
                         !3
                         udotc=v/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p1*(rho+(temp + udotc))
-                        f3(i,j,k,nsp)=f3(i,j,k,nsp) + omega*(feq - f3(i,j,k,nsp)) + fy*p1dcssq
+                        f3(i,j+1,k,nsk)=f3(i,j,k,nsp) + omega*(feq - f3(i,j,k,nsp)) + fy*p1dcssq
                         
                         !4
                         feq=p1*(rho+(temp - udotc))
-                        f4(i,j,k,nsp)=f4(i,j,k,nsp) + omega*(feq - f4(i,j,k,nsp)) - fy*p1dcssq
+                        f4(i,j-1,k,nsk)=f4(i,j,k,nsp) + omega*(feq - f4(i,j,k,nsp)) - fy*p1dcssq
                         
                         !7
                         udotc=(u+v)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rho+(temp + udotc))
-                        f7(i,j,k,nsp)=f7(i,j,k,nsp) + omega*(feq - f7(i,j,k,nsp)) + (fx+fy)*p2dcssq 
+                        f7(i+1,j+1,k,nsk)=f7(i,j,k,nsp) + omega*(feq - f7(i,j,k,nsp)) + (fx+fy)*p2dcssq 
                         
                         !8
                         feq=p2*(rho+(temp - udotc))
-                        f8(i,j,k,nsp)=f8(i,j,k,nsp) + omega*(feq - f8(i,j,k,nsp)) - (fx+fy)*p2dcssq
+                        f8(i-1,j-1,k,nsk)=f8(i,j,k,nsp) + omega*(feq - f8(i,j,k,nsp)) - (fx+fy)*p2dcssq
                         
                         !10
                         udotc=(-u+v)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rho+(temp + udotc))
-                        f10(i,j,k,nsp)=f10(i,j,k,nsp) + omega*(feq - f10(i,j,k,nsp)) +(fy-fx)*p2dcssq
+                        f10(i-1,j+1,k,nsk)=f10(i,j,k,nsp) + omega*(feq - f10(i,j,k,nsp)) +(fy-fx)*p2dcssq
                         
                         !9
                         feq=p2*(rho+(temp - udotc))
-                        f9(i,j,k,nsp)=f9(i,j,k,nsp) + omega*(feq - f9(i,j,k,nsp)) + (fx-fy)*p2dcssq
+                        f9(i+1,j-1,k,nsk)=f9(i,j,k,nsp) + omega*(feq - f9(i,j,k,nsp)) + (fx-fy)*p2dcssq
 
                         !5
                         udotc=w/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p1*(rho+(temp + udotc))
-                        f5(i,j,k,nsp)=f5(i,j,k,nsp) + omega*(feq - f5(i,j,k,nsp)) + fz*p1dcssq
+                        f5(i,j,k+1,nsk)=f5(i,j,k,nsp) + omega*(feq - f5(i,j,k,nsp)) + fz*p1dcssq
                         
                         !6
                         feq=p1*(rho+(temp - udotc))
-                        f6(i,j,k,nsp)=f6(i,j,k,nsp) + omega*(feq - f6(i,j,k,nsp)) - fz*p1dcssq
+                        f6(i,j,k-1,nsk)=f6(i,j,k,nsp) + omega*(feq - f6(i,j,k,nsp)) - fz*p1dcssq
 
                         !15
                         udotc=(u+w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rho+(temp + udotc))
-                        f15(i,j,k,nsp)=f15(i,j,k,nsp) + omega*(feq - f15(i,j,k,nsp)) + (fx+fz)*p2dcssq 
+                        f15(i+1,j,k+1,nsk)=f15(i,j,k,nsp) + omega*(feq - f15(i,j,k,nsp)) + (fx+fz)*p2dcssq 
                         
                         !16
                         feq=p2*(rho+(temp - udotc))
-                        f16(i,j,k,nsp)=f16(i,j,k,nsp) + omega*(feq - f16(i,j,k,nsp)) - (fx+fz)*p2dcssq
+                        f16(i-1,j,k-1,nsk)=f16(i,j,k,nsp) + omega*(feq - f16(i,j,k,nsp)) - (fx+fz)*p2dcssq
 
                         !17
                         udotc=(-u+w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rho+(temp + udotc))
-                        f17(i,j,k,nsp)=f17(i,j,k,nsp) + omega*(feq - f17(i,j,k,nsp)) +(fz-fx)*p2dcssq
+                        f17(i-1,j,k+1,nsk)=f17(i,j,k,nsp) + omega*(feq - f17(i,j,k,nsp)) +(fz-fx)*p2dcssq
                         
                         !18
                         feq=p2*(rho+(temp - udotc))
-                        f18(i,j,k,nsp)=f18(i,j,k,nsp) + omega*(feq - f18(i,j,k,nsp)) + (fx-fz)*p2dcssq
+                        f18(i+1,j,k-1,nsk)=f18(i,j,k,nsp) + omega*(feq - f18(i,j,k,nsp)) + (fx-fz)*p2dcssq
 
                         !11
                         udotc=(v+w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rho+(temp + udotc))
-                        f11(i,j,k,nsp)=f11(i,j,k,nsp) + omega*(feq - f11(i,j,k,nsp)) +(fy+fz)*p2dcssq
+                        f11(i,j+1,k+1,nsk)=f11(i,j,k,nsp) + omega*(feq - f11(i,j,k,nsp)) +(fy+fz)*p2dcssq
                         
                         !12
                         feq=p2*(rho+(temp - udotc))
-                        f12(i,j,k,nsp)=f12(i,j,k,nsp) + omega*(feq - f12(i,j,k,nsp)) - (fy+fz)*p2dcssq
+                        f12(i,j-1,k-1,nsk)=f12(i,j,k,nsp) + omega*(feq - f12(i,j,k,nsp)) - (fy+fz)*p2dcssq
 
                         !13
                         udotc=(v-w)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p2*(rho+(temp + udotc))
-                        f13(i,j,k,nsp)=f13(i,j,k,nsp) + omega*(feq - f13(i,j,k,nsp)) + (fy-fz)*p2dcssq
+                        f13(i,j+1,k-1,nsk)=f13(i,j,k,nsp) + omega*(feq - f13(i,j,k,nsp)) + (fy-fz)*p2dcssq
                         
                         !14
                         feq=p2*(rho+(temp - udotc))
-                        f14(i,j,k,nsp)=f14(i,j,k,nsp) + omega*(feq - f14(i,j,k,nsp)) + (fz-fy)*p2dcssq
+                        f14(i,j-1,k+1,nsk)=f14(i,j,k,nsp) + omega*(feq - f14(i,j,k,nsp)) + (fz-fy)*p2dcssq
 
                     elseif(isfluid(i,j,k).eq.0)then
                         !
-                        dummy=f1(i,j,k,nsp)
-                        f1(i,j,k,nsp)=f2(i,j,k,nsp)
-                        f2(i,j,k,nsp)=dummy
-                        !
-                        dummy=f3(i,j,k,nsp)
-                        f3(i,j,k,nsp)=f4(i,j,k,nsp)
-                        f4(i,j,k,nsp)=dummy
-                        !
-                        dummy=f5(i,j,k,nsp)
-                        f5(i,j,k,nsp)=f6(i,j,k,nsp)
-                        f6(i,j,k,nsp)=dummy
-                        !
-                        dummy=f7(i,j,k,nsp)
-                        f7(i,j,k,nsp)=f8(i,j,k,nsp)
-                        f8(i,j,k,nsp)=dummy
-                        !
-                        dummy=f9(i,j,k,nsp)
-                        f9(i,j,k,nsp)=f10(i,j,k,nsp)
-                        f10(i,j,k,nsp)=dummy
-                        !
-                        dummy=f11(i,j,k,nsp)
-                        f11(i,j,k,nsp)=f12(i,j,k,nsp)
-                        f12(i,j,k,nsp)=dummy
-                        !
-                        dummy=f13(i,j,k,nsp)
-                        f13(i,j,k,nsp)=f14(i,j,k,nsp)
-                        f14(i,j,k,nsp)=dummy
-                        !
-                        dummy=f15(i,j,k,nsp)
-                        f15(i,j,k,nsp)=f16(i,j,k,nsp)
-                        f16(i,j,k,nsp)=dummy
-                        !
-                        dummy=f17(i,j,k,nsp)
-                        f17(i,j,k,nsp)=f18(i,j,k,nsp)
-                        f18(i,j,k,nsp)=dummy
-                        
+                        f1(i+1,j,k,nsk)=f2(i,j,k,nsp)
+                        f2(i-1,j,k,nsk)=f1(i,j,k,nsp)
+                        f3(i,j+1,k,nsk)=f4(i,j,k,nsp)
+                        f4(i,j-1,k,nsk)=f3(i,j,k,nsp)
+                        f5(i,j,k+1,nsk)=f6(i,j,k,nsp)
+                        f6(i,j,k-1,nsk)=f5(i,j,k,nsp)
+                        f7(i+1,j+1,k,nsk)=f8(i,j,k,nsp)
+                        f8(i-1,j-1,k,nsk)=f7(i,j,k,nsp)
+                        f9(i+1,j-1,k,nsk)=f10(i,j,k,nsp)
+                        f10(i-1,j+1,k,nsk)=f9(i,j,k,nsp)
+                        f11(i,j+1,k+1,nsk)=f12(i,j,k,nsp)
+                        f12(i,j-1,k-1,nsk)=f11(i,j,k,nsp)
+                        f13(i,j+1,k-1,nsk)=f14(i,j,k,nsp)
+                        f14(i,j-1,k+1,nsk)=f13(i,j,k,nsp)
+                        f15(i+1,j,k+1,nsk)=f16(i,j,k,nsp)
+                        f16(i-1,j,k-1,nsk)=f15(i,j,k,nsp)
+                        f17(i-1,j,k+1,nsk)=f18(i,j,k,nsp)
+                        f18(i+1,j,k-1,nsk)=f17(i,j,k,nsp)
                     endif
                 enddo
             enddo
@@ -286,120 +267,56 @@ program lb_openacc
         !periodic along y
         !x=1     
         !$acc kernels 
-        f1(1,:,:,:)=f1(nx-1,:,:,:)
-        !!$acc end kernels
+        f1(2,:,:,:)=f1(nx,:,:,:)
+      
+        f7(2,:,:,:)=f7(nx,:,:,:)
+       
+        f9(2,:,:,:)=f9(nx,:,:,:)
+     
+        f15(2,:,:,:)=f15(nx,:,:,:)
+       
+        f18(2,:,:,:)=f18(nx,:,:,:)
 
-        !!$acc kernels 
-        f7(1,:,:,:)=f7(nx-1,:,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels 
-        f9(1,:,:,:)=f9(nx-1,:,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels 
-        f15(1,:,:,:)=f15(nx-1,:,:,:)
-        !!$acc end kernels
-        !!$acc kernels 
-        f18(1,:,:,:)=f18(nx-1,:,:,:)
-        !!$acc end kernels
-        !
         !x=nx 
-        !!$acc kernels
-        f2(nx,:,:,:)=f2(2,:,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f8(nx,:,:,:)=f8(2,:,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f10(nx,:,:,:)=f10(2,:,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f16(nx,:,:,:)=f16(2,:,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f17(nx,:,:,:)=f17(2,:,:,:)
-        !!$acc end kernels
+        f2(nx-1,:,:,:)=f2(1,:,:,:)
+    
+        f8(nx-1,:,:,:)=f8(1,:,:,:)
+        
+        f10(nx-1,:,:,:)=f10(1,:,:,:)
+       
+        f16(nx-1,:,:,:)=f16(1,:,:,:)
+       
+        f17(nx-1,:,:,:)=f17(1,:,:,:)
 
         !y=1
-        !!$acc kernels
-        f3(:,1,:,:)=f3(:,ny-1,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f7(:,1,:,:)=f7(:,ny-1,:,:)
-        !!$acc end kernels
-        !!$acc kernels
-        f10(:,1,:,:)=f10(:,ny-1,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f11(:,1,:,:)=f11(:,ny-1,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f13(:,1,:,:)=f13(:,ny-1,:,:)
-        !!$acc end kernels
-
+        f3(:,2,:,:)=f3(:,ny,:,:)
+       
+        f7(:,2,:,:)=f7(:,ny,:,:)
+       
+        f10(:,2,:,:)=f10(:,ny,:,:)
+        
+        f11(:,2,:,:)=f11(:,ny,:,:)
+       
+        f13(:,2,:,:)=f13(:,ny,:,:)
+       
         !y=ny
-        !!$acc kernels
-        f4(:,ny,:,:)=f4(:,2,:,:)
-        !!$acc end kernels
+        f4(:,ny-1,:,:)=f4(:,1,:,:)
 
-        !!$acc kernels
-        f8(:,ny,:,:)=f8(:,2,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f9(:,ny,:,:)=f9(:,2,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f12(:,ny,:,:)=f12(:,2,:,:)
-        !!$acc end kernels
-
-        !!$acc kernels
-        f14(:,ny,:,:)=f14(:,2,:,:)
-        !$acc end kernels
-        ! !******************************************streaming***************************  
-        !
-        !!$acc update host(f0,f1,f2,f3,f4,f5,f6,f7,f8)
-        !!$acc update device(f0,f1,f2,f3,f4,f5,f6,f7,f8)
-        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18) async(3) 
-        !$acc loop independent collapse(3)  !independent  
-        do k=1,nz
-            do j=1,ny
-                do i=1,nx
-                    f1(i,j,k,nsk)=f1(i-1,j,k,nsp)
-                    f2(i,j,k,nsk)=f2(i+1,j,k,nsp)
-                    f3(i,j,k,nsk)=f3(i,j-1,k,nsp)
-                    f4(i,j,k,nsk)=f4(i,j+1,k,nsp)
-                    f5(i,j,k,nsk)=f5(i,j,k-1,nsp)
-                    f6(i,j,k,nsk)=f6(i,j,k+1,nsp)
-                    f7(i,j,k,nsk)=f7(i-1,j-1,k,nsp)
-                    f8(i,j,k,nsk)=f8(i+1,j+1,k,nsp)
-                    f9(i,j,k,nsk)=f9(i-1,j+1,k,nsp)
-                    f10(i,j,k,nsk)=f10(i+1,j-1,k,nsp)
-                    f11(i,j,k,nsk)=f11(i,j-1,k-1,nsp)
-                    f12(i,j,k,nsk)=f12(i,j+1,k+1,nsp)
-                    f13(i,j,k,nsk)=f13(i,j-1,k+1,nsp)
-                    f14(i,j,k,nsk)=f14(i,j+1,k-1,nsp)
-                    f15(i,j,k,nsk)=f15(i-1,j,k-1,nsp)
-                    f16(i,j,k,nsk)=f16(i+1,j,k+1,nsp)
-                    f17(i,j,k,nsk)=f17(i+1,j,k-1,nsp)
-                    f18(i,j,k,nsk)=f18(i-1,j,k+1,nsp)
-                enddo
-            enddo
-        enddo
-        !$acc end kernels
+        f8(:,ny-1,:,:)=f8(:,1,:,:)
+ 
+        f9(:,ny-1,:,:)=f9(:,1,:,:)
+    
+        f12(:,ny-1,:,:)=f12(:,1,:,:)
+      
+        f14(:,ny-1,:,:)=f14(:,1,:,:)
+        !$acc end kernels 
+       
         !flip-flop
+        
         dum=nsp
         nsp=nsk
         nsk=dum
+        
         !
     enddo 
     call cpu_time(ts2)
