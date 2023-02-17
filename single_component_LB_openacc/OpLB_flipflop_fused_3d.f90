@@ -5,29 +5,30 @@ program lb_openacc
     
     implicit none
     
-    integer, parameter :: db=4 !kind(1.0)
-    integer(kind=8) :: i,j,k
-    integer(kind=8) :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus,nsp,nsk,dum
-    
-    real(kind=db),parameter :: pi_greek=3.14159265359793234626433
-    
-    real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
-    real(kind=db) :: visc_LB,uu,udotc,omega,feq
-    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
-    
-    integer(kind=4), allocatable,  dimension(:,:,:)   :: isfluid
-    
-    real(kind=db) :: rho,u,v,w
-     real(kind=db), allocatable, dimension(:,:,:) :: f0
-    real(kind=db), allocatable, dimension(:,:,:,:) :: f1,f2,f3,f4,f5,f6,f7,f8,f9
-    real(kind=db), allocatable, dimension(:,:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
+    !***************************************var block********************************!
+        integer, parameter :: db=4 !kind(1.0)
+        integer(kind=8) :: i,j,k
+        integer(kind=8) :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus,nsp,nsk,dum
+        
+        real(kind=db),parameter :: pi_greek=3.14159265359793234626433
+        
+        real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
+        real(kind=db) :: visc_LB,uu,udotc,omega,feq
+        real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
+        
+        integer(kind=4), allocatable,  dimension(:,:,:)   :: isfluid
+        
+        real(kind=db) :: rho,u,v,w
+        real(kind=db), allocatable, dimension(:,:,:) :: f0
+        real(kind=db), allocatable, dimension(:,:,:,:) :: f1,f2,f3,f4,f5,f6,f7,f8,f9
+        real(kind=db), allocatable, dimension(:,:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
 
-       
-    nlinks=18 !pari!
-    tau=1.0_db
-    cssq=1.0_db/3.0_db
-    visc_LB=cssq*(tau-0.5_db)
-    one_ov_nu=1.0_db/visc_LB
+    !***********************************sim pars***************************************! 
+        nlinks=18 !pari!
+        tau=1.0_db
+        cssq=1.0_db/3.0_db
+        visc_LB=cssq*(tau-0.5_db)
+        one_ov_nu=1.0_db/visc_LB
 !#ifdef _OPENACC
 !        ngpus=acc_get_num_devices(acc_device_nvidia)
 !#else
@@ -35,67 +36,67 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=512
-    ny=512
-    nz=512
-    nsteps=100
-    stamp=1000
-    fx=1.0_db*10.0**(-7)
-    fy=0.0_db*10.0**(-5)
-    fz=0.0_db*10.0**(-5)
+        nx=256
+        ny=256
+        nz=256
+        nsteps=10
+        stamp=1000
+        fx=0.0_db*10.0**(-7)
+        fy=0.0_db*10.0**(-5)
+        fz=0.0_db*10.0**(-5)
+    !***********************************************allocation and lattice vars************************
+        allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1,2),f2(0:nx+1,0:ny+1,0:nz+1,2),f3(0:nx+1,0:ny+1,0:nz+1,2))
+        allocate(f4(0:nx+1,0:ny+1,0:nz+1,2),f5(0:nx+1,0:ny+1,0:nz+1,2),f6(0:nx+1,0:ny+1,0:nz+1,2),f7(0:nx+1,0:ny+1,0:nz+1,2))
+        allocate(f8(0:nx+1,0:ny+1,0:nz+1,2),f9(0:nx+1,0:ny+1,0:nz+1,2),f10(0:nx+1,0:ny+1,0:nz+1,2),f11(0:nx+1,0:ny+1,0:nz+1,2))
+        allocate(f12(0:nx+1,0:ny+1,0:nz+1,2),f13(0:nx+1,0:ny+1,0:nz+1,2),f14(0:nx+1,0:ny+1,0:nz+1,2),f15(0:nx+1,0:ny+1,0:nz+1,2))
+        allocate(f16(0:nx+1,0:ny+1,0:nz+1,2),f17(0:nx+1,0:ny+1,0:nz+1,2),f18(0:nx+1,0:ny+1,0:nz+1,2))
+        allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
+        
+        !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+        !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+        !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+        nsp=1 ! flip-flop
+        nsk=2
 
-    allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1,2),f2(0:nx+1,0:ny+1,0:nz+1,2),f3(0:nx+1,0:ny+1,0:nz+1,2))
-    allocate(f4(0:nx+1,0:ny+1,0:nz+1,2),f5(0:nx+1,0:ny+1,0:nz+1,2),f6(0:nx+1,0:ny+1,0:nz+1,2),f7(0:nx+1,0:ny+1,0:nz+1,2))
-    allocate(f8(0:nx+1,0:ny+1,0:nz+1,2),f9(0:nx+1,0:ny+1,0:nz+1,2),f10(0:nx+1,0:ny+1,0:nz+1,2),f11(0:nx+1,0:ny+1,0:nz+1,2))
-    allocate(f12(0:nx+1,0:ny+1,0:nz+1,2),f13(0:nx+1,0:ny+1,0:nz+1,2),f14(0:nx+1,0:ny+1,0:nz+1,2),f15(0:nx+1,0:ny+1,0:nz+1,2))
-    allocate(f16(0:nx+1,0:ny+1,0:nz+1,2),f17(0:nx+1,0:ny+1,0:nz+1,2),f18(0:nx+1,0:ny+1,0:nz+1,2))
-    allocate(isfluid(1:nx,1:ny,1:nz)) !,omega_2d(1:nx,1:ny)) 
-    
-    !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
-	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
-	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
-    nsp=1 ! flip-flop
-    nsk=2
-
-    p0=(1.0_db/3.0_db)
-	p1=(1.0_db/18.0_db)
-	p2=(1.0_db/36.0_db)
-    p1dcssq=p1/cssq
-    p2dcssq=p2/cssq
-    omega=1.0_db/tau
+        p0=(1.0_db/3.0_db)
+        p1=(1.0_db/18.0_db)
+        p2=(1.0_db/36.0_db)
+        p1dcssq=p1/cssq
+        p2dcssq=p2/cssq
+        omega=1.0_db/tau
     !*****************************************geometry************************
-    isfluid=1
-    isfluid(1,:,:)=0 !left
-    isfluid(nx,:,:)=0 !right
-    isfluid(:,1,:)=0 !front 
-    isfluid(:,ny,:)=0 !rear
-    isfluid(:,:,1)=0 !bottom
-    isfluid(:,:,nz)=0 !top
+        isfluid=1
+        isfluid(1,:,:)=0 !left
+        isfluid(nx,:,:)=0 !right
+        isfluid(:,1,:)=0 !front 
+        isfluid(:,ny,:)=0 !rear
+        isfluid(:,:,1)=0 !bottom
+        isfluid(:,:,nz)=0 !top
     !*************************************initial conditions ************************    
-    u=0.0_db
-    v=0.0_db
-    w=0.0_db
-    rho=1.0_db  !not to be intended as a delta rho
-    !do ll=0,nlinks
-    f0(1:nx,1:ny,1:nz)=p0
-    f1(1:nx,1:ny,1:nz,:)=p1
-    f2(1:nx,1:ny,1:nz,:)=p1
-    f3(1:nx,1:ny,1:nz,:)=p1
-    f4(1:nx,1:ny,1:nz,:)=p1
-    f5(1:nx,1:ny,1:nz,:)=p1
-    f6(1:nx,1:ny,1:nz,:)=p1
-    f7(1:nx,1:ny,1:nz,:)=p2
-    f8(1:nx,1:ny,1:nz,:)=p2
-    f9(1:nx,1:ny,1:nz,:)=p2
-    f10(1:nx,1:ny,1:nz,:)=p2
-    f11(1:nx,1:ny,1:nz,:)=p2
-    f12(1:nx,1:ny,1:nz,:)=p2
-    f13(1:nx,1:ny,1:nz,:)=p2
-    f14(1:nx,1:ny,1:nz,:)=p2
-    f15(1:nx,1:ny,1:nz,:)=p2
-    f16(1:nx,1:ny,1:nz,:)=p2
-    f17(1:nx,1:ny,1:nz,:)=p2
-    f18(1:nx,1:ny,1:nz,:)=p2
+        u=0.0_db
+        v=0.0_db
+        w=0.0_db
+        rho=1.0_db  !not to be intended as a delta rho
+    !init distros
+        f0(1:nx,1:ny,1:nz)=p0
+        f1(1:nx,1:ny,1:nz,:)=p1
+        f2(1:nx,1:ny,1:nz,:)=p1
+        f3(1:nx,1:ny,1:nz,:)=p1
+        f4(1:nx,1:ny,1:nz,:)=p1
+        f5(1:nx,1:ny,1:nz,:)=p1
+        f6(1:nx,1:ny,1:nz,:)=p1
+        f7(1:nx,1:ny,1:nz,:)=p2
+        f8(1:nx,1:ny,1:nz,:)=p2
+        f9(1:nx,1:ny,1:nz,:)=p2
+        f10(1:nx,1:ny,1:nz,:)=p2
+        f11(1:nx,1:ny,1:nz,:)=p2
+        f12(1:nx,1:ny,1:nz,:)=p2
+        f13(1:nx,1:ny,1:nz,:)=p2
+        f14(1:nx,1:ny,1:nz,:)=p2
+        f15(1:nx,1:ny,1:nz,:)=p2
+        f16(1:nx,1:ny,1:nz,:)=p2
+        f17(1:nx,1:ny,1:nz,:)=p2
+        f18(1:nx,1:ny,1:nz,:)=p2
     !enddo
     !*************************************check data ************************ 
     write(6,*) '*******************LB data*****************'
@@ -263,52 +264,52 @@ program lb_openacc
             enddo
         enddo
         !$acc end kernels
-        !******************************************call bcs************************
-        !periodic along y
-        !x=1     
-        !$acc kernels 
-        f1(2,:,:,:)=f1(nx,:,:,:)
-      
-        f7(2,:,:,:)=f7(nx,:,:,:)
-       
-        f9(2,:,:,:)=f9(nx,:,:,:)
-     
-        f15(2,:,:,:)=f15(nx,:,:,:)
-       
-        f18(2,:,:,:)=f18(nx,:,:,:)
-
-        !x=nx 
-        f2(nx-1,:,:,:)=f2(1,:,:,:)
-    
-        f8(nx-1,:,:,:)=f8(1,:,:,:)
+        !******************************************call periodic (or other) bcs************************
+            !periodic along y
+            !x=1     
+            !$acc kernels 
+            f1(2,:,:,:)=f1(nx,:,:,:)
         
-        f10(nx-1,:,:,:)=f10(1,:,:,:)
-       
-        f16(nx-1,:,:,:)=f16(1,:,:,:)
-       
-        f17(nx-1,:,:,:)=f17(1,:,:,:)
-
-        !y=1
-        f3(:,2,:,:)=f3(:,ny,:,:)
-       
-        f7(:,2,:,:)=f7(:,ny,:,:)
-       
-        f10(:,2,:,:)=f10(:,ny,:,:)
+            f7(2,:,:,:)=f7(nx,:,:,:)
         
-        f11(:,2,:,:)=f11(:,ny,:,:)
-       
-        f13(:,2,:,:)=f13(:,ny,:,:)
-       
-        !y=ny
-        f4(:,ny-1,:,:)=f4(:,1,:,:)
+            f9(2,:,:,:)=f9(nx,:,:,:)
+        
+            f15(2,:,:,:)=f15(nx,:,:,:)
+        
+            f18(2,:,:,:)=f18(nx,:,:,:)
 
-        f8(:,ny-1,:,:)=f8(:,1,:,:)
- 
-        f9(:,ny-1,:,:)=f9(:,1,:,:)
+            !x=nx 
+            f2(nx-1,:,:,:)=f2(1,:,:,:)
+        
+            f8(nx-1,:,:,:)=f8(1,:,:,:)
+            
+            f10(nx-1,:,:,:)=f10(1,:,:,:)
+        
+            f16(nx-1,:,:,:)=f16(1,:,:,:)
+        
+            f17(nx-1,:,:,:)=f17(1,:,:,:)
+
+            !y=1
+            f3(:,2,:,:)=f3(:,ny,:,:)
+        
+            f7(:,2,:,:)=f7(:,ny,:,:)
+        
+            f10(:,2,:,:)=f10(:,ny,:,:)
+            
+            f11(:,2,:,:)=f11(:,ny,:,:)
+        
+            f13(:,2,:,:)=f13(:,ny,:,:)
+        
+            !y=ny
+            f4(:,ny-1,:,:)=f4(:,1,:,:)
+
+            f8(:,ny-1,:,:)=f8(:,1,:,:)
     
-        f12(:,ny-1,:,:)=f12(:,1,:,:)
-      
-        f14(:,ny-1,:,:)=f14(:,1,:,:)
+            f9(:,ny-1,:,:)=f9(:,1,:,:)
+        
+            f12(:,ny-1,:,:)=f12(:,1,:,:)
+        
+            f14(:,ny-1,:,:)=f14(:,1,:,:)
         !$acc end kernels 
        
         !flip-flop
@@ -353,7 +354,8 @@ program lb_openacc
 
     write(6,*) 'u=',u,'v=',v,'w=',w,'rho=',rho,nsk,nsp
 
-    write(6,*) 'You''ve just wasted ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'glups: ',  nx*ny*nz*nsteps/10.0_db**9/ts2-ts1
 
     
 end program

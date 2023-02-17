@@ -259,7 +259,9 @@ program lb_openacc
     v = (f5(nx/2,1+(ny-1)/2,nsp) +f2(nx/2,1+(ny-1)/2,nsp) +f6(nx/2,1+(ny-1)/2,nsp) &
                          -f7(nx/2,1+(ny-1)/2,nsp) -f4(nx/2,1+(ny-1)/2,nsp) -f8(nx/2,1+(ny-1)/2,nsp))
     write(6,*) 'u=',u ,'v=',v,'rho',rho !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
-    write(6,*) 'You''ve just wasted ', ts2-ts1, ' s of your life time' 
+    
+    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'glups: ',  nx*ny*nsteps/10.0_db**9/ts2-ts1
 
     
 end program

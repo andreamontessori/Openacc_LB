@@ -23,7 +23,7 @@ program lb_openacc
 
        
     nlinks=8 !pari!
-    tau=1.5_db
+    tau=1.0_db
     cssq=1.0_db/3.0_db
     visc_LB=cssq*(tau-0.5_db)
     one_ov_nu=1.0_db/visc_LB
@@ -34,12 +34,12 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=101
+    nx=2048
     ny=2048
-    nsteps=50000
+    nsteps=5000
     stamp=1000
     fx=0.0_db*10.0**(-7)
-    fy=1.0_db*10.0**(-5)
+    fy=1.0_db*10.0**(-8)
     allocate(p(0:nlinks))
     allocate(f0(0:nx+1,0:ny+1,2),f1(0:nx+1,0:ny+1,2),f2(0:nx+1,0:ny+1,2),f3(0:nx+1,0:ny+1,2),f4(0:nx+1,0:ny+1,2))
     allocate(f5(0:nx+1,0:ny+1,2),f6(0:nx+1,0:ny+1,2),f7(0:nx+1,0:ny+1,2),f8(0:nx+1,0:ny+1,2))
@@ -218,7 +218,8 @@ program lb_openacc
     v = (f5(2,1+(ny-1)/2,nsp) +f2(2,1+(ny-1)/2,nsp) +f6(2,1+(ny-1)/2,nsp) &
                          -f7(2,1+(ny-1)/2,nsp) -f4(2,1+(ny-1)/2,nsp) -f8(2,1+(ny-1)/2,nsp))
     write(6,*) 'u=',u ,'v=',v,'rho',rho !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
-    write(6,*) 'You''ve just wasted ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'glups: ',  nx*ny*nsteps/10.0_db**9/ts2-ts1
 
     
 end program
