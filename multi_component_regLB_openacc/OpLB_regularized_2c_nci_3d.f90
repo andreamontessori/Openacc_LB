@@ -68,11 +68,11 @@ program lb_openacc
     !#endif
 
     !**************************************user parameters**************************
-        nx=350
-        ny=350
-        nz=350
-        nsteps=10000
-        stamp=500
+        nx=256
+        ny=256
+        nz=256
+        nsteps=100
+        stamp=5000000
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
@@ -1002,7 +1002,8 @@ program lb_openacc
     enddo 
     call cpu_time(ts2)
     !$acc end data
-    write(6,*) 'elapsed time:', ts2-ts1, 'seconds'
+    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'glups: ',  nx*ny*nz*nsteps/10.0_db**9/ts2-ts1
    contains 
     !*************************************************functions************************************************!
         function dimenumb(inum)

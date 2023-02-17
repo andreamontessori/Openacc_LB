@@ -52,10 +52,10 @@ program lb_openacc
 !        ngpus=0
 !#endif
     !*******************************user parameters**************************
-        nx=350!500!500
-        ny=350 !500!600
-        nsteps=10000
-        stamp=1000
+        nx=4016!500!500
+        ny=4016 !500!600
+        nsteps=1000
+        stamp=100000
         fx=0.0_db*10.0**(-7)
         fy=-0.0_db*10.0**(-6)
     !**********************************allocation****************************
@@ -577,6 +577,9 @@ program lb_openacc
     call cpu_time(ts2)
 
     !$acc end data
+
+    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'glups: ',  nx*ny*nsteps/10.0_db**9/ts2-ts1
 
   contains 
   !*****************************************************functions********************************************************!
