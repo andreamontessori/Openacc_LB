@@ -13,7 +13,8 @@
      pi2cssq0_d,pi2cssq1_d,pi2cssq2_d,myrho_d,myu_d,myv_d
     real(kind=db), allocatable, dimension(:,:), device  :: rho_d,u_d,v_d,pxx_d,pyy_d,pxy_d
     real(kind=db), allocatable, dimension(:,:), device  :: f0_d,f1_d,f2_d,f3_d,f4_d,f5_d,f6_d,f7_d,f8_d
-    
+    real(kind=db), allocatable, dimension(:,:,:), device :: rhoprint_d
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: velprint_d
     type (dim3) :: dimGrid,dimBlock
    
   contains
@@ -184,8 +185,32 @@
      
 
   end subroutine pbc_edge_y
+  
+  attributes(global) subroutine store_print()
+      
+      integer :: i,j
+    
+      
+      i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+      j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
+      
+      !write(*,*)i,j,p_d(0)*myrho_d
+      if(isfluid_d(i,j).eq.1)then
+        rhoprint_d(i,j,1)=rho_d(i,j)
+        velprint_d(1,i,j,1)=u_d(i,j)
+        velprint_d(2,i,j,1)=v_d(i,j)
+        return
+      endif
+      
+      rhoprint_d(i,j,1)=0.0
+      velprint_d(1,i,j,1)=0.0
+      velprint_d(2,i,j,1)=0.0
+      
+      return
 
- end module
+  end subroutine store_print
+
+ end module mysubs
 
 program lb_openacc
   
@@ -197,8 +222,9 @@ program lb_openacc
     
     integer(kind=4) :: i,j,ll,l,dumm
     integer(kind=4) :: nx,ny,step,stamp,nlinks,nsteps,ngpus
-    integer :: TILE_DIMx,TILE_DIMy,istat
-    real(kind=db),parameter :: pi_greek=3.14159265359793234626433
+    integer :: TILE_DIMx,TILE_DIMy,istat,iframe
+    real(kind=db),parameter :: pi_greek=3.141592653589793238462643383279502884_db
+    logical :: lprint=.false.
     
     real(kind=4)  :: ts1,ts2 
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
@@ -209,12 +235,16 @@ program lb_openacc
     integer(kind=4), allocatable,  dimension(:,:)   :: isfluid
     
     real(kind=db), allocatable, dimension(:)     :: p
-    real(kind=db), allocatable, dimension(:,:) :: rho,u,v,pxx,pyy,pxy
-    real(kind=db), allocatable, dimension(:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8
+    !real(kind=db), allocatable, dimension(:,:) :: rho,u,v,pxx,pyy,pxy
+    !real(kind=db), allocatable, dimension(:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8
+    real(kind=db), allocatable, dimension(:,:,:) :: rhoprint
+    real(kind=db), allocatable, dimension(:,:,:,:) :: velprint
     
+    integer, parameter :: mxln=120
+    character(len=mxln) :: sevt1,sevt2
     
-    
-    
+    sevt1=repeat(' ',mxln)
+    sevt2=repeat(' ',mxln)
     
        
     nlinks=8 !pari!
@@ -229,9 +259,9 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=8
-    ny=8
-    TILE_DIMx=8
+    nx=256
+    ny=512
+    TILE_DIMx=64
     TILE_DIMy=1
     if (mod(nx, TILE_DIMx)/= 0) then
         write(*,*) 'nx must be a multiple of TILE_DIM'
@@ -245,14 +275,16 @@ program lb_openacc
     dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
     
     nsteps=1000
-    stamp=1000
-    fx=0.0_db*10.0**(-7)
-    fy=1.0_db*10.0**(-8)
+    stamp=50
+    lprint=.true.
+    fx=0.0_db*10.0_db**(-7.0_db)
+    fy=1.0_db*10.0_db**(-8.0_db)
     allocate(p(0:nlinks))
     !allocate(f0(0:nx+1,0:ny+1),f1(0:nx+1,0:ny+1),f2(0:nx+1,0:ny+1),f3(0:nx+1,0:ny+1),f4(0:nx+1,0:ny+1))
     !allocate(f5(0:nx+1,0:ny+1),f6(0:nx+1,0:ny+1),f7(0:nx+1,0:ny+1),f8(0:nx+1,0:ny+1))
     !allocate(rho(1:nx,1:ny),u(1:nx,1:ny),v(1:nx,1:ny),pxx(1:nx,1:ny),pyy(1:nx,1:ny),pxy(1:nx,1:ny))
     allocate(isfluid(1:nx,1:ny)) !,omega_2d(1:nx,1:ny)) 
+    
     
     !ex=(/0,1,0,-1,0,1,-1,-1,1/)
     !ey=(/0,0,1,0,-1,1,1,-1,-1/)
@@ -337,8 +369,13 @@ program lb_openacc
     
     call setup_pops<<<dimGrid,dimBlock>>>()
     
-    istat = cudaDeviceSynchronize
+    if(lprint)then
+      allocate(rhoprint(1:nx,1:ny,1),velprint(3,1:nx,1:ny,1))
+      allocate(rhoprint_d(1:nx_d,1:ny_d,1),velprint_d(3,1:nx_d,1:ny_d,1))
+    endif
     
+    istat = cudaDeviceSynchronize
+    iframe=0
     
     
 
@@ -346,7 +383,30 @@ program lb_openacc
     call cpu_time(ts1)
     do step=1,nsteps 
         !***********************************moment + neq pressor*********
+        
         call moments<<<dimGrid,dimBlock>>>()
+        
+        !***********************************PRINT************************
+        if(mod(step,stamp).eq.0)then
+          istat = cudaDeviceSynchronize
+          call store_print<<<dimGrid,dimBlock>>>()
+          istat = cudaDeviceSynchronize
+          istat = cudaMemcpy(rhoprint,rhoprint_d,nx*ny*nz )
+          istat = cudaMemcpy(velprint,velprint_d,3*nx*ny*nz )
+          istat = cudaDeviceSynchronize
+          iframe=iframe+1
+          write(6,'(a,2i8)')'stamp frame : ',step,iframe
+          sevt1 = 'rho'//write_fmtnumb(iframe)//'.out'
+          sevt2 = 'vel'//write_fmtnumb(iframe)//'.out'
+          open(unit=345,file=trim(sevt1), &
+           status='replace',action='write',access='stream',form='unformatted')
+          write(345)rhoprint
+          close(345)
+          open(unit=346,file=trim(sevt2), &
+           status='replace',action='write',access='stream',form='unformatted')
+          write(346)velprint
+          close(346)
+        endif
         
         
         !***********************************collision + no slip + forcing: fused implementation*********
@@ -367,8 +427,8 @@ program lb_openacc
         
         call pbc_edge_y<<<(nx+TILE_DIMx-1)/TILE_DIMx, TILE_DIMx>>>()
         
-        istat = cudaDeviceSynchronize
-        stop
+        !istat = cudaDeviceSynchronize
+        
 
     enddo 
     call cpu_time(ts2)
@@ -376,9 +436,9 @@ program lb_openacc
 
 
     !************************************************test points**********************************************!
-    write(6,*) 'u=',u(nx/2,ny/2) ,'v=',v(nx/2,ny/2),'rho',rho(nx/2,ny/2) !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
-    write(6,*) 'u=',u(2,ny/2) ,'v=',v(2,ny/2),'rho',rho(2,ny/2)
-    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
+!    write(6,*) 'u=',u(nx/2,ny/2) ,'v=',v(nx/2,ny/2),'rho',rho(nx/2,ny/2) !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
+!    write(6,*) 'u=',u(2,ny/2) ,'v=',v(2,ny/2),'rho',rho(2,ny/2)
+!    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
     
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
     write(6,*) 'glups: ',  nx*ny*nsteps/10.0_db**9/ts2-ts1
@@ -386,11 +446,82 @@ program lb_openacc
     open(101, file = 'v.out', status = 'replace')
     do j=1,ny
         do i=1,nx
-            write(101,*) v(i,j) 
+            write(101,*) velprint(2,i,j,1) 
         enddo
     enddo
     close(101) 
     
+    
+  contains 
+  !*****************************************************functions********************************************************!
+    function dimenumb(inum)
+
+    !***********************************************************************
+    !    
+    !     LBsoft function for returning the number of digits
+    !     of an integer number
+    !     originally written in JETSPIN by M. Lauricella et al.
+    !    
+    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+    !     author: M. Lauricella
+    !     last modification July 2018
+    !    
+    !***********************************************************************
+
+        implicit none
+
+        integer,intent(in) :: inum
+        integer :: dimenumb
+        integer :: i
+        real*8 :: tmp
+
+        i=1
+        tmp=real(inum,kind=8)
+        do
+        if(tmp< 10.d0 )exit
+        i=i+1
+        tmp=tmp/ 10.0d0
+        enddo
+
+        dimenumb=i
+
+        return
+
+        end function dimenumb
+
+    function write_fmtnumb(inum)
+
+    !***********************************************************************
+    !    
+    !     LBsoft function for returning the string of six characters
+    !     with integer digits and leading zeros to the left
+    !     originally written in JETSPIN by M. Lauricella et al.
+    !    
+    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+    !     author: M. Lauricella
+    !     last modification July 2018
+    !    
+    !***********************************************************************
+
+    implicit none
+
+    integer,intent(in) :: inum
+    character(len=6) :: write_fmtnumb
+    integer :: numdigit,irest
+    !real*8 :: tmp
+    character(len=22) :: cnumberlabel
+    numdigit=dimenumb(inum)
+    irest=6-numdigit
+    if(irest>0)then
+        write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+        write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
+    else
+        write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+        write(write_fmtnumb,fmt=cnumberlabel)inum
+    endif
+
+    return
+    end function write_fmtnumb   
     
 end program
 
