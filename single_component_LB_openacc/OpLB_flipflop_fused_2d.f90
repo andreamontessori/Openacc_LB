@@ -34,12 +34,12 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters**************************
-    nx=2048
-    ny=2048
-    nsteps=5000
-    stamp=1000
+    nx=128
+    ny=128
+    nsteps=50000
+    stamp=5000000
     fx=0.0_db*10.0**(-7)
-    fy=1.0_db*10.0**(-8)
+    fy=1.0_db*10.0**(-6)
     allocate(p(0:nlinks))
     allocate(f0(0:nx+1,0:ny+1,2),f1(0:nx+1,0:ny+1,2),f2(0:nx+1,0:ny+1,2),f3(0:nx+1,0:ny+1,2),f4(0:nx+1,0:ny+1,2))
     allocate(f5(0:nx+1,0:ny+1,2),f6(0:nx+1,0:ny+1,2),f7(0:nx+1,0:ny+1,2),f8(0:nx+1,0:ny+1,2))
@@ -97,7 +97,7 @@ program lb_openacc
     do step=1,nsteps 
         !***********************************collision + bbck + forcing: fused implementation*********
         !$acc update device(nsp,nsk)
-        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8) !async(2)
+        !$acc kernels present(f0,f1,f2,f3,f4,f5,f6,f7,f8) 
         !$acc loop independent collapse(2) private(uu,temp,udotc,feq,dummy) 
         do j=1,ny
            !!$acc loop private(rho,u,v,uu,temp,udotc,feq,dummy)
@@ -179,20 +179,21 @@ program lb_openacc
         enddo
         !!$acc end kernels
         !******************************************call periodic bcs************************
-        !periodic along y
-        !!$acc kernels 
-        f5(2:nx-1,2,nsk)=f5(2:nx-1,ny,nsk)
+            !periodic along y
+            !!$acc kernels 
+            f5(2:nx-1,2,nsk)=f5(2:nx-1,ny,nsk)
 
-        f2(2:nx-1,2,nsk)=f2(2:nx-1,ny,nsk)
+            f2(2:nx-1,2,nsk)=f2(2:nx-1,ny,nsk)
 
-        f6(2:nx-1,2,nsk)=f6(2:nx-1,ny,nsk)
+            f6(2:nx-1,2,nsk)=f6(2:nx-1,ny,nsk)
 
-        f8(2:nx-1,ny-1,nsk)=f8(2:nx-1,1,nsk)
+            f8(2:nx-1,ny-1,nsk)=f8(2:nx-1,1,nsk)
 
-        f4(2:nx-1,ny-1,nsk)=f4(2:nx-1,1,nsk)
+            f4(2:nx-1,ny-1,nsk)=f4(2:nx-1,1,nsk)
 
-        f7(2:nx-1,ny-1,nsk)=f7(2:nx-1,1,nsk)
+            f7(2:nx-1,ny-1,nsk)=f7(2:nx-1,1,nsk)
         !$acc end kernels 
+
         dumm=nsp
         nsp=nsk
         nsk=dumm  
