@@ -6,7 +6,7 @@
    integer, parameter :: db=4 !kind(1.0)
    ! device arrays
     integer(kind=4), allocatable,  dimension(:,:), device   :: isfluid_d
-    integer, constant :: nx_d,ny_d,TILE_DIMx_d,TILE_DIMy_d
+    integer, constant :: nx_d,ny_d,TILE_DIMx_d,TILE_DIMy_d,TILE_DIM_d
     integer, parameter :: nz=1,nz_d=1
     real(kind=db), dimension(0:8), constant :: p_d
     real(kind=db), constant :: fx_d,fy_d,omega_d,qxx_d,qyy_d,qxy5_7_d,qxy6_8_d, &
@@ -176,16 +176,41 @@
       integer :: i,j
     
       
-      j = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+      j = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+      if(j>ny_d)return
       
-      !if(i<2 .or. i>nx_d-1)return
+      if(j>2 .and. j<ny_d-1)then
+        
+        f1_d(2,j)=f1_d(nx_d,j)
+        f5_d(2,j)=f5_d(nx_d,j)
+        f8_d(2,j)=f8_d(nx_d,j)
+        
+        f3_d(nx_d-1,j)=f3_d(1,j)
+        f6_d(nx_d-1,j)=f6_d(1,j)
+        f7_d(nx_d-1,j)=f7_d(1,j)
       
-      f5_d(2,j)=f5_d(nx_d,j)
-      f1_d(2,j)=f1_d(nx_d,j)
-      f8_d(2,j)=f8_d(nx_d,j)
-      f3_d(nx_d-1,j)=f3_d(1,j)
-      f6_d(nx_d-1,j)=f6_d(1,j)
-      f7_d(nx_d-1,j)=f7_d(1,j)
+      else
+
+        if(j==2)then
+			f1_d(2,j)=f1_d(nx_d,j)
+            f8_d(2,j)=f8_d(nx_d,j)
+			
+			f3_d(nx_d-1,j)=f3_d(1,j)
+            f7_d(nx_d-1,j)=f7_d(1,j)
+        
+        endif
+        
+        if(j==ny_d-1)then
+			f1_d(2,j)=f1_d(nx_d,j)
+            f5_d(2,j)=f5_d(nx_d,j)
+			
+			f3_d(nx_d-1,j)=f3_d(1,j)
+            f6_d(nx_d-1,j)=f6_d(1,j)
+        
+        endif
+      
+      endif
+      
      
 
   end subroutine pbc_edge_x
@@ -195,21 +220,21 @@
       integer :: i
     
       
-      i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+      i = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+      if(i>nx_d)return
       
       if(i>2 .and. i<nx_d-1)then
-      
-        f5_d(i,2)=f5_d(i,ny_d)
+        
         f2_d(i,2)=f2_d(i,ny_d)
+        f5_d(i,2)=f5_d(i,ny_d)
         f6_d(i,2)=f6_d(i,ny_d)
-        f8_d(i,ny_d-1)=f8_d(i,1)
+        
         f4_d(i,ny_d-1)=f4_d(i,1)
         f7_d(i,ny_d-1)=f7_d(i,1)
+        f8_d(i,ny_d-1)=f8_d(i,1)
       
       else
-              !0 1 2  3  4 5  6  7  8
-         !ex=(/0,1,0,-1, 0,1,-1,-1, 1/)
-         !ey=(/0,0,1, 0,-1,1, 1,-1,-1/)
+
         if(i==2)then
 			f2_d(i,2)=f2_d(i,ny_d)
 			f6_d(i,2)=f6_d(i,ny_d)
@@ -229,9 +254,6 @@
         endif
       
       endif
-      
-      
-     
 
   end subroutine pbc_edge_y
   
@@ -257,10 +279,10 @@
         
       else
       
-      rhoprint_d(i,j,1)=0.0
-      velprint_d(1,i,j,1)=0.0
-      velprint_d(2,i,j,1)=0.0
-      velprint_d(3,i,j,1)=0.0
+        rhoprint_d(i,j,1)=0.0_db
+        velprint_d(1,i,j,1)=0.0_db
+        velprint_d(2,i,j,1)=0.0_db
+        velprint_d(3,i,j,1)=0.0_db
       
       endif
       
@@ -938,13 +960,13 @@
     
     integer(kind=4) :: i,j,ll,l,dumm
     integer(kind=4) :: nx,ny,step,stamp,nlinks,nsteps,ngpus
-    integer :: TILE_DIMx,TILE_DIMy,istat,iframe
+    integer :: TILE_DIMx,TILE_DIMy,TILE_DIM,istat,iframe
     real(kind=db),parameter :: pi_greek=3.141592653589793238462643383279502884_db
     logical :: lprint=.false.
     logical :: lvtk=.false.
     real(kind=4)  :: ts1,ts2 
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
-    real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
+    !real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
     real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2,pi2cssq0
     real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,temp,dummy,myrho,myu,myv
     
@@ -977,6 +999,7 @@
     ny=512
     TILE_DIMx=8
     TILE_DIMy=8
+    TILE_DIM=128
     if (mod(nx, TILE_DIMx)/= 0) then
         write(*,*) 'nx must be a multiple of TILE_DIM'
         stop
@@ -987,6 +1010,8 @@
     end if
     dimGrid  = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
     dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
+    
+    
     
     nsteps=10000
     stamp=1000
@@ -1061,6 +1086,7 @@
     ny_d=ny
     TILE_DIMx_d=TILE_DIMx
     TILE_DIMy_d=TILE_DIMy
+    TILE_DIM_d=TILE_DIM
     myrho_d=myrho
     myu_d=myu
     myv_d=myv
@@ -1078,9 +1104,8 @@
     pi2cssq2_d=pi2cssq2   
     allocate(isfluid_d(1:nx_d,1:ny_d))
     istat = cudaDeviceSynchronize
-    !istat = cudaMemcpy(isfluid_d,isfluid,nx*ny )
-    isfluid_d=isfluid
-    
+    istat = cudaMemcpy(isfluid_d,isfluid,nx*ny )
+    istat = cudaDeviceSynchronize
     if (istat/=0) write(*,*) 'status after copy isfluid:',istat
     allocate(rho_d(1:nx_d,1:ny_d),u_d(1:nx_d,1:ny_d),v_d(1:nx_d,1:ny_d),pxx_d(1:nx_d,1:ny_d),pyy_d(1:nx_d,1:ny_d),pxy_d(1:nx_d,1:ny_d))
     allocate(f0_d(0:nx_d+1,0:ny_d+1),f1_d(0:nx_d+1,0:ny_d+1),f2_d(0:nx_d+1,0:ny_d+1),f3_d(0:nx_d+1,0:ny_d+1),f4_d(0:nx_d+1,0:ny_d+1))
@@ -1143,7 +1168,7 @@
         !!$acc kernels 
         
         !call pbc_edge_x<<<(ny+TILE_DIMy-1)/TILE_DIMy, TILE_DIMx>>>()
-        call pbc_edge_y<<<(nx+TILE_DIMx-1)/TILE_DIMx, TILE_DIMx>>>()
+        call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>()
         
         istat = cudaDeviceSynchronize
         
@@ -1160,7 +1185,7 @@
 !    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
     
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  nx*ny*nsteps/10.0_db**9/ts2-ts1
+    write(6,*) 'glups: ',  nx*ny*nsteps/(10.0_db**9.0_db)/(ts2-ts1)
     
     istat = cudaDeviceSynchronize
     call store_print<<<dimGrid,dimBlock>>>()
