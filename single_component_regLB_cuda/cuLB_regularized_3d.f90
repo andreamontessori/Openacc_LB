@@ -1196,8 +1196,9 @@ program lb_openacc
     !real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
     !real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
     integer :: TILE_DIMx,TILE_DIMy,TILE_DIMz,TILE_DIM,istat,iframe
-    logical :: lprint,lvtk
+    logical :: lprint,lvtk,lpbc
     real(kind=db) :: mymemory,totmemory
+    type (cudaDeviceProp) :: prop
        
     nlinks=18 !pari!
     tau=1.5_db
@@ -1211,18 +1212,19 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters and allocations**************************
-        nx=64
-        ny=8
-        nz=32
+        nx=256
+        ny=256
+        nz=256
         myu=0.0_db
         myv=0.0_db
         myw=0.0_db
         myrho=1.0_db  !tot dens
-        nsteps=10000
+        nsteps=100
         stamp=500
-        lprint=.true.
-        lvtk=.true.
-        fx=1.0_db*10.0**(-4.0_db)
+        lprint=.false.
+        lvtk=.false.
+        lpbc=.false.
+        fx=0.0_db*10.0**(-4.0_db)
         fy=0.0_db*10.0**(-4.0_db)
         fz=0.0_db*10.0**(-5.0_db)
         TILE_DIMx=32
@@ -1358,6 +1360,7 @@ program lb_openacc
         write(6,*) 'nx',nx
         write(6,*) 'ny',ny
         write(6,*) 'ny',nz
+        write(6,*) 'lpbc',lpbc
         write(6,*) 'nsteps',nsteps
         write(6,*) 'stamp',stamp
         write(6,*) 'max fx',huge(fx)
@@ -1365,6 +1368,9 @@ program lb_openacc
         write(6,*) 'max fx',huge(fz)
         write(6,*) '*******************************************'
         
+        istat = cudaGetDeviceProperties(prop, 0)
+    
+        call printDeviceProperties(prop,6, 1)
         
     if(lprint)then  
       call init_output(nx,ny,nz,1,lvtk)
@@ -1414,10 +1420,10 @@ program lb_openacc
             !periodic along y
 
         
-         
-        call pbc_edge_x<<<dimGridx,dimBlock2>>>()
-        call pbc_edge_y<<<dimGridy,dimBlock2>>>()
-        
+        if(lpbc)then
+          call pbc_edge_x<<<dimGridx,dimBlock2>>>()
+          call pbc_edge_y<<<dimGridy,dimBlock2>>>()
+        endif
         istat = cudaDeviceSynchronize
         
     enddo 
@@ -1442,6 +1448,55 @@ program lb_openacc
      'total DEVICE memory',mymemory,totmemory)
 
   contains
+  
+  subroutine printDeviceProperties(prop,iu,num)
+  
+  use cudafor
+  type(cudadeviceprop) :: prop
+  integer,intent(in) :: iu,num 
+  
+  write(iu,907)"                                                                               "
+  write(iu,907)"*****************************GPU FEATURE MONITOR*******************************"
+  write(iu,907)"                                                                               "
+  
+  write (iu,900) "Device Number: "      ,num
+  write (iu,901) "Device Name: "        ,trim(prop%name)
+  write (iu,903) "Total Global Memory: ",real(prop%totalGlobalMem)/1e9," Gbytes"
+  write (iu,902) "sharedMemPerBlock: "  ,prop%sharedMemPerBlock," bytes"
+  write (iu,900) "regsPerBlock: "       ,prop%regsPerBlock
+  write (iu,900) "warpSize: "           ,prop%warpSize
+  write (iu,900) "maxThreadsPerBlock: " ,prop%maxThreadsPerBlock
+  write (iu,904) "maxThreadsDim: "      ,prop%maxThreadsDim
+  write (iu,904) "maxGridSize: "        ,prop%maxGridSize
+  write (iu,903) "ClockRate: "          ,real(prop%clockRate)/1e6," GHz"
+  write (iu,902) "Total Const Memory: " ,prop%totalConstMem," bytes"
+  write (iu,905) "Compute Capability Revision: ",prop%major,prop%minor
+  write (iu,902) "TextureAlignment: "   ,prop%textureAlignment," bytes"
+  write (iu,906) "deviceOverlap: "      ,prop%deviceOverlap
+  write (iu,900) "multiProcessorCount: ",prop%multiProcessorCount
+  write (iu,906) "integrated: "         ,prop%integrated
+  write (iu,906) "canMapHostMemory: "   ,prop%canMapHostMemory
+  write (iu,906) "ECCEnabled: "         ,prop%ECCEnabled
+  write (iu,906) "UnifiedAddressing: "  ,prop%unifiedAddressing
+  write (iu,900) "L2 Cache Size: "      ,prop%l2CacheSize
+  write (iu,900) "maxThreadsPerSMP: "   ,prop%maxThreadsPerMultiProcessor
+  
+  write(iu,907)"                                                                               "
+  write(iu,907)"*******************************************************************************"
+  write(iu,907)"                                                                               "
+  
+  900 format (a,i0)
+  901 format (a,a)
+  902 format (a,i0,a)
+  903 format (a,f5.3,a)
+  904 format (a,2(i0,1x,'x',1x),i0)
+  905 format (a,i0,'.',i0)
+  906 format (a,l0)
+  907 format (a)
+  
+  return
+  
+  end subroutine printDeviceProperties
   
   subroutine print_raw_sync
   

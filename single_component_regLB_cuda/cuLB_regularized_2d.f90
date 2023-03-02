@@ -964,7 +964,8 @@
     real(kind=db),parameter :: pi_greek=3.141592653589793238462643383279502884_db
     logical :: lprint=.false.
     logical :: lvtk=.false.
-    real(kind=4)  :: ts1,ts2 
+    logical :: lpbc=.false.
+    real(kind=4)  :: ts1,ts2,time 
     real(kind=db) :: visc_LB,uu,udotc,omega,feq
     !real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
     real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2,pi2cssq0
@@ -976,9 +977,9 @@
     !real(kind=db), allocatable, dimension(:,:) :: rho,u,v,pxx,pyy,pxy
     !real(kind=db), allocatable, dimension(:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8
     real(kind=db) :: mymemory,totmemory
-    
-    
-    
+    integer(kind=cuda_Stream_Kind) :: stream1,stream2
+    type (cudaDeviceProp) :: prop
+    type (cudaEvent) :: startEvent, stopEvent
     
     
     
@@ -988,6 +989,8 @@
     cssq=1.0_db/3.0_db
     visc_LB=cssq*(tau-0.5_db)
     one_ov_nu=1.0_db/visc_LB
+    
+    istat = cudaGetDeviceCount(ngpus)
 !#ifdef _OPENACC
 !        ngpus=acc_get_num_devices(acc_device_nvidia)
 !#else
@@ -995,18 +998,12 @@
 !#endif
 
     !*******************************user parameters**************************
-<<<<<<< HEAD
+
     nx=4096
     ny=4096
     TILE_DIMx=256
     TILE_DIMy=4
-=======
-    nx=256
-    ny=512
-    TILE_DIMx=8
-    TILE_DIMy=8
-    TILE_DIM=128
->>>>>>> 62c516f8e0c57c0e1a297791ec9af78d8442b7d8
+
     if (mod(nx, TILE_DIMx)/= 0) then
         write(*,*) 'nx must be a multiple of TILE_DIM'
         stop
@@ -1018,17 +1015,14 @@
     dimGrid  = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
     dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
     
-<<<<<<< HEAD
-    nsteps=100
-    stamp=10000
-=======
+
     
     
-    nsteps=10000
+    nsteps=1000
     stamp=1000
->>>>>>> 62c516f8e0c57c0e1a297791ec9af78d8442b7d8
     lprint=.false.
     lvtk=.false.
+    lpbc=.false.
     fx=0.0_db*10.0_db**(-7.0_db)
     fy=0.0_db*10.0_db**(-6.0_db)
     allocate(p(0:nlinks))
@@ -1078,20 +1072,33 @@
 !    f8(1:nx,1:ny)=p(8)*rho(:,:)
     !enddo
     !*************************************check data ************************ 
-    write(6,*) '*******************LB data*****************'
+    write(6,'(a)') '*******************LB data*****************'
     write(6,*) 'tau',tau
     write(6,*) 'omega',omega
     write(6,*) 'visc',visc_LB
     write(6,*) 'fx',fx
     write(6,*) 'cssq',cssq
-    write(6,*) '*******************INPUT data*****************'
+    write(6,'(a)') '*******************INPUT data*****************'
     write(6,*) 'nx',nx
     write(6,*) 'ny',ny
+    write(6,*) 'lpbc',lpbc
     write(6,*) 'nsteps',nsteps
     write(6,*) 'stamp',stamp
     write(6,*) 'max fx',huge(fx)
     write(6,*) 'available gpus',ngpus
-    write(6,*) '*******************************************'
+    write(6,'(a)') '*******************************************'
+    istat = cudaGetDeviceProperties(prop, 0)
+    
+    call printDeviceProperties(prop,6, 1)
+    ! create events and streams
+    istat = cudaStreamCreate(stream1)
+    istat = cudaStreamCreate(stream2)
+    istat = cudaforSetDefaultstream(stream1)
+    istat = cudaDeviceSynchronize
+    
+  
+    istat = cudaEventCreate(startEvent)
+    istat = cudaEventCreate(stopEvent)  
 
 !!!!!!!!!!!!!from host to device!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     nx_d=nx
@@ -1123,6 +1130,9 @@
     allocate(f0_d(0:nx_d+1,0:ny_d+1),f1_d(0:nx_d+1,0:ny_d+1),f2_d(0:nx_d+1,0:ny_d+1),f3_d(0:nx_d+1,0:ny_d+1),f4_d(0:nx_d+1,0:ny_d+1))
     allocate(f5_d(0:nx_d+1,0:ny_d+1),f6_d(0:nx_d+1,0:ny_d+1),f7_d(0:nx_d+1,0:ny_d+1),f8_d(0:nx_d+1,0:ny_d+1))
     istat = cudaDeviceSynchronize
+    
+    
+    
     call setup_pops<<<dimGrid,dimBlock>>>()
     
     allocate(rhoprint(1:nx,1:ny,1:nz),velprint(3,1:nx,1:ny,1:nz))
@@ -1137,18 +1147,20 @@
     iframe=0
     
     
+    
 
     !*************************************time loop************************  
     call cpu_time(ts1)
+    istat = cudaEventRecord(startEvent,0)
     do step=1,nsteps 
         !***********************************moment + neq pressor*********
         
-        call moments<<<dimGrid,dimBlock>>>()
+        call moments<<<dimGrid,dimBlock,0,stream1>>>()
         
         !***********************************PRINT************************
         if(mod(step,stamp).eq.0 .and. lprint)then
           istat = cudaDeviceSynchronize
-          call store_print<<<dimGrid,dimBlock>>>()
+          call store_print<<<dimGrid,dimBlock,0,stream2>>>()
           istat = cudaDeviceSynchronize
           istat = cudaMemcpy(rhoprint,rhoprint_d,nx*ny*nz )
           istat = cudaMemcpy(velprint,velprint_d,3*nx*ny*nz )
@@ -1164,13 +1176,13 @@
         
         
         !***********************************collision + no slip + forcing: fused implementation*********
-        call  streamcoll<<<dimGrid,dimBlock>>>()
+        call  streamcoll<<<dimGrid,dimBlock,0,stream1>>>()
         
         
           
         !********************************************bcs no slip*****************************************!
         
-        call bcs_no_slip<<<dimGrid,dimBlock>>>()
+        call bcs_no_slip<<<dimGrid,dimBlock,0,stream1>>>()
         
         
      
@@ -1178,25 +1190,27 @@
         !******************************************call periodic bcs: always after fused************************
         !periodic along y
         !!$acc kernels 
-        
-        !call pbc_edge_x<<<(ny+TILE_DIMy-1)/TILE_DIMy, TILE_DIMx>>>()
-        call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>()
-        
+        if(lpbc)then
+          !call pbc_edge_x<<<(ny+TILE_DIM-1)/TILE_DIM, TILE_DIM,stream=stream1>>>()
+          call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
+        endif
         istat = cudaDeviceSynchronize
         
 
     enddo 
     istat = cudaDeviceSynchronize
     call cpu_time(ts2)
-    
-
+    istat = cudaEventRecord(stopEvent, 0)
+    istat = cudaEventSynchronize(stopEvent)
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+    write(6,*) 'Time elapsed as measured with cuda    : ', time/1000.0, ' s of your life time' 
 
     !************************************************test points**********************************************!
 !    write(6,*) 'u=',u(nx/2,ny/2) ,'v=',v(nx/2,ny/2),'rho',rho(nx/2,ny/2) !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
 !    write(6,*) 'u=',u(2,ny/2) ,'v=',v(2,ny/2),'rho',rho(2,ny/2)
 !    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
     
-    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
+    write(6,*) 'time elapsed as measured from cpu_time: ', ts2-ts1, ' s of your life time' 
     write(6,*) 'glups: ',  nx*ny*nsteps/(10.0_db**9.0_db)/(ts2-ts1)
     
     istat = cudaDeviceSynchronize
@@ -1220,6 +1234,55 @@
     
     
   contains
+  
+  subroutine printDeviceProperties(prop,iu,num)
+  
+  use cudafor
+  type(cudadeviceprop) :: prop
+  integer,intent(in) :: iu,num 
+  
+  write(iu,907)"                                                                               "
+  write(iu,907)"*****************************GPU FEATURE MONITOR*******************************"
+  write(iu,907)"                                                                               "
+  
+  write (iu,900) "Device Number: "      ,num
+  write (iu,901) "Device Name: "        ,trim(prop%name)
+  write (iu,903) "Total Global Memory: ",real(prop%totalGlobalMem)/1e9," Gbytes"
+  write (iu,902) "sharedMemPerBlock: "  ,prop%sharedMemPerBlock," bytes"
+  write (iu,900) "regsPerBlock: "       ,prop%regsPerBlock
+  write (iu,900) "warpSize: "           ,prop%warpSize
+  write (iu,900) "maxThreadsPerBlock: " ,prop%maxThreadsPerBlock
+  write (iu,904) "maxThreadsDim: "      ,prop%maxThreadsDim
+  write (iu,904) "maxGridSize: "        ,prop%maxGridSize
+  write (iu,903) "ClockRate: "          ,real(prop%clockRate)/1e6," GHz"
+  write (iu,902) "Total Const Memory: " ,prop%totalConstMem," bytes"
+  write (iu,905) "Compute Capability Revision: ",prop%major,prop%minor
+  write (iu,902) "TextureAlignment: "   ,prop%textureAlignment," bytes"
+  write (iu,906) "deviceOverlap: "      ,prop%deviceOverlap
+  write (iu,900) "multiProcessorCount: ",prop%multiProcessorCount
+  write (iu,906) "integrated: "         ,prop%integrated
+  write (iu,906) "canMapHostMemory: "   ,prop%canMapHostMemory
+  write (iu,906) "ECCEnabled: "         ,prop%ECCEnabled
+  write (iu,906) "UnifiedAddressing: "  ,prop%unifiedAddressing
+  write (iu,900) "L2 Cache Size: "      ,prop%l2CacheSize
+  write (iu,900) "maxThreadsPerSMP: "   ,prop%maxThreadsPerMultiProcessor
+  
+  write(iu,907)"                                                                               "
+  write(iu,907)"*******************************************************************************"
+  write(iu,907)"                                                                               "
+  
+  900 format (a,i0)
+  901 format (a,a)
+  902 format (a,i0,a)
+  903 format (a,f5.3,a)
+  904 format (a,2(i0,1x,'x',1x),i0)
+  905 format (a,i0,'.',i0)
+  906 format (a,l0)
+  907 format (a)
+  
+  return
+  
+  end subroutine printDeviceProperties
   
   subroutine print_raw_sync
   
