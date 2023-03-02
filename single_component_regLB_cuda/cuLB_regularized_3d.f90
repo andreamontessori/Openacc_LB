@@ -1212,9 +1212,9 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters and allocations**************************
-        nx=256
-        ny=256
-        nz=256
+        nx=512
+        ny=512
+        nz=512
         myu=0.0_db
         myv=0.0_db
         myw=0.0_db
@@ -1227,8 +1227,8 @@ program lb_openacc
         fx=0.0_db*10.0**(-4.0_db)
         fy=0.0_db*10.0**(-4.0_db)
         fz=0.0_db*10.0**(-5.0_db)
-        TILE_DIMx=32
-        TILE_DIMy=8
+        TILE_DIMx=256
+        TILE_DIMy=2
         TILE_DIMz=1
         TILE_DIM=8
         if (mod(nx, TILE_DIMx)/= 0) then
@@ -1441,7 +1441,7 @@ program lb_openacc
     write(6,*) 'u=',velprint(1,nx/2,ny/2,nz/2),'v=',velprint(2,nx/2,ny/2,nz/2),'w=',velprint(3,nx/2,ny/2,nz/2),'rho=',rhoprint(nx/2,ny/2,nz/2)
     write(6,*) 'u=',velprint(1,nx/2,ny/2,1),'v=',velprint(2,nx/2,ny/2,1),'w=',velprint(3,nx/2,ny/2,1),'rho=',rhoprint(nx/2,ny/2,1)
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  nx*ny*nz*nsteps/(10.0_db**9.0_db)/(ts2-ts1)
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)/(1.0e9)/(ts2-ts1)
     
     call get_memory_gpu(mymemory,totmemory)
     call print_memory_registration_gpu(6,'DEVICE memory occupied at the end', &

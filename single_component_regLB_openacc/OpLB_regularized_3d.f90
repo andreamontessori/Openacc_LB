@@ -38,12 +38,12 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters and allocations**************************
-        nx=256
-        ny=256
-        nz=256
+        nx=512
+        ny=512
+        nz=512
         nsteps=100
         stamp=1000
-        fx=1.0_db*10.0**(-7)
+        fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
 
@@ -142,7 +142,7 @@ program lb_openacc
     do step=1,nsteps 
         !***********************************moments collision bbck + forcing************************ 
         !$acc kernels 
-        !$acc loop collapse (3) !private(fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8,fneq9,fneq10,fneq11,&
+        !$acc loop collapse(3) !private(fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8,fneq9,fneq10,fneq11,&
         !!$acc& fneq12,fneq3,fneq14,fneq15,uu,temp,udotc)
         do k=1,nz
             do j=1,ny
@@ -375,31 +375,31 @@ program lb_openacc
             !periodic along y
             !x=1     
             !!$acc kernels 
-            f1(2,:,:)=f1(nx,:,:)
-            f7(2,:,:)=f7(nx,:,:)
-            f9(2,:,:)=f9(nx,:,:)
-            f15(2,:,:)=f15(nx,:,:)
-            f18(2,:,:)=f18(nx,:,:)
-            !x=nx 
-            f2(nx-1,:,:)=f2(1,:,:)
-            f8(nx-1,:,:)=f8(1,:,:)
-            f10(nx-1,:,:)=f10(1,:,:)
-            f16(nx-1,:,:)=f16(1,:,:)
-            f17(nx-1,:,:)=f17(1,:,:)
+            ! f1(2,:,:)=f1(nx,:,:)
+            ! f7(2,:,:)=f7(nx,:,:)
+            ! f9(2,:,:)=f9(nx,:,:)
+            ! f15(2,:,:)=f15(nx,:,:)
+            ! f18(2,:,:)=f18(nx,:,:)
+            ! !x=nx 
+            ! f2(nx-1,:,:)=f2(1,:,:)
+            ! f8(nx-1,:,:)=f8(1,:,:)
+            ! f10(nx-1,:,:)=f10(1,:,:)
+            ! f16(nx-1,:,:)=f16(1,:,:)
+            ! f17(nx-1,:,:)=f17(1,:,:)
 
-            !y=1
-            f3(:,2,:)=f3(:,ny,:)
-            f7(:,2,:)=f7(:,ny,:)
-            f10(:,2,:)=f10(:,ny,:)
-            f11(:,2,:)=f11(:,ny,:)
-            f13(:,2,:)=f13(:,ny,:)
+            ! !y=1
+            ! f3(:,2,:)=f3(:,ny,:)
+            ! f7(:,2,:)=f7(:,ny,:)
+            ! f10(:,2,:)=f10(:,ny,:)
+            ! f11(:,2,:)=f11(:,ny,:)
+            ! f13(:,2,:)=f13(:,ny,:)
         
-            !y=ny
-            f4(:,ny-1,:)=f4(:,1,:)
-            f8(:,ny-1,:)=f8(:,1,:)
-            f9(:,ny-1,:)=f9(:,1,:)
-            f12(:,ny-1,:)=f12(:,1,:)
-            f14(:,ny-1,:)=f14(:,1,:)
+            ! !y=ny
+            ! f4(:,ny-1,:)=f4(:,1,:)
+            ! f8(:,ny-1,:)=f8(:,1,:)
+            ! f9(:,ny-1,:)=f9(:,1,:)
+            ! f12(:,ny-1,:)=f12(:,1,:)
+            ! f14(:,ny-1,:)=f14(:,1,:)
         !$acc end kernels 
         
     enddo 
@@ -411,7 +411,7 @@ program lb_openacc
     write(6,*) 'u=',u(nx/2,ny/2,nz/2),'v=',v(nx/2,ny/2,nz/2),'w=',w(nx/2,ny/2,nz/2),'rho=',rho(nx/2,ny/2,nz/2)
     write(6,*) 'u=',u(nx/2,ny/2,1),'v=',v(nx/2,ny/2,1),'w=',w(nx/2,ny/2,1),'rho=',rho(nx/2,ny/2,1)
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  nx*ny*nz*nsteps/10.0_db**9/ts2-ts1
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)/1.0e9/(ts2-ts1)
 
     
 end program

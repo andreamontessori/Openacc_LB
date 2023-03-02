@@ -1211,7 +1211,7 @@
 !    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
     
     write(6,*) 'time elapsed as measured from cpu_time: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  nx*ny*nsteps/(10.0_db**9.0_db)/(ts2-ts1)
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nsteps)/(1.0e9)/(ts2-ts1)
     
     istat = cudaDeviceSynchronize
     call store_print<<<dimGrid,dimBlock>>>()
