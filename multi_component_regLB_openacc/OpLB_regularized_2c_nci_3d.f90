@@ -71,8 +71,8 @@ program lb_openacc
         nx=256
         ny=256
         nz=256
-        nsteps=100
-        stamp=5000000
+        nsteps=1000
+        stamp=20000
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
@@ -184,14 +184,14 @@ program lb_openacc
         rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
         psi=-1.0_db
-        radius=50
+        radius=30
         !*****************************************Impacting droplets***************************!
             do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
                 do j=ny/2-radius,ny/2+radius
                     do k=nz/2-radius,nz/2+radius
                         if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
                             psi(i,j,k)=1.0_db
-                            u(i,j,k)=0.06_db
+                            u(i,j,k)=0.035/2.0_db
                         endif
                     enddo
                 enddo
@@ -201,7 +201,7 @@ program lb_openacc
                     do k=nz/2-radius,nz/2+radius
                         if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
                             psi(i,j,k)=1.0_db
-                            u(i,j,k)=-0.06_db
+                            u(i,j,k)=-0.035/2.0_db
                         endif
                     enddo
                 enddo

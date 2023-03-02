@@ -973,10 +973,10 @@
 !#endif
 
     !*******************************user parameters**************************
-    nx=256
-    ny=512
-    TILE_DIMx=8
-    TILE_DIMy=8
+    nx=4096
+    ny=4096
+    TILE_DIMx=256
+    TILE_DIMy=4
     if (mod(nx, TILE_DIMx)/= 0) then
         write(*,*) 'nx must be a multiple of TILE_DIM'
         stop
@@ -988,8 +988,8 @@
     dimGrid  = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
     dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
     
-    nsteps=10000
-    stamp=1000
+    nsteps=100
+    stamp=10000
     lprint=.false.
     lvtk=.false.
     fx=0.0_db*10.0_db**(-7.0_db)
