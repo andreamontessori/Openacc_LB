@@ -1196,15 +1196,20 @@ program lb_openacc
     !real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
     !real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
     integer :: TILE_DIMx,TILE_DIMy,TILE_DIMz,TILE_DIM,istat,iframe
-    logical :: lprint,lvtk,lpbc
+    logical :: lprint,lvtk,lpbc,lasync
     real(kind=db) :: mymemory,totmemory
+    integer(kind=cuda_Stream_Kind) :: stream1,stream2
     type (cudaDeviceProp) :: prop
+    type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
+    
        
     nlinks=18 !pari!
     tau=1.5_db
     cssq=1.0_db/3.0_db
     visc_LB=cssq*(tau-0.5_db)
     one_ov_nu=1.0_db/visc_LB
+    
+    istat = cudaGetDeviceCount(ngpus)
 !#ifdef _OPENACC
 !        ngpus=acc_get_num_devices(acc_device_nvidia)
 !#else
@@ -1224,6 +1229,7 @@ program lb_openacc
         lprint=.false.
         lvtk=.false.
         lpbc=.false.
+        lasync=.false.
         fx=0.0_db*10.0**(-4.0_db)
         fy=0.0_db*10.0**(-4.0_db)
         fz=0.0_db*10.0**(-5.0_db)
@@ -1361,16 +1367,36 @@ program lb_openacc
         write(6,*) 'ny',ny
         write(6,*) 'ny',nz
         write(6,*) 'lpbc',lpbc
+        write(6,*) 'lprint',lprint
+        write(6,*) 'lasync',lasync
         write(6,*) 'nsteps',nsteps
         write(6,*) 'stamp',stamp
         write(6,*) 'max fx',huge(fx)
         write(6,*) 'max fx',huge(fy)
         write(6,*) 'max fx',huge(fz)
+        write(6,*) 'TILE_DIMx ',TILE_DIMx
+        write(6,*) 'TILE_DIMy ',TILE_DIMy
+        write(6,*) 'TILE_DIMz ',TILE_DIMz
+        write(6,*) 'TILE_DIM ',TILE_DIM
+        write(6,*) 'available gpus',ngpus
         write(6,*) '*******************************************'
         
         istat = cudaGetDeviceProperties(prop, 0)
     
         call printDeviceProperties(prop,6, 1)
+        
+        ! create events and streams
+        istat = cudaStreamCreate(stream1)
+        istat = cudaStreamCreate(stream2)
+        istat = cudaforSetDefaultstream(stream1)
+        istat = cudaDeviceSynchronize
+    
+  
+        istat = cudaEventCreate(startEvent)
+        istat = cudaEventCreate(stopEvent)  
+        istat = cudaEventCreate(dummyEvent)
+        istat = cudaEventCreate(dummyEvent1)
+        istat = cudaEventCreate(dummyEvent2)
         
     if(lprint)then  
       call init_output(nx,ny,nz,1,lvtk)
@@ -1380,39 +1406,80 @@ program lb_openacc
     
     istat = cudaDeviceSynchronize
     iframe=0
-        
+    if(lprint)then
+      call moments<<<dimGrid,dimBlock,0,stream1>>>()
+      call store_print<<<dimGrid,dimBlock,0,stream1>>>()
+      istat = cudaEventRecord(dummyEvent1, stream1)
+      istat = cudaEventSynchronize(dummyEvent1)
+      !write(6,*)'ciao 1',step,iframe
+      if(lasync)then
+        istat = cudaMemcpyAsync(rhoprint,rhoprint_d,nx*ny*nz,cudaMemcpyDeviceToHost,stream2)
+        istat = cudaMemcpyAsync(velprint,velprint_d,3*nx*ny*nz,cudaMemcpyDeviceToHost,stream2)
+      else
+        istat = cudaMemcpy(rhoprint,rhoprint_d,nx*ny*nz )
+        istat = cudaMemcpy(velprint,velprint_d,3*nx*ny*nz )
+        istat = cudaEventRecord(dummyEvent, 0)
+        istat = cudaEventSynchronize(dummyEvent)
+        if(lvtk)then
+          call print_vtk_sync
+        else
+          call print_raw_sync
+        endif
+      endif
+    endif
     
     !*************************************time loop************************  
     call cpu_time(ts1)
     do step=1,nsteps 
         !***********************************moments collision bbck + forcing************************ 
 
-        call moments<<<dimGrid,dimBlock>>>()
+        call moments<<<dimGrid,dimBlock,0,stream1>>>()
         
         !***********************************PRINT************************
-        if(mod(step,stamp).eq.0 .and. lprint)then
-          istat = cudaDeviceSynchronize
-          call store_print<<<dimGrid,dimBlock>>>()
-          istat = cudaDeviceSynchronize
-          istat = cudaMemcpy(rhoprint,rhoprint_d,nx*ny*nz )
-          istat = cudaMemcpy(velprint,velprint_d,3*nx*ny*nz )
-          istat = cudaDeviceSynchronize
-          iframe=iframe+1
-          write(6,'(a,2i8)')'stamp frame : ',step,iframe
-          if(lvtk)then
-            call print_vtk_sync
-          else
-            call print_raw_sync
+        if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
+        if(lprint)then
+          if(mod(step,stamp).eq.0)then
+            iframe=iframe+1
+            !write(6,*)'ciao 1',step,iframe
+            istat = cudaEventRecord(dummyEvent1, stream1)
+            istat = cudaEventSynchronize(dummyEvent1)
+            call store_print<<<dimGrid,dimBlock,0,stream1>>>()
+            istat = cudaEventRecord(dummyEvent1, stream1)
+            istat = cudaEventSynchronize(dummyEvent1)
+            if(lasync)then
+              call close_print_async
+              istat = cudaMemcpyAsync(rhoprint,rhoprint_d,nx*ny*nz,cudaMemcpyDeviceToHost,stream2)
+              istat = cudaMemcpyAsync(velprint,velprint_d,3*nx*ny*nz,cudaMemcpyDeviceToHost,stream2)
+            else
+              istat = cudaMemcpy(rhoprint,rhoprint_d,nx*ny*nz )
+              istat = cudaMemcpy(velprint,velprint_d,3*nx*ny*nz )
+              istat = cudaEventRecord(dummyEvent, 0)
+              istat = cudaEventSynchronize(dummyEvent)
+              if(lvtk)then
+                call print_vtk_sync
+              else
+                call print_raw_sync
+              endif
+            endif
+          endif
+          if(mod(step-stamp/4,stamp).eq.0 .and. lasync)then
+            !write(6,*)'ciao 2',step,iframe
+            istat = cudaEventRecord(dummyEvent2, stream2)
+            istat = cudaEventSynchronize(dummyEvent2)
+            if(lvtk)then
+              call print_vtk_async
+            else
+              call print_raw_async
+            endif
           endif
         endif
         
-        
         !***********************************collision + no slip + forcing: fused implementation*********
-        call  streamcoll<<<dimGrid,dimBlock>>>()
+        call  streamcoll<<<dimGrid,dimBlock,0,stream1>>>()
        
        
         !********************************boundary conditions no slip everywhere********************************!
-        call bcs_no_slip<<<dimGrid,dimBlock>>>()
+        call bcs_no_slip<<<dimGrid,dimBlock,0,stream1>>>()
         
         
         !******************************************call other bcs************************
@@ -1421,12 +1488,25 @@ program lb_openacc
 
         
         if(lpbc)then
-          call pbc_edge_x<<<dimGridx,dimBlock2>>>()
-          call pbc_edge_y<<<dimGridy,dimBlock2>>>()
+          call pbc_edge_x<<<dimGridx,dimBlock2,0,stream1>>>()
+          call pbc_edge_y<<<dimGridy,dimBlock2,0,stream1>>>()
         endif
-        istat = cudaDeviceSynchronize
+        
+        istat = cudaEventRecord(dummyEvent, stream1)
+        istat = cudaEventSynchronize(dummyEvent)
         
     enddo 
+    
+    if(lasync)then
+      !write(6,*)'ciao 2',step,iframe
+      istat = cudaEventRecord(dummyEvent2, stream2)
+      istat = cudaEventSynchronize(dummyEvent2)
+      if(lvtk)then
+        call print_vtk_sync
+      else
+        call print_raw_sync
+      endif
+    endif
     istat = cudaDeviceSynchronize
     call cpu_time(ts2)
     
@@ -1441,7 +1521,7 @@ program lb_openacc
     write(6,*) 'u=',velprint(1,nx/2,ny/2,nz/2),'v=',velprint(2,nx/2,ny/2,nz/2),'w=',velprint(3,nx/2,ny/2,nz/2),'rho=',rhoprint(nx/2,ny/2,nz/2)
     write(6,*) 'u=',velprint(1,nx/2,ny/2,1),'v=',velprint(2,nx/2,ny/2,1),'w=',velprint(3,nx/2,ny/2,1),'rho=',rhoprint(nx/2,ny/2,1)
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)/(1.0e9)/(ts2-ts1)
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps))*real(1.d-9,kind=db)/(ts2-ts1)
     
     call get_memory_gpu(mymemory,totmemory)
     call print_memory_registration_gpu(6,'DEVICE memory occupied at the end', &
@@ -1488,7 +1568,7 @@ program lb_openacc
   900 format (a,i0)
   901 format (a,a)
   902 format (a,i0,a)
-  903 format (a,f5.3,a)
+  903 format (a,f16.8,a)
   904 format (a,2(i0,1x,'x',1x),i0)
   905 format (a,i0,'.',i0)
   906 format (a,l0)
@@ -1535,5 +1615,63 @@ program lb_openacc
    close(346)
    
   end subroutine print_vtk_sync
+  
+  subroutine print_raw_async
+  
+   implicit none
+   
+  
+   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.raw'
+   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.raw'
+   open(unit=345,file=trim(sevt1), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes'
+   write(345,asynchronous='yes')rhoprint
+   
+   open(unit=346,file=trim(sevt2), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes')
+   write(346,asynchronous='yes')velprint
+   
+   
+  end subroutine print_raw_async
+  
+  subroutine print_vtk_async
+   implicit none
+     
+   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.vti'
+   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.vti'
+    
+   open(unit=345,file=trim(sevt1), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes')
+   write(345,asynchronous='yes')head1,ndatavtk(1),rhoprint
+   
+   
+   open(unit=780,file=trim(sevt2), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes')
+   write(780,asynchronous='yes')head2,ndatavtk(2),velprint
+   
+  end subroutine print_vtk_async
+  
+  subroutine close_print_async
+  
+   implicit none
+   
+   wait(345)
+   write(345)footervtk(1)
+   close(345)
+   
+   
+   wait(780)
+   write(780)footervtk(2)
+   close(780) 
+   
+  end subroutine close_print_async
     
 end program
