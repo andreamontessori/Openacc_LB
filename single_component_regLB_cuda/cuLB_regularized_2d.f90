@@ -1438,12 +1438,12 @@
    implicit none
    
    wait(345)
-   write(345)footervtk(1)
+   if(lvtk)write(345)footervtk(1)
    close(345)
    
    
    wait(780)
-   write(780)footervtk(2)
+   if(lvtk)write(780)footervtk(2)
    close(780) 
    
   end subroutine close_print_async
