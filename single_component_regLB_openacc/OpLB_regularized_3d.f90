@@ -219,7 +219,7 @@ program lb_openacc
                 enddo
             enddo
         enddo
-        !$acc loop collapse (3) 
+        !$acc loop collapse(3) 
         do k=1,nz
             do j=1,ny
                 do i=1,nx
