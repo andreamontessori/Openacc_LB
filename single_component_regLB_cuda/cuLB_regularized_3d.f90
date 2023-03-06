@@ -1368,6 +1368,7 @@ program lb_openacc
         write(6,*) 'ny',nz
         write(6,*) 'lpbc',lpbc
         write(6,*) 'lprint',lprint
+        write(6,*) 'lvtk',lvtk
         write(6,*) 'lasync',lasync
         write(6,*) 'nsteps',nsteps
         write(6,*) 'stamp',stamp
@@ -1627,7 +1628,7 @@ program lb_openacc
     '_'//trim(write_fmtnumb(iframe)) // '.raw'
    open(unit=345,file=trim(sevt1), &
     status='replace',action='write',access='stream',form='unformatted',&
-    asynchronous='yes'
+    asynchronous='yes')
    write(345,asynchronous='yes')rhoprint
    
    open(unit=346,file=trim(sevt2), &

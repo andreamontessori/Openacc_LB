@@ -1086,6 +1086,7 @@
     write(6,*) 'ny',ny
     write(6,*) 'lpbc',lpbc
     write(6,*) 'lprint',lprint
+    write(6,*) 'lvtk',lvtk
     write(6,*) 'lasync',lasync
     write(6,*) 'nsteps',nsteps
     write(6,*) 'stamp',stamp
