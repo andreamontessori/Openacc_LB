@@ -38,11 +38,11 @@ program lb_openacc
         nlinks=8 !pari!
         cssq=1.0_db/3.0_db
         !fluid 1
-        tau=0.650_db
+        tau=1.0_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu1=1.0_db/visc_LB
         !fluid2
-        tau=0.650_db
+        tau=1.0_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
@@ -52,8 +52,8 @@ program lb_openacc
 !        ngpus=0
 !#endif
     !*******************************user parameters**************************
-        nx=4016!500!500
-        ny=4016 !500!600
+        nx=4096!500!500
+        ny=4096 !500!600
         nsteps=1000
         stamp=100000
         fx=0.0_db*10.0**(-7)
@@ -87,7 +87,7 @@ program lb_openacc
         b1=2.0_db/27.0_db
         b2=5.0_db/108.0_db
     !*****************************************geometry************************
-        radius=50
+        radius=20
         isfluid=1
         isfluid(1,:)=0 !EAST
         isfluid(nx,:)=0 !WEST
@@ -158,7 +158,7 @@ program lb_openacc
                 do j=ny/2-radius,ny/2+radius
                     if ((i-(nx/2-radius-5))**2+(j-ny/2)**2<=radius**2)then
                         psi(i,j)=1.0_db
-                        u(i,j)=0.05
+                        u(i,j)=0.0
                     endif
                 enddo
             enddo
@@ -166,7 +166,7 @@ program lb_openacc
                 do j=ny/2-radius,ny/2+radius
                     if ((i-(nx/2+radius+5))**2+(j-ny/2)**2<=radius**2)then
                         psi(i,j)=1.0_db
-                        u(i,j)=-0.05
+                        u(i,j)=-0.0
                     endif
                 enddo
             enddo
@@ -494,42 +494,42 @@ program lb_openacc
             enddo
         
         !******************************************call periodic bcs************************
-                  !$acc loop independent 
-                   do i=1,nx  
-                    psi(i,ny)=psi(i,2)
-                    psi(i,1)=psi(i,ny-1)
-                    !negative lungo y
-                    f4(i,ny-1)=f4(i,1)
-                    f7(i,ny-1)=f7(i,1)
-                    f8(i,ny-1)=f8(i,1)
+                !   !$acc loop independent 
+                !    do i=1,nx  
+                !     psi(i,ny)=psi(i,2)
+                !     psi(i,1)=psi(i,ny-1)
+                !     !negative lungo y
+                !     f4(i,ny-1)=f4(i,1)
+                !     f7(i,ny-1)=f7(i,1)
+                !     f8(i,ny-1)=f8(i,1)
 
-                    g4(i,ny-1)=g4(i,1)
-                    g7(i,ny-1)=g7(i,1)
-                    g8(i,ny-1)=g8(i,1)
+                !     g4(i,ny-1)=g4(i,1)
+                !     g7(i,ny-1)=g7(i,1)
+                !     g8(i,ny-1)=g8(i,1)
 
-                    f2(i,2)=f2(i,ny)
-                    f5(i,2)=f5(i,ny)
-                    f6(i,2)=f6(i,ny)
+                !     f2(i,2)=f2(i,ny)
+                !     f5(i,2)=f5(i,ny)
+                !     f6(i,2)=f6(i,ny)
 
-                    g2(i,2)=g2(i,ny)
-                    g5(i,2)=g5(i,ny)
-                    g6(i,2)=g6(i,ny)
+                !     g2(i,2)=g2(i,ny)
+                !     g5(i,2)=g5(i,ny)
+                !     g6(i,2)=g6(i,ny)
                     
-                !     psi(i,1)=psi(i,2)
-                !     !pos lungo y
-                !     f2(i,2)=0.0
-                !     f5(i,2)=0.0
-                !     f6(i,2)=0.0
+                ! !     psi(i,1)=psi(i,2)
+                ! !     !pos lungo y
+                ! !     f2(i,2)=0.0
+                ! !     f5(i,2)=0.0
+                ! !     f6(i,2)=0.0
 
-                    ! g2(i,2)=p(2)*1.0_db 
-                    ! g5(i,2)=p(5)*1.0_db 
-                    ! g6(i,2)=p(6)*1.0_db  
+                !     ! g2(i,2)=p(2)*1.0_db 
+                !     ! g5(i,2)=p(5)*1.0_db 
+                !     ! g6(i,2)=p(6)*1.0_db  
                     
-                    ! g4(i,ny-1)=p(2)*1.0_db 
-                    ! g8(i,ny-1)=p(5)*1.0_db 
-                    ! g7(i,ny-1)=p(6)*1.0_db 
+                !     ! g4(i,ny-1)=p(2)*1.0_db 
+                !     ! g8(i,ny-1)=p(5)*1.0_db 
+                !     ! g7(i,ny-1)=p(6)*1.0_db 
 
-                  enddo
+                !   enddo
             !$acc end kernels 
         !****************************************writeonfile***************************************************!
             if(mod(step,stamp).eq.0)then
@@ -579,7 +579,7 @@ program lb_openacc
     !$acc end data
 
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  nx*ny*nsteps/10.0_db**9/ts2-ts1
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nsteps)*real(1.d-9,kind=db)/(ts2-ts1)
 
   contains 
   !*****************************************************functions********************************************************!

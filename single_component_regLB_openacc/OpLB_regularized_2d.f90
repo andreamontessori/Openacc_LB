@@ -704,16 +704,16 @@ program lb_openacc
 #endif
 
     !*******************************user parameters**************************
-    nx=512
-    ny=256
-    nsteps=10000
-    stamp=1000
-    lpbc=.true.
-    lprint=.true.
+    lpbc=.false.
+    lprint=.false.
     lvtk=.true.
     lasync=.true.
-    fx=1.0_db*10.0**(-5.0_db)
-    fy=0.0_db*10.0**(-8.0_db)
+    nx=4096
+    ny=4096
+    nsteps=1000
+    stamp=100000
+    fx=0.0_db*10.0**(-7)
+    fy=0.0_db*10.0**(-8)
     allocate(p(0:nlinks))
     allocate(f0(0:nx+1,0:ny+1),f1(0:nx+1,0:ny+1),f2(0:nx+1,0:ny+1),f3(0:nx+1,0:ny+1),f4(0:nx+1,0:ny+1))
     allocate(f5(0:nx+1,0:ny+1),f6(0:nx+1,0:ny+1),f7(0:nx+1,0:ny+1),f8(0:nx+1,0:ny+1))
@@ -982,27 +982,27 @@ program lb_openacc
           !periodic along x  
           !$acc kernels async(1)
           !$acc loop independent 
-          do j=2,ny-1
-			  if(j>2 .and. j<ny-1)then
-				f1(2,j)=f1(nx,j)
-				f5(2,j)=f5(nx,j)
-				f8(2,j)=f8(nx,j)	
-				f3(nx-1,j)=f3(1,j)
-				f6(nx-1,j)=f6(1,j)
-				f7(nx-1,j)=f7(1,j)
-			  else
-				if(j==2)then
-					f1(2,j)=f1(nx,j)
-					f8(2,j)=f8(nx,j)
-					f3(nx-1,j)=f3(1,j)
-					f7(nx-1,j)=f7(1,j)
-				endif
-				if(j==ny-1)then
-					f1(2,j)=f1(nx,j)
-					f5(2,j)=f5(nx,j)
-					f3(nx-1,j)=f3(1,j)
-					f6(nx-1,j)=f6(1,j)
-				endif
+      do j=2,ny-1
+          if(j>2 .and. j<ny-1)then
+          f1(2,j)=f1(nx,j)
+          f5(2,j)=f5(nx,j)
+          f8(2,j)=f8(nx,j)	
+          f3(nx-1,j)=f3(1,j)
+          f6(nx-1,j)=f6(1,j)
+          f7(nx-1,j)=f7(1,j)
+          else
+          if(j==2)then
+            f1(2,j)=f1(nx,j)
+            f8(2,j)=f8(nx,j)
+            f3(nx-1,j)=f3(1,j)
+            f7(nx-1,j)=f7(1,j)
+          endif
+          if(j==ny-1)then
+            f1(2,j)=f1(nx,j)
+            f5(2,j)=f5(nx,j)
+            f3(nx-1,j)=f3(1,j)
+            f6(nx-1,j)=f6(1,j)
+          endif
 			  endif
 			enddo
 		  !$acc end kernels
@@ -1056,7 +1056,7 @@ program lb_openacc
     write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
     
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  nx*ny*nsteps/10.0_db**9/ts2-ts1
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nsteps)*real(1.d-9,kind=db)/(ts2-ts1)
 
     open(101, file = 'v.out', status = 'replace')
     do j=1,ny

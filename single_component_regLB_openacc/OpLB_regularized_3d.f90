@@ -705,19 +705,19 @@ program lb_openacc
     ngpus=0
 #endif
 
-    !*******************************user parameters and allocations**************************
-        nx=64
-        ny=64
-        nz=64
-        nsteps=1000
-        stamp=100
-        lpbc=.true.
-        lprint=.true.
+    !*******************************user parameters and allocations**************************m
+        nx=512
+        ny=512
+        nz=512
+        nsteps=100
+        stamp=100000
+        fx=0.0_db*10.0**(-7)
+        fy=0.0_db*10.0**(-5)
+        fz=0.0_db*10.0**(-5)
+        lpbc=.false.
+        lprint=.false.
         lvtk=.true.
         lasync=.true.
-        fx=1.0_db*10.0**(-4.0_db)
-        fy=0.0_db*10.0**(-4.0_db)
-        fz=0.0_db*10.0**(-5.0_db)
         
         allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))

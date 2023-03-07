@@ -51,11 +51,11 @@ program lb_openacc
         nlinks=18 !pari!
         cssq=1.0_db/3.0_db
         !fluid 1
-        tau=0.65_db
+        tau=1.0_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu1=1.0_db/visc_LB
         !fluid2
-        tau=0.65_db
+        tau=1.0_db
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
@@ -68,10 +68,10 @@ program lb_openacc
     !#endif
 
     !**************************************user parameters**************************
-        nx=256
-        ny=256
-        nz=256
-        nsteps=1000
+        nx=416
+        ny=416
+        nz=416
+        nsteps=100
         stamp=20000
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
@@ -184,28 +184,28 @@ program lb_openacc
         rhoA(1:nx,1:ny,1:nz)=0.0_db  !total density
         rhoB(1:nx,1:ny,1:nz)=0.0_db  !total density
         psi=-1.0_db
-        radius=30
+        radius=20
         !*****************************************Impacting droplets***************************!
-            do i=(nx/2-radius-5)-radius,(nx/2-radius-5)+radius
+            do i=(nx/2)-radius,(nx/2)+radius
                 do j=ny/2-radius,ny/2+radius
                     do k=nz/2-radius,nz/2+radius
-                        if ((i-(nx/2-radius-5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
+                        if ((i-(nx/2))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
                             psi(i,j,k)=1.0_db
-                            u(i,j,k)=0.035/2.0_db
+                            u(i,j,k)=0.0_db
                         endif
                     enddo
                 enddo
             enddo
-            do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
-                do j=ny/2-radius,ny/2+radius
-                    do k=nz/2-radius,nz/2+radius
-                        if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
-                            psi(i,j,k)=1.0_db
-                            u(i,j,k)=-0.035/2.0_db
-                        endif
-                    enddo
-                enddo
-            enddo
+            ! do i=(nx/2+radius+5)-radius,(nx/2+radius+5)+radius
+            !     do j=ny/2-radius,ny/2+radius
+            !         do k=nz/2-radius,nz/2+radius
+            !             if ((i-(nx/2+radius+5))**2+(j-ny/2)**2+(k-(nz/2))**2<=radius**2)then
+            !                 psi(i,j,k)=1.0_db
+            !                 u(i,j,k)=-0.035/2.0_db
+            !             endif
+            !         enddo
+            !     enddo
+            ! enddo
         
         !*****************************************Spinodal decomposition***********************!
             ! do k=1,25
@@ -1003,7 +1003,7 @@ program lb_openacc
     call cpu_time(ts2)
     !$acc end data
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  nx*ny*nz*nsteps/10.0_db**9/ts2-ts1
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)*real(1.d-9,kind=db)/(ts2-ts1)
    contains 
     !*************************************************functions************************************************!
         function dimenumb(inum)

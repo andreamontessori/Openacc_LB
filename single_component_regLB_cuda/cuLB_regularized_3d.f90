@@ -1217,15 +1217,15 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters and allocations**************************
-        nx=512
-        ny=512
-        nz=512
+        nx=64
+        ny=64
+        nz=64
         myu=0.0_db
         myv=0.0_db
         myw=0.0_db
         myrho=1.0_db  !tot dens
         nsteps=100
-        stamp=500
+        stamp=50000
         lprint=.false.
         lvtk=.false.
         lpbc=.false.
@@ -1233,8 +1233,8 @@ program lb_openacc
         fx=0.0_db*10.0**(-4.0_db)
         fy=0.0_db*10.0**(-4.0_db)
         fz=0.0_db*10.0**(-5.0_db)
-        TILE_DIMx=256
-        TILE_DIMy=2
+        TILE_DIMx=64
+        TILE_DIMy=8
         TILE_DIMz=1
         TILE_DIM=8
         if (mod(nx, TILE_DIMx)/= 0) then
@@ -1522,7 +1522,7 @@ program lb_openacc
     write(6,*) 'u=',velprint(1,nx/2,ny/2,nz/2),'v=',velprint(2,nx/2,ny/2,nz/2),'w=',velprint(3,nx/2,ny/2,nz/2),'rho=',rhoprint(nx/2,ny/2,nz/2)
     write(6,*) 'u=',velprint(1,nx/2,ny/2,1),'v=',velprint(2,nx/2,ny/2,1),'w=',velprint(3,nx/2,ny/2,1),'rho=',rhoprint(nx/2,ny/2,1)
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps))*real(1.d-9,kind=db)/(ts2-ts1)
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)*real(1.d-9,kind=db)/(ts2-ts1)
     
     call get_memory_gpu(mymemory,totmemory)
     call print_memory_registration_gpu(6,'DEVICE memory occupied at the end', &

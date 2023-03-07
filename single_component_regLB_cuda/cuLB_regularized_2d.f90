@@ -1000,9 +1000,9 @@
 
     !*******************************user parameters**************************
 
-    nx=512
-    ny=256
-    TILE_DIMx=64
+    nx=2048
+    ny=2048
+    TILE_DIMx=256
     TILE_DIMy=4
     TILE_DIM=16
     
@@ -1020,13 +1020,13 @@
 
     
     
-    nsteps=10000
-    stamp=50
+    nsteps=1000
+    stamp=500000
     lprint=.true.
     lvtk=.true.
-    lpbc=.true.
+    lpbc=.false.
     lasync=.true.
-    fx=1.0_db*10.0_db**(-5.0_db)
+    fx=0.0_db*10.0_db**(-5.0_db)
     fy=0.0_db*10.0_db**(-6.0_db)
     allocate(p(0:nlinks))
     !allocate(f0(0:nx+1,0:ny+1),f1(0:nx+1,0:ny+1),f2(0:nx+1,0:ny+1),f3(0:nx+1,0:ny+1),f4(0:nx+1,0:ny+1))
