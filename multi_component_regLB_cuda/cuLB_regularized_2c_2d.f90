@@ -135,12 +135,16 @@ module mysubs
 
       i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
       j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
-
+      
       if (isfluid_d(i, j) .ne. 1) return
-
+      
+     
+      
+      
       !chromodynamic
-      psi_x=(1.0_db/cssq)*(p_d(1)*(psi_d(i+1,j)-psi_d(i-1,j)) + p_d(5)*(psi_d(i+1,j+1) + psi_d(i+1,j-1)-psi_d(i-1,j+1)-psi_d(i-1,j-1)))
-      psi_y=(1.0_db/cssq)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+      psi_x=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i+1,j)-psi_d(i-1,j)) + p_d(5)*(psi_d(i+1,j+1) + psi_d(i+1,j-1)-psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+      psi_y=(1.0_db/cssq_D)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+      
       mod_psi = sqrt(psi_x**2 + psi_y**2)
       mod_psi_sq = psi_x**2 + psi_y**2
       norm_x = 0.0_db
@@ -151,6 +155,7 @@ module mysubs
       nu_avg = 1.0_db/(rhoA_d(i, j)*one_ov_nu1_d/rtot + rhoB_d(i, j)*one_ov_nu2_d/rtot)
       omega_d = 2.0_db/(6.0_db*nu_avg + 1.0_db)
       st_coeff = (9.0_db/4.0_db)*sigma_d*omega_d
+      
       addendum0 = 0.0_db
       addendum1 = 0.0_db
       addendum2 = 0.0_db
@@ -169,6 +174,7 @@ module mysubs
       gaddendum6 = 0.0_db
       gaddendum7 = 0.0_db
       gaddendum8 = 0.0_db
+      
       if (mod_psi > 0.0001) then ! i'm sitting on the interface
          addendum0 = -st_coeff*mod_psi*b0_d
          addendum1 = st_coeff*mod_psi*(p_d(1)*psi_x**2/mod_psi_sq - b1_d)
@@ -192,14 +198,17 @@ module mysubs
          norm_y = psi_y/mod_psi
          ! se psi interfaccia vicina a 3-4-5lu è piu' grande del mio valore allora applico nci
       end if
-
+      
       ushifted = u_d(i, j) + fx_d + float(nci_loc_d(i, j))*(norm_x)*max_press_excess_d*abs(rhob_d(i, j))
       vshifted = v_d(i, j) + fy_d + float(nci_loc_d(i, j))*(norm_y)*max_press_excess_d*abs(rhob_d(i, j))
+      
+      
       uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
       feq = p_d(0)*(rtot - uu)
       fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + addendum0
       f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
       g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
+      
       !1
       udotc = ushifted/cssq_d
       temp = -uu + 0.5_db*udotc*udotc
@@ -1066,7 +1075,7 @@ program lb_openacc
 
    real(kind=db), allocatable, dimension(:)     :: p
 
-   real(kind=db) :: mymemory, totmemory
+   real(kind=db) :: mymemory, totmemory,radius
    integer(kind=cuda_Stream_Kind) :: stream1, stream2
    type(cudaDeviceProp) :: prop
    type(cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
@@ -1086,11 +1095,11 @@ program lb_openacc
 
    !*******************************user parameters**************************
 
-   nx = 128
-   ny = 128
-   TILE_DIMx = 128
-   TILE_DIMy = 4
-   TILE_DIM = 16
+   nx = 32
+   ny = 32
+   TILE_DIMx = 8
+   TILE_DIMy = 1
+   TILE_DIM = 8
 
    if (mod(nx, TILE_DIMx) /= 0) then
       write (*, *) 'nx must be a multiple of TILE_DIM'
@@ -1102,9 +1111,10 @@ program lb_openacc
    end if
    dimGrid = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
    dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
-
-   nsteps = 1
-   stamp = 1
+   
+   radius=12
+   nsteps = 100
+   stamp = 10
    lprint = .true.
    lvtk = .true.
    lpbc = .false.
@@ -1245,9 +1255,7 @@ program lb_openacc
    v_d=0.0_db
    istat = cudaDeviceSynchronize
    
-   call setup_pops <<< dimGrid, dimBlock >>> (25.0_db)
-   write(6,*)'inizializzato',allocated(rhoA_d)
-   call flush(6)
+   call setup_pops <<< dimGrid, dimBlock >>> (radius)
    istat = cudaDeviceSynchronize
    
    allocate (rhoprint(1:nx, 1:ny, 1:nz), velprint(3, 1:nx, 1:ny, 1:nz))
@@ -1308,8 +1316,8 @@ program lb_openacc
                istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
                istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
             else
-               istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz)
-               istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz)
+               istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost)
+               istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost)
                istat = cudaEventRecord(dummyEvent, 0)
                istat = cudaEventSynchronize(dummyEvent)
                if (lvtk) then
@@ -1332,7 +1340,7 @@ program lb_openacc
       end if
 
       !***********************************collision + no slip + forcing: fused implementation*********
-      call streamcoll <<< dimGrid, dimBlock, 0, stream1 >>> ()
+      call streamcoll <<< dimGrid, dimBlock, 0, stream1  >>> ()
 
       !********************************************bcs no slip*****************************************!
 
