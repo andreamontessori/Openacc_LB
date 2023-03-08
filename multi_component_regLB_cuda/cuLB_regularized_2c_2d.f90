@@ -24,33 +24,54 @@ module mysubs
    contains
 
   attributes(global) subroutine setup_pops()
-
+      
+      !real(kind=db), value :: sqradius
       integer :: i, j
-
+      real :: mydist,locpsi
+      
       i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
       j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
+      
+      mydist=sqrt((real(i)-64.0)**2.0+(real(j)-64.0)**2.0)
+      
+      
+      
+      locpsi=1.0
+      if (mydist<=-1.0)locpsi=0.0
+    !  if (mydist<=20.0)then
+    !    locpsi=0.0
+    !  endif
+      
+      rhoB_d(i,j)=666.0_db!0.5_db*(1.0_db-psi_d(i,j))
+      rhoA_d(i,j)=333.0_db*locpsi !1.0_db-rhoB_d(i,j)
+      
+      !if(i==nx_d/2 .and. j==ny_d/2)write(*,*)'cazzo',i,j
+      
+      u_d(i,j)=0.0_db
+      v_d(i,j)=0.0_db
 
       !write(*,*)i,j,p_d(0)*myrho_d
+      f0_d(i, j) = p_d(0)*rhoA_d(i,j)
+      f1_d(i, j) = p_d(1)*rhoA_d(i,j)
+      f2_d(i, j) = p_d(2)*rhoA_d(i,j)
+      f3_d(i, j) = p_d(3)*rhoA_d(i,j)
+      f4_d(i, j) = p_d(4)*rhoA_d(i,j)
+      f5_d(i, j) = p_d(5)*rhoA_d(i,j)
+      f6_d(i, j) = p_d(6)*rhoA_d(i,j)
+      f7_d(i, j) = p_d(7)*rhoA_d(i,j)
+      f8_d(i, j) = p_d(8)*rhoA_d(i,j)
 
-      f0_d(i, j) = p_d(0)*myrhoA_d
-      f1_d(i, j) = p_d(1)*myrhoA_d
-      f2_d(i, j) = p_d(2)*myrhoA_d
-      f3_d(i, j) = p_d(3)*myrhoA_d
-      f4_d(i, j) = p_d(4)*myrhoA_d
-      f5_d(i, j) = p_d(5)*myrhoA_d
-      f6_d(i, j) = p_d(6)*myrhoA_d
-      f7_d(i, j) = p_d(7)*myrhoA_d
-      f8_d(i, j) = p_d(8)*myrhoA_d
-
-      g0_d(i, j) = p_d(0)*myrhoB_d
-      g1_d(i, j) = p_d(1)*myrhoB_d
-      g2_d(i, j) = p_d(2)*myrhoB_d
-      g3_d(i, j) = p_d(3)*myrhoB_d
-      g4_d(i, j) = p_d(4)*myrhoB_d
-      g5_d(i, j) = p_d(5)*myrhoB_d
-      g6_d(i, j) = p_d(6)*myrhoB_d
-      g7_d(i, j) = p_d(7)*myrhoB_d
-      g8_d(i, j) = p_d(8)*myrhoB_d
+      g0_d(i, j) = p_d(0)*rhoB_d(i,j)
+      g1_d(i, j) = p_d(1)*rhoB_d(i,j)
+      g2_d(i, j) = p_d(2)*rhoB_d(i,j)
+      g3_d(i, j) = p_d(3)*rhoB_d(i,j)
+      g4_d(i, j) = p_d(4)*rhoB_d(i,j)
+      g5_d(i, j) = p_d(5)*rhoB_d(i,j)
+      g6_d(i, j) = p_d(6)*rhoB_d(i,j)
+      g7_d(i, j) = p_d(7)*rhoB_d(i,j)
+      g8_d(i, j) = p_d(8)*rhoB_d(i,j)
+      
+      return
 
   end subroutine setup_pops
 
@@ -71,7 +92,7 @@ module mysubs
       v_d(i, j) = (f5_d(i, j) + f2_d(i, j) + f6_d(i, j) - f7_d(i, j) - f4_d(i, j) - f8_d(i, j)) + &
                   (g5_d(i, j) + g2_d(i, j) + g6_d(i, j) - g7_d(i, j) - g4_d(i, j) - g8_d(i, j))
 
-      psi_d(i, j) = rhoA_d(i, j) - rhoB_d(i, j)/(rhoA_d(i, j) + rhoB_d(i, j))
+      psi_d(i, j) = (rhoA_d(i, j) - rhoB_d(i, j))/(rhoA_d(i, j) + rhoB_d(i, j))
 
       rtot = rhoA_d(i, j) + rhoB_d(i, j)
 
@@ -1066,9 +1087,9 @@ program lb_openacc
 
    !*******************************user parameters**************************
 
-   nx = 2048
-   ny = 2048
-   TILE_DIMx = 256
+   nx = 128
+   ny = 128
+   TILE_DIMx = 128
    TILE_DIMy = 4
    TILE_DIM = 16
 
@@ -1083,12 +1104,12 @@ program lb_openacc
    dimGrid = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
    dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
 
-   nsteps = 1000
-   stamp = 500000
+   nsteps = 1
+   stamp = 1
    lprint = .true.
    lvtk = .true.
    lpbc = .false.
-   lasync = .true.
+   lasync = .false.
    fx = 0.0_db*10.0_db**(-5.0_db)
    fy = 0.0_db*10.0_db**(-6.0_db)
    allocate (p(0:nlinks))
@@ -1215,10 +1236,21 @@ program lb_openacc
    allocate(rhoA_d(1:nx_d,1:ny_d),rhoB_d(1:nx_d,1:ny_d),u_d(1:nx_d,1:ny_d),v_d(1:nx_d,1:ny_d),pxx_d(1:nx_d,1:ny_d),pyy_d(1:nx_d,1:ny_d),pxy_d(1:nx_d,1:ny_d))
    allocate(f0_d(0:nx_d+1,0:ny_d+1),f1_d(0:nx_d+1,0:ny_d+1),f2_d(0:nx_d+1,0:ny_d+1),f3_d(0:nx_d+1,0:ny_d+1),f4_d(0:nx_d+1,0:ny_d+1))
    allocate (f5_d(0:nx_d + 1, 0:ny_d + 1), f6_d(0:nx_d + 1, 0:ny_d + 1), f7_d(0:nx_d + 1, 0:ny_d + 1), f8_d(0:nx_d + 1, 0:ny_d + 1))
+   allocate(g0_d(0:nx_d+1,0:ny_d+1),g1_d(0:nx_d+1,0:ny_d+1),g2_d(0:nx_d+1,0:ny_d+1),g3_d(0:nx_d+1,0:ny_d+1),g4_d(0:nx_d+1,0:ny_d+1))
+   allocate(g5_d(0:nx_d+1,0:ny_d+1),g6_d(0:nx_d+1,0:ny_d+1),g7_d(0:nx_d+1,0:ny_d+1),g8_d(0:nx_d+1,0:ny_d+1))
+   allocate(psi_d(1:nx_d,1:ny_d))
+   rhoA_d=0.0_db
+   rhoB_d=0.0_db
+   psi_d=0.0_db
+   u_d=0.0_db
+   v_d=0.0_db
    istat = cudaDeviceSynchronize
-
+   
    call setup_pops <<< dimGrid, dimBlock >>> ()
-
+   write(6,*)'inizializzato',allocated(rhoA_d)
+   call flush(6)
+   istat = cudaDeviceSynchronize
+   
    allocate (rhoprint(1:nx, 1:ny, 1:nz), velprint(3, 1:nx, 1:ny, 1:nz))
    allocate (rhoprint_d(1:nx_d, 1:ny_d, 1:nz_d), velprint_d(3, 1:nx_d, 1:ny_d, 1:nz_d))
    if (lprint) then
@@ -1255,6 +1287,7 @@ program lb_openacc
    !*************************************time loop************************
    call cpu_time(ts1)
    istat = cudaEventRecord(startEvent, 0)
+   
    do step = 1, nsteps
       !***********************************moment + neq pressor*********
 
