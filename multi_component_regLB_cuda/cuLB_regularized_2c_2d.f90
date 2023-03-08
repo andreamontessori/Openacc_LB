@@ -23,27 +23,22 @@ module mysubs
 
    contains
 
-  attributes(global) subroutine setup_pops()
+  attributes(global) subroutine setup_pops(myradius)
       
-      !real(kind=db), value :: sqradius
+      real(kind=db), value :: myradius
       integer :: i, j
-      real :: mydist,locpsi
+      real :: mydist,locpsi,locrhoA,locrhoB
       
       i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
       j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
       
-      mydist=sqrt((real(i)-64.0)**2.0+(real(j)-64.0)**2.0)
+      mydist=sqrt((real(i)-real(nx_d)*0.5_db)**2.0+(real(j)-real(ny_d)*0.5_db)**2.0)
       
+      locpsi=1.0_db
+      if (mydist<=myradius)locpsi=-1.0_db
       
-      
-      locpsi=1.0
-      if (mydist<=-1.0)locpsi=0.0
-    !  if (mydist<=20.0)then
-    !    locpsi=0.0
-    !  endif
-      
-      rhoB_d(i,j)=666.0_db!0.5_db*(1.0_db-psi_d(i,j))
-      rhoA_d(i,j)=333.0_db*locpsi !1.0_db-rhoB_d(i,j)
+      locrhoB=0.5_db*(1.0_db-locpsi)
+      locrhoA=1.0_db-locrhoB
       
       !if(i==nx_d/2 .and. j==ny_d/2)write(*,*)'cazzo',i,j
       
@@ -51,25 +46,29 @@ module mysubs
       v_d(i,j)=0.0_db
 
       !write(*,*)i,j,p_d(0)*myrho_d
-      f0_d(i, j) = p_d(0)*rhoA_d(i,j)
-      f1_d(i, j) = p_d(1)*rhoA_d(i,j)
-      f2_d(i, j) = p_d(2)*rhoA_d(i,j)
-      f3_d(i, j) = p_d(3)*rhoA_d(i,j)
-      f4_d(i, j) = p_d(4)*rhoA_d(i,j)
-      f5_d(i, j) = p_d(5)*rhoA_d(i,j)
-      f6_d(i, j) = p_d(6)*rhoA_d(i,j)
-      f7_d(i, j) = p_d(7)*rhoA_d(i,j)
-      f8_d(i, j) = p_d(8)*rhoA_d(i,j)
+      f0_d(i, j) = p_d(0)*locrhoA
+      f1_d(i, j) = p_d(1)*locrhoA
+      f2_d(i, j) = p_d(2)*locrhoA
+      f3_d(i, j) = p_d(3)*locrhoA
+      f4_d(i, j) = p_d(4)*locrhoA
+      f5_d(i, j) = p_d(5)*locrhoA
+      f6_d(i, j) = p_d(6)*locrhoA
+      f7_d(i, j) = p_d(7)*locrhoA
+      f8_d(i, j) = p_d(8)*locrhoA
 
-      g0_d(i, j) = p_d(0)*rhoB_d(i,j)
-      g1_d(i, j) = p_d(1)*rhoB_d(i,j)
-      g2_d(i, j) = p_d(2)*rhoB_d(i,j)
-      g3_d(i, j) = p_d(3)*rhoB_d(i,j)
-      g4_d(i, j) = p_d(4)*rhoB_d(i,j)
-      g5_d(i, j) = p_d(5)*rhoB_d(i,j)
-      g6_d(i, j) = p_d(6)*rhoB_d(i,j)
-      g7_d(i, j) = p_d(7)*rhoB_d(i,j)
-      g8_d(i, j) = p_d(8)*rhoB_d(i,j)
+      g0_d(i, j) = p_d(0)*locrhoB
+      g1_d(i, j) = p_d(1)*locrhoB
+      g2_d(i, j) = p_d(2)*locrhoB
+      g3_d(i, j) = p_d(3)*locrhoB
+      g4_d(i, j) = p_d(4)*locrhoB
+      g5_d(i, j) = p_d(5)*locrhoB
+      g6_d(i, j) = p_d(6)*locrhoB
+      g7_d(i, j) = p_d(7)*locrhoB
+      g8_d(i, j) = p_d(8)*locrhoB
+      
+      rhoA_d(i,j)=locrhoA
+      rhob_d(i,j)=locrhoB
+      psi_d(i,j)=locpsi
       
       return
 
@@ -1246,7 +1245,7 @@ program lb_openacc
    v_d=0.0_db
    istat = cudaDeviceSynchronize
    
-   call setup_pops <<< dimGrid, dimBlock >>> ()
+   call setup_pops <<< dimGrid, dimBlock >>> (25.0_db)
    write(6,*)'inizializzato',allocated(rhoA_d)
    call flush(6)
    istat = cudaDeviceSynchronize
