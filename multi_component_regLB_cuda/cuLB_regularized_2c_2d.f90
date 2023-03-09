@@ -4,6 +4,7 @@ module mysubs
    use cudafor
 
    integer, parameter :: db = 4 !kind(1.0)
+   real(kind=db), parameter :: Pi = real(3.141592653589793238462643383279502884d0,kind=db)
    ! device arrays
    integer(kind=4), allocatable, dimension(:, :), device   :: isfluid_d
    integer, constant :: nx_d, ny_d, TILE_DIMx_d, TILE_DIMy_d, TILE_DIM_d
@@ -22,6 +23,20 @@ module mysubs
    
 
    contains
+   
+   attributes(device) function fcut(r, r1, r2)
+   
+     real(kind=db), intent(in) :: r, r1, r2
+     real(kind=db) fcut
+
+     if ( r <= r1 ) then
+        fcut = 1.0_db
+     elseif ( r > r2 ) then
+        fcut = 0.0_db
+     else
+        fcut = 0.5_db * cos((r-r1)*Pi/(r2-r1)) + 0.5_db
+     endif
+  end function fcut 
 
   attributes(global) subroutine setup_pops(myradius)
       
@@ -29,15 +44,21 @@ module mysubs
       
       real(kind=db), value :: myradius
       integer :: i, j
-      real :: mydist,locpsi,locrhoA,locrhoB
+      real(kind=db) :: mydist,locpsi,locrhoA,locrhoB,tempr
       
       i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
       j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
       
-      mydist=sqrt((real(i)-real(nx_d)*0.5_db)**2.0+(real(j)-real(ny_d)*0.5_db)**2.0)
+      mydist=sqrt((real(i)-(real(nx_d)*0.5_db-myradius-5.0_db))**2.0+(real(j)-real(ny_d)*0.5_db)**2.0)
+      
+      tempr = fcut(mydist, myradius, myradius+4.0_db)
       
       locpsi=1.0_db
       if (mydist<=myradius)locpsi=-1.0_db
+      
+      !locrhoB = tempr
+      !locrhoA = (1.0 - tempr)
+      !locpsi = (locrhoA - locrhoB)/(locrhoA + locrhoB)
       
       locrhoB=0.5_db*(1.0_db-locpsi)
       locrhoA=1.0_db-locrhoB
@@ -81,8 +102,11 @@ module mysubs
     implicit none
     
     integer :: i, j
+#ifdef HACK
+    real(kind=db) ::uu, udotc, temp, fneq, locpxx, locpyy,locpxy,rtot
+#else
     real(kind=db) ::uu, udotc, temp, fneq1, fneq2, fneq3, fneq4, fneq5, fneq6, fneq7, fneq8, rtot
-
+#endif
       i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
       j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
 
@@ -101,6 +125,49 @@ module mysubs
 
       ! non equilibrium pressor components
       uu = 0.5_db*(u_d(i, j)*u_d(i, j) + v_d(i, j)*v_d(i, j))/cssq_d
+#ifdef HACK
+      !1-3
+      udotc = u_d(i, j)/cssq_d
+      temp = -uu + 0.5_db*udotc*udotc
+      fneq = (f1_d(i, j) + g1_d(i, j)) - p_d(1)*(rtot + (temp + udotc))
+      locpxx = fneq
+      fneq = (f3_d(i, j) + g3_d(i, j)) - p_d(3)*(rtot + (temp - udotc))
+      locpxx = fneq + locpxx
+      
+      !2-4
+      udotc = v_d(i, j)/cssq_d
+      temp = -uu + 0.5_db*udotc*udotc
+      fneq = (f2_d(i, j) + g2_d(i, j)) - p_d(2)*(rtot + (temp + udotc))
+      locpyy = fneq
+      fneq = (f4_d(i, j) + g2_d(i, j)) - p_d(4)*(rtot + (temp - udotc))
+      locpyy = fneq + locpyy
+      !5-7
+      udotc = (u_d(i, j) + v_d(i, j))/cssq_d
+      temp = -uu + 0.5_db*udotc*udotc
+      fneq = (f5_d(i, j) + g5_d(i, j)) - p_d(5)*(rtot + (temp + udotc))
+      locpxx = fneq + locpxx
+      locpyy = fneq + locpyy
+      locpxy = fneq
+      fneq = (f7_d(i, j) + g7_d(i, j)) - p_d(7)*(rtot + (temp - udotc))
+      locpxx = fneq + locpxx
+      locpyy = fneq + locpyy
+      locpxy = fneq + locpxy
+      !6-8
+      udotc = (-u_d(i, j) + v_d(i, j))/cssq_d
+      temp = -uu + 0.5_db*udotc*udotc
+      fneq = (f6_d(i, j) + g6_d(i, j)) - p_d(6)*(rtot + (temp + udotc))
+      locpxx = fneq + locpxx
+      locpyy = fneq + locpyy
+      locpxy = -fneq + locpxy
+      fneq = (f8_d(i, j) + g8_d(i, j)) - p_d(8)*(rtot + (temp - udotc))
+      locpxx = fneq + locpxx
+      locpyy = fneq + locpyy
+      locpxy = -fneq + locpxy
+      
+      pxx_d(i, j) = locpxx
+      pyy_d(i, j) = locpyy
+      pxy_d(i, j) = locpxy
+#else
       !1-3
       udotc = u_d(i, j)/cssq_d
       temp = -uu + 0.5_db*udotc*udotc
@@ -125,7 +192,7 @@ module mysubs
       pxx_d(i, j) = fneq1 + fneq3 + fneq5 + fneq6 + fneq7 + fneq8
       pyy_d(i, j) = fneq2 + fneq4 + fneq5 + fneq6 + fneq7 + fneq8
       pxy_d(i, j) = fneq5 - fneq6 + fneq7 - fneq8
-
+#endif
   end subroutine moments
 
   attributes(global) subroutine streamcoll()
@@ -151,10 +218,12 @@ module mysubs
       
       !chromodynamic
       psi_x=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i+1,j)-psi_d(i-1,j)) + p_d(5)*(psi_d(i+1,j+1) + psi_d(i+1,j-1)-psi_d(i-1,j+1)-psi_d(i-1,j-1)))
-      psi_y=(1.0_db/cssq_D)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+      psi_y=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
       
-      mod_psi = sqrt(psi_x**2.0_db + psi_y**2.0_db)
+      
       mod_psi_sq = psi_x**2.0_db + psi_y**2.0_db
+      mod_psi = sqrt(mod_psi_sq)
+      
       !norm_x = 0.0_db
       !norm_y = 0.0_db
       !rtot = 0.0_db
@@ -162,7 +231,7 @@ module mysubs
       rprod = rhoA_d(i, j)*rhoB_d(i, j)
       nu_avg = 1.0_db/(rhoA_d(i, j)*one_ov_nu1_d/rtot + rhoB_d(i, j)*one_ov_nu2_d/rtot)
       omega_d = 2.0_db/(6.0_db*nu_avg + 1.0_db)
-      st_coeff = (9.0_db/4.0_db)*sigma_d*omega_d*mod_psi
+      st_coeff = (9.0_db/4.0_db)*sigma_d*omega_d
       
       ushifted = u_d(i, j) + fx_d !+ float(nci_loc_d(i, j))*(norm_x)*max_press_excess_d*abs(rhob_d(i, j))
       vshifted = v_d(i, j) + fy_d !+ float(nci_loc_d(i, j))*(norm_y)*max_press_excess_d*abs(rhob_d(i, j))
@@ -174,7 +243,7 @@ module mysubs
       
       uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
       feq = p_d(0)*(rtot - uu)
-      fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) -st_coeff*b0_d
+      fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) -st_coeff*mod_psi*b0_d
       f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
       g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
       
@@ -183,13 +252,13 @@ module mysubs
       temp = -uu + 0.5_db*udotc*udotc
       feq = p_d(1)*(rtot + (temp + udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + &
-       st_coeff*(p_d(1)*psi_x**2.0_db/mod_psi_sq - b1_d) !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
+       st_coeff*mod_psi*(p_d(1)*(psi_x**2.0_db)/mod_psi_sq - b1_d) !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
       f1_d(i + 1, j) = fpc*(rhoA_d(i, j))/rtot + p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2.0_db)
       g1_d(i + 1, j) = fpc*(rhoB_d(i, j))/rtot - p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2.0_db)
       !3
       feq = p_d(3)*(rtot + (temp - udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + &
-       st_coeff*(p_d(3)*psi_x**2.0_db/mod_psi_sq - b1_d) !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
+       st_coeff*mod_psi*(p_d(3)*(psi_x**2.0_db)/mod_psi_sq - b1_d) !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
       f3_d(i - 1, j) = fpc*(rhoA_d(i, j))/rtot + p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2.0_db)
       g3_d(i - 1, j) = fpc*(rhoB_d(i, j))/rtot - p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2.0_db)
       !2
@@ -197,13 +266,13 @@ module mysubs
       temp = -uu + 0.5_db*udotc*udotc
       feq = p_d(2)*(rtot + (temp + udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + &
-       st_coeff*(p_d(2)*psi_y**2.0_db/mod_psi_sq - b1_d) !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+       st_coeff*mod_psi*(p_d(2)*(psi_y**2.0_db)/mod_psi_sq - b1_d) !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
       f2_d(i, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2.0_db)
       g2_d(i, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2.0_db)
       !4
       feq = p_d(4)*(rtot + (temp - udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + &
-       st_coeff*(p_d(4)*psi_y**2.0_db/mod_psi_sq - b1_d) !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
+       st_coeff*mod_psi*(p_d(4)*(psi_y**2.0_db)/mod_psi_sq - b1_d) !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
       f4_d(i, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2.0_db)
       g4_d(i, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2.0_db)
       !5
@@ -211,13 +280,13 @@ module mysubs
       temp = -uu + 0.5_db*udotc*udotc
       feq = p_d(5)*(rtot + (temp + udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + &
-       st_coeff*(p_d(5)*(psi_x + psi_y)**2.0_db/mod_psi_sq - b2_d) !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
+       st_coeff*mod_psi*(p_d(5)*((psi_x + psi_y)**2.0_db)/mod_psi_sq - b2_d) !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
       f5_d(i + 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
       g5_d(i + 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
       !7
       feq = p_d(7)*(rtot + (temp - udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + &
-       st_coeff*(p_d(7)*(-psi_x - psi_y)**2.0_db/mod_psi_sq - b2_d) !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
+       st_coeff*mod_psi*(p_d(7)*((-psi_x - psi_y)**2.0_db)/mod_psi_sq - b2_d) !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
       f7_d(i - 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
       g7_d(i - 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
       !6
@@ -225,13 +294,13 @@ module mysubs
       temp = -uu + 0.5_db*udotc*udotc
       feq = p_d(6)*(rtot + (temp + udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + &
-       st_coeff*(p_d(6)*(-psi_x + psi_y)**2.0_db/mod_psi_sq - b2_d) !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
+       st_coeff*mod_psi*(p_d(6)*((-psi_x + psi_y)**2.0_db)/mod_psi_sq - b2_d) !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
       f6_d(i - 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
       g6_d(i - 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
       !8
       feq = p_d(8)*(rtot + (temp - udotc))
       fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + &
-       st_coeff*(p_d(8)*(psi_x - psi_y)**2.0_db/mod_psi_sq - b2_d) !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
+       st_coeff*mod_psi*(p_d(8)*((psi_x - psi_y)**2.0_db)/mod_psi_sq - b2_d) !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
       f8_d(i + 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
       g8_d(i + 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
       
@@ -433,6 +502,9 @@ module mysubs
 
       !write(*,*)i,j,p_d(0)*myrho_d
       if (isfluid_d(i, j) .ne. 0) return
+      
+      psi_d(i,j)=-1.0_db
+     
 
       f8_d(i + 1, j - 1) = f6_d(i, j)!gpc
       f7_d(i - 1, j - 1) = f5_d(i, j)!hpc
@@ -1267,8 +1339,8 @@ program lb_openacc
 
    !*******************************user parameters**************************
 
-   nx = 32
-   ny = 32
+   nx = 128
+   ny = 64
    TILE_DIMx = 8
    TILE_DIMy = 1
    TILE_DIM = 8
@@ -1284,9 +1356,9 @@ program lb_openacc
    dimGrid = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
    dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
    
-   radius=12
-   nsteps = 100
-   stamp = 10
+   radius=20
+   nsteps = 10
+   stamp = 1
    lprint = .true.
    lvtk = .true.
    lpbc = .false.
