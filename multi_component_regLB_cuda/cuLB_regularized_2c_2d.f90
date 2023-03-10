@@ -24,1267 +24,1247 @@ module mysubs
 
    contains
    
-   attributes(device) function fcut(r, r1, r2)
+      attributes(device) function fcut(r, r1, r2)
    
-     real(kind=db), intent(in) :: r, r1, r2
-     real(kind=db) fcut
+         real(kind=db), intent(in) :: r, r1, r2
+         real(kind=db) fcut
 
-     if ( r <= r1 ) then
-        fcut = 1.0_db
-     elseif ( r > r2 ) then
-        fcut = 0.0_db
-     else
-        fcut = 0.5_db * cos((r-r1)*Pi/(r2-r1)) + 0.5_db
-     endif
-  end function fcut 
+         if ( r <= r1 ) then
+            fcut = 1.0_db
+         elseif ( r > r2 ) then
+            fcut = 0.0_db
+         else
+            fcut = 0.5_db * cos((r-r1)*Pi/(r2-r1)) + 0.5_db
+         endif
+      end function fcut 
 
-  attributes(global) subroutine setup_pops(myradius)
+      attributes(global) subroutine setup_pops(myradius)
       
-      implicit none
+            implicit none
       
-      real(kind=db), value :: myradius
-      integer :: i, j
-      real(kind=db) :: mydist,locpsi,locrhoA,locrhoB,tempr
-      
-      i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
-      j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
-      
-      mydist=sqrt((real(i)-(real(nx_d)*0.5_db-myradius-5.0_db))**2.0+(real(j)-real(ny_d)*0.5_db)**2.0)
-      
-      tempr = fcut(mydist, myradius, myradius+4.0_db)
-      
-      locpsi=1.0_db
-      if (mydist<=myradius)locpsi=-1.0_db
-      
-      !locrhoB = tempr
-      !locrhoA = (1.0 - tempr)
-      !locpsi = (locrhoA - locrhoB)/(locrhoA + locrhoB)
-      
-      locrhoB=0.5_db*(1.0_db-locpsi)
-      locrhoA=1.0_db-locrhoB
-      
-      !if(i==nx_d/2 .and. j==ny_d/2)write(*,*)'cazzo',i,j
-      
-      u_d(i,j)=0.0_db
-      v_d(i,j)=0.0_db
+            real(kind=db), value :: myradius
+            integer :: i, j
+            real(kind=db) :: mydist,locpsi,locrhoA,locrhoB,tempr
+            
+            i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
+            j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
+            
+            mydist=sqrt((real(i)-(real(nx_d)*0.5_db-myradius-5.0_db))**2.0+(real(j)-real(ny_d)*0.5_db)**2.0)
+            
+            tempr = fcut(mydist, myradius, myradius+4.0_db)
+            
+            locpsi=1.0_db
+            if (mydist<=myradius)locpsi=-1.0_db
+            
+            !locrhoB = tempr
+            !locrhoA = (1.0 - tempr)
+            !locpsi = (locrhoA - locrhoB)/(locrhoA + locrhoB)
+            
+            locrhoB=0.5_db*(1.0_db-locpsi)
+            locrhoA=1.0_db-locrhoB
+            
+            !if(i==nx_d/2 .and. j==ny_d/2)write(*,*)'cazzo',i,j
+            
+            u_d(i,j)=0.0_db
+            v_d(i,j)=0.0_db
 
-      !write(*,*)i,j,p_d(0)*myrho_d
-      f0_d(i, j) = p_d(0)*locrhoA
-      f1_d(i, j) = p_d(1)*locrhoA
-      f2_d(i, j) = p_d(2)*locrhoA
-      f3_d(i, j) = p_d(3)*locrhoA
-      f4_d(i, j) = p_d(4)*locrhoA
-      f5_d(i, j) = p_d(5)*locrhoA
-      f6_d(i, j) = p_d(6)*locrhoA
-      f7_d(i, j) = p_d(7)*locrhoA
-      f8_d(i, j) = p_d(8)*locrhoA
+            !write(*,*)i,j,p_d(0)*myrho_d
+            f0_d(i, j) = p_d(0)*locrhoA
+            f1_d(i, j) = p_d(1)*locrhoA
+            f2_d(i, j) = p_d(2)*locrhoA
+            f3_d(i, j) = p_d(3)*locrhoA
+            f4_d(i, j) = p_d(4)*locrhoA
+            f5_d(i, j) = p_d(5)*locrhoA
+            f6_d(i, j) = p_d(6)*locrhoA
+            f7_d(i, j) = p_d(7)*locrhoA
+            f8_d(i, j) = p_d(8)*locrhoA
 
-      g0_d(i, j) = p_d(0)*locrhoB
-      g1_d(i, j) = p_d(1)*locrhoB
-      g2_d(i, j) = p_d(2)*locrhoB
-      g3_d(i, j) = p_d(3)*locrhoB
-      g4_d(i, j) = p_d(4)*locrhoB
-      g5_d(i, j) = p_d(5)*locrhoB
-      g6_d(i, j) = p_d(6)*locrhoB
-      g7_d(i, j) = p_d(7)*locrhoB
-      g8_d(i, j) = p_d(8)*locrhoB
-      
-      rhoA_d(i,j)=locrhoA
-      rhob_d(i,j)=locrhoB
-      psi_d(i,j)=locpsi
-      
-      return
+            g0_d(i, j) = p_d(0)*locrhoB
+            g1_d(i, j) = p_d(1)*locrhoB
+            g2_d(i, j) = p_d(2)*locrhoB
+            g3_d(i, j) = p_d(3)*locrhoB
+            g4_d(i, j) = p_d(4)*locrhoB
+            g5_d(i, j) = p_d(5)*locrhoB
+            g6_d(i, j) = p_d(6)*locrhoB
+            g7_d(i, j) = p_d(7)*locrhoB
+            g8_d(i, j) = p_d(8)*locrhoB
+            
+            rhoA_d(i,j)=locrhoA
+            rhob_d(i,j)=locrhoB
+            psi_d(i,j)=locpsi
+            
+            return
 
-  end subroutine setup_pops
+      end subroutine setup_pops
 
-  attributes(global) subroutine moments()
+      attributes(global) subroutine moments()
     
-    implicit none
+         implicit none
     
-    integer :: i, j
-#ifdef HACK
-    real(kind=db) ::uu, udotc, temp, fneq, locpxx, locpyy,locpxy,rtot
-#else
-    real(kind=db) ::uu, udotc, temp, fneq1, fneq2, fneq3, fneq4, fneq5, fneq6, fneq7, fneq8, rtot
-#endif
-      i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
-      j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
+         integer :: i, j
+         #ifdef HACK
+            real(kind=db) ::uu, udotc, temp, fneq, locpxx, locpyy,locpxy,rtot
+         #else
+            real(kind=db) ::uu, udotc, temp, fneq1, fneq2, fneq3, fneq4, fneq5, fneq6, fneq7, fneq8, rtot
+         #endif
+         i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
+         j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
 
-      if (isfluid_d(i, j) .ne. 1) return
+         if (isfluid_d(i, j) .ne. 1) return
+         
+         rhoA_d(i, j) = f0_d(i, j) + f1_d(i, j) + f2_d(i, j) + f3_d(i, j) + f4_d(i, j) + f5_d(i, j) + f6_d(i, j) + f7_d(i, j) + f8_d(i, j)
+         rhoB_d(i, j) = g0_d(i, j) + g1_d(i, j) + g2_d(i, j) + g3_d(i, j) + g4_d(i, j) + g5_d(i, j) + g6_d(i, j) + g7_d(i, j) + g8_d(i, j)
+         u_d(i, j) = (f1_d(i, j) + f5_d(i, j) + f8_d(i, j) - f3_d(i, j) - f6_d(i, j) - f7_d(i, j)) + &
+                     (g1_d(i, j) + g5_d(i, j) + g8_d(i, j) - g3_d(i, j) - g6_d(i, j) - g7_d(i, j))
+         v_d(i, j) = (f5_d(i, j) + f2_d(i, j) + f6_d(i, j) - f7_d(i, j) - f4_d(i, j) - f8_d(i, j)) + &
+                     (g5_d(i, j) + g2_d(i, j) + g6_d(i, j) - g7_d(i, j) - g4_d(i, j) - g8_d(i, j))
+
+         psi_d(i, j) = (rhoA_d(i, j) - rhoB_d(i, j))/(rhoA_d(i, j) + rhoB_d(i, j))
+
+         rtot = rhoA_d(i, j) + rhoB_d(i, j)
+
+         ! non equilibrium pressor components
+         uu = 0.5_db*(u_d(i, j)*u_d(i, j) + v_d(i, j)*v_d(i, j))/cssq_d
+         #ifdef HACK
+            !1-3
+            udotc = u_d(i, j)/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq = (f1_d(i, j) + g1_d(i, j)) - p_d(1)*(rtot + (temp + udotc))
+            locpxx = fneq
+            fneq = (f3_d(i, j) + g3_d(i, j)) - p_d(3)*(rtot + (temp - udotc))
+            locpxx = fneq + locpxx
+            
+            !2-4
+            udotc = v_d(i, j)/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq = (f2_d(i, j) + g2_d(i, j)) - p_d(2)*(rtot + (temp + udotc))
+            locpyy = fneq
+            fneq = (f4_d(i, j) + g2_d(i, j)) - p_d(4)*(rtot + (temp - udotc))
+            locpyy = fneq + locpyy
+            !5-7
+            udotc = (u_d(i, j) + v_d(i, j))/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq = (f5_d(i, j) + g5_d(i, j)) - p_d(5)*(rtot + (temp + udotc))
+            locpxx = fneq + locpxx
+            locpyy = fneq + locpyy
+            locpxy = fneq
+            fneq = (f7_d(i, j) + g7_d(i, j)) - p_d(7)*(rtot + (temp - udotc))
+            locpxx = fneq + locpxx
+            locpyy = fneq + locpyy
+            locpxy = fneq + locpxy
+            !6-8
+            udotc = (-u_d(i, j) + v_d(i, j))/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq = (f6_d(i, j) + g6_d(i, j)) - p_d(6)*(rtot + (temp + udotc))
+            locpxx = fneq + locpxx
+            locpyy = fneq + locpyy
+            locpxy = -fneq + locpxy
+            fneq = (f8_d(i, j) + g8_d(i, j)) - p_d(8)*(rtot + (temp - udotc))
+            locpxx = fneq + locpxx
+            locpyy = fneq + locpyy
+            locpxy = -fneq + locpxy
+            
+            pxx_d(i, j) = locpxx
+            pyy_d(i, j) = locpyy
+            pxy_d(i, j) = locpxy
+         #else
+            !1-3
+            udotc = u_d(i, j)/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq1 = (f1_d(i, j) + g1_d(i, j)) - p_d(1)*(rtot + (temp + udotc))
+            fneq3 = (f3_d(i, j) + g3_d(i, j)) - p_d(3)*(rtot + (temp - udotc))
+            !2-4
+            udotc = v_d(i, j)/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq2 = (f2_d(i, j) + g2_d(i, j)) - p_d(2)*(rtot + (temp + udotc))
+            fneq4 = (f4_d(i, j) + g2_d(i, j)) - p_d(4)*(rtot + (temp - udotc))
+            !5-7
+            udotc = (u_d(i, j) + v_d(i, j))/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq5 = (f5_d(i, j) + g5_d(i, j)) - p_d(5)*(rtot + (temp + udotc))
+            fneq7 = (f7_d(i, j) + g7_d(i, j)) - p_d(7)*(rtot + (temp - udotc))
+            !6-8
+            udotc = (-u_d(i, j) + v_d(i, j))/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            fneq6 = (f6_d(i, j) + g6_d(i, j)) - p_d(6)*(rtot + (temp + udotc))
+            fneq8 = (f8_d(i, j) + g8_d(i, j)) - p_d(8)*(rtot + (temp - udotc))
+
+            pxx_d(i, j) = fneq1 + fneq3 + fneq5 + fneq6 + fneq7 + fneq8
+            pyy_d(i, j) = fneq2 + fneq4 + fneq5 + fneq6 + fneq7 + fneq8
+            pxy_d(i, j) = fneq5 - fneq6 + fneq7 - fneq8
+         #endif
+      end subroutine moments
+
+      attributes(global) subroutine streamcoll()
       
-      rhoA_d(i, j) = f0_d(i, j) + f1_d(i, j) + f2_d(i, j) + f3_d(i, j) + f4_d(i, j) + f5_d(i, j) + f6_d(i, j) + f7_d(i, j) + f8_d(i, j)
-      rhoB_d(i, j) = g0_d(i, j) + g1_d(i, j) + g2_d(i, j) + g3_d(i, j) + g4_d(i, j) + g5_d(i, j) + g6_d(i, j) + g7_d(i, j) + g8_d(i, j)
-      u_d(i, j) = (f1_d(i, j) + f5_d(i, j) + f8_d(i, j) - f3_d(i, j) - f6_d(i, j) - f7_d(i, j)) + &
-                  (g1_d(i, j) + g5_d(i, j) + g8_d(i, j) - g3_d(i, j) - g6_d(i, j) - g7_d(i, j))
-      v_d(i, j) = (f5_d(i, j) + f2_d(i, j) + f6_d(i, j) - f7_d(i, j) - f4_d(i, j) - f8_d(i, j)) + &
-                  (g5_d(i, j) + g2_d(i, j) + g6_d(i, j) - g7_d(i, j) - g4_d(i, j) - g8_d(i, j))
+            implicit none
+            
+            integer :: i, j
+            real(kind=db) :: uu, udotc, temp, feq, psi_x, psi_y, rtot, st_coeff, mod_psi, mod_psi_sq, fpc
+            real(kind=db) :: norm_x, norm_y, rprod   
+         #ifndef HACK   
+            real(kind=db) :: addendum0, addendum1, addendum2, addendum3, addendum4, addendum5, addendum6, addendum7, addendum8
+            real(kind=db) :: gaddendum0, gaddendum1, gaddendum2, gaddendum3, gaddendum4, gaddendum5, gaddendum6, gaddendum7, gaddendum8
+         #endif
+            real(kind=db) :: ushifted, vshifted,nu_avg
 
-      psi_d(i, j) = (rhoA_d(i, j) - rhoB_d(i, j))/(rhoA_d(i, j) + rhoB_d(i, j))
-
-      rtot = rhoA_d(i, j) + rhoB_d(i, j)
-
-      ! non equilibrium pressor components
-      uu = 0.5_db*(u_d(i, j)*u_d(i, j) + v_d(i, j)*v_d(i, j))/cssq_d
-#ifdef HACK
-      !1-3
-      udotc = u_d(i, j)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq = (f1_d(i, j) + g1_d(i, j)) - p_d(1)*(rtot + (temp + udotc))
-      locpxx = fneq
-      fneq = (f3_d(i, j) + g3_d(i, j)) - p_d(3)*(rtot + (temp - udotc))
-      locpxx = fneq + locpxx
+            i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
+            j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
       
-      !2-4
-      udotc = v_d(i, j)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq = (f2_d(i, j) + g2_d(i, j)) - p_d(2)*(rtot + (temp + udotc))
-      locpyy = fneq
-      fneq = (f4_d(i, j) + g2_d(i, j)) - p_d(4)*(rtot + (temp - udotc))
-      locpyy = fneq + locpyy
-      !5-7
-      udotc = (u_d(i, j) + v_d(i, j))/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq = (f5_d(i, j) + g5_d(i, j)) - p_d(5)*(rtot + (temp + udotc))
-      locpxx = fneq + locpxx
-      locpyy = fneq + locpyy
-      locpxy = fneq
-      fneq = (f7_d(i, j) + g7_d(i, j)) - p_d(7)*(rtot + (temp - udotc))
-      locpxx = fneq + locpxx
-      locpyy = fneq + locpyy
-      locpxy = fneq + locpxy
-      !6-8
-      udotc = (-u_d(i, j) + v_d(i, j))/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq = (f6_d(i, j) + g6_d(i, j)) - p_d(6)*(rtot + (temp + udotc))
-      locpxx = fneq + locpxx
-      locpyy = fneq + locpyy
-      locpxy = -fneq + locpxy
-      fneq = (f8_d(i, j) + g8_d(i, j)) - p_d(8)*(rtot + (temp - udotc))
-      locpxx = fneq + locpxx
-      locpyy = fneq + locpyy
-      locpxy = -fneq + locpxy
-      
-      pxx_d(i, j) = locpxx
-      pyy_d(i, j) = locpyy
-      pxy_d(i, j) = locpxy
-#else
-      !1-3
-      udotc = u_d(i, j)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq1 = (f1_d(i, j) + g1_d(i, j)) - p_d(1)*(rtot + (temp + udotc))
-      fneq3 = (f3_d(i, j) + g3_d(i, j)) - p_d(3)*(rtot + (temp - udotc))
-      !2-4
-      udotc = v_d(i, j)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq2 = (f2_d(i, j) + g2_d(i, j)) - p_d(2)*(rtot + (temp + udotc))
-      fneq4 = (f4_d(i, j) + g2_d(i, j)) - p_d(4)*(rtot + (temp - udotc))
-      !5-7
-      udotc = (u_d(i, j) + v_d(i, j))/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq5 = (f5_d(i, j) + g5_d(i, j)) - p_d(5)*(rtot + (temp + udotc))
-      fneq7 = (f7_d(i, j) + g7_d(i, j)) - p_d(7)*(rtot + (temp - udotc))
-      !6-8
-      udotc = (-u_d(i, j) + v_d(i, j))/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      fneq6 = (f6_d(i, j) + g6_d(i, j)) - p_d(6)*(rtot + (temp + udotc))
-      fneq8 = (f8_d(i, j) + g8_d(i, j)) - p_d(8)*(rtot + (temp - udotc))
-
-      pxx_d(i, j) = fneq1 + fneq3 + fneq5 + fneq6 + fneq7 + fneq8
-      pyy_d(i, j) = fneq2 + fneq4 + fneq5 + fneq6 + fneq7 + fneq8
-      pxy_d(i, j) = fneq5 - fneq6 + fneq7 - fneq8
-#endif
-  end subroutine moments
-
-  attributes(global) subroutine streamcoll()
-      
-      implicit none
-      
-      integer :: i, j
-      real(kind=db) :: uu, udotc, temp, feq, psi_x, psi_y, rtot, st_coeff, mod_psi, mod_psi_sq, fpc
-      real(kind=db) :: norm_x, norm_y, rprod   
-#ifndef HACK   
-      real(kind=db) :: addendum0, addendum1, addendum2, addendum3, addendum4, addendum5, addendum6, addendum7, addendum8
-      real(kind=db) :: gaddendum0, gaddendum1, gaddendum2, gaddendum3, gaddendum4, gaddendum5, gaddendum6, gaddendum7, gaddendum8
-#endif
-      real(kind=db) :: ushifted, vshifted,nu_avg
-
-      i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
-      j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
-      
-      if (isfluid_d(i, j) .ne. 1) return
+            if (isfluid_d(i, j) .ne. 1) return
       
      
-#ifdef HACK        
+         #ifdef HACK        
       
-      !chromodynamic
-      psi_x=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i+1,j)-psi_d(i-1,j)) + p_d(5)*(psi_d(i+1,j+1) + psi_d(i+1,j-1)-psi_d(i-1,j+1)-psi_d(i-1,j-1)))
-      psi_y=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+            !chromodynamic
+            psi_x=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i+1,j)-psi_d(i-1,j)) + p_d(5)*(psi_d(i+1,j+1) + psi_d(i+1,j-1)-psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+            psi_y=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+            
+            
+            mod_psi_sq = psi_x**2.0_db + psi_y**2.0_db
+            mod_psi = sqrt(mod_psi_sq)
       
+            !norm_x = 0.0_db
+            !norm_y = 0.0_db
+            !rtot = 0.0_db
+            rtot = rhoA_d(i, j) + rhoB_d(i, j)
+            rprod = rhoA_d(i, j)*rhoB_d(i, j)
+            nu_avg = 1.0_db/(rhoA_d(i, j)*one_ov_nu1_d/rtot + rhoB_d(i, j)*one_ov_nu2_d/rtot)
+            omega_d = 2.0_db/(6.0_db*nu_avg + 1.0_db)
+            st_coeff = (9.0_db/4.0_db)*sigma_d*omega_d
+            
+            ushifted = u_d(i, j) + fx_d !+ float(nci_loc_d(i, j))*(norm_x)*max_press_excess_d*abs(rhob_d(i, j))
+            vshifted = v_d(i, j) + fy_d !+ float(nci_loc_d(i, j))*(norm_y)*max_press_excess_d*abs(rhob_d(i, j))
       
-      mod_psi_sq = psi_x**2.0_db + psi_y**2.0_db
-      mod_psi = sqrt(mod_psi_sq)
-      
-      !norm_x = 0.0_db
-      !norm_y = 0.0_db
-      !rtot = 0.0_db
-      rtot = rhoA_d(i, j) + rhoB_d(i, j)
-      rprod = rhoA_d(i, j)*rhoB_d(i, j)
-      nu_avg = 1.0_db/(rhoA_d(i, j)*one_ov_nu1_d/rtot + rhoB_d(i, j)*one_ov_nu2_d/rtot)
-      omega_d = 2.0_db/(6.0_db*nu_avg + 1.0_db)
-      st_coeff = (9.0_db/4.0_db)*sigma_d*omega_d
-      
-      ushifted = u_d(i, j) + fx_d !+ float(nci_loc_d(i, j))*(norm_x)*max_press_excess_d*abs(rhob_d(i, j))
-      vshifted = v_d(i, j) + fy_d !+ float(nci_loc_d(i, j))*(norm_y)*max_press_excess_d*abs(rhob_d(i, j))
-      
-      if (mod_psi > 0.0001_db) then
+            if (mod_psi > 0.0001_db) then
          
-         norm_x = psi_x/mod_psi
-         norm_y = psi_y/mod_psi
+               norm_x = psi_x/mod_psi
+               norm_y = psi_y/mod_psi
+               uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
+               feq = p_d(0)*(rtot - uu)
+               fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) - st_coeff*mod_psi*b0_d
+               f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
+               g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
+               !1
+               udotc = ushifted/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(1)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(1)*(psi_x**2.0_db)/mod_psi_sq - b1_d) !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
+               f1_d(i + 1, j) = fpc*(rhoA_d(i, j))/rtot + p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2.0_db)
+               g1_d(i + 1, j) = fpc*(rhoB_d(i, j))/rtot - p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2.0_db)
+               !3
+               feq = p_d(3)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(3)*(psi_x**2.0_db)/mod_psi_sq - b1_d) !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
+               f3_d(i - 1, j) = fpc*(rhoA_d(i, j))/rtot + p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2.0_db)
+               g3_d(i - 1, j) = fpc*(rhoB_d(i, j))/rtot - p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2.0_db)
+               !2
+               udotc = vshifted/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(2)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(2)*(psi_y**2.0_db)/mod_psi_sq - b1_d) !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+               f2_d(i, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2.0_db)
+               g2_d(i, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2.0_db)
+               !4
+               feq = p_d(4)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(4)*(psi_y**2.0_db)/mod_psi_sq - b1_d) !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
+               f4_d(i, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2.0_db)
+               g4_d(i, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2.0_db)
+               !5
+               udotc = (ushifted + vshifted)/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(5)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(5)*((psi_x + psi_y)**2.0_db)/mod_psi_sq - b2_d) !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
+               f5_d(i + 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
+               g5_d(i + 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
+               !7
+               feq = p_d(7)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(7)*((-psi_x - psi_y)**2.0_db)/mod_psi_sq - b2_d) !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
+               f7_d(i - 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
+               g7_d(i - 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
+               !6
+               udotc = (-ushifted + vshifted)/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(6)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(6)*((-psi_x + psi_y)**2.0_db)/mod_psi_sq - b2_d) !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
+               f6_d(i - 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
+               g6_d(i - 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
+               !8
+               feq = p_d(8)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + &
+               st_coeff*mod_psi*(p_d(8)*((psi_x - psi_y)**2.0_db)/mod_psi_sq - b2_d) !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
+               f8_d(i + 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
+               g8_d(i + 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
+            else
+               uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
+               feq = p_d(0)*(rtot - uu)
+               fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) 
+               f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
+               g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
+               
+               !1
+               udotc = ushifted/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(1)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j))  !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
+               f1_d(i + 1, j) = fpc*(rhoA_d(i, j))/rtot 
+               g1_d(i + 1, j) = fpc*(rhoB_d(i, j))/rtot 
+               !3
+               feq = p_d(3)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j))  !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
+               f3_d(i - 1, j) = fpc*(rhoA_d(i, j))/rtot 
+               g3_d(i - 1, j) = fpc*(rhoB_d(i, j))/rtot 
+               !2
+               udotc = vshifted/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(2)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j))  !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+               f2_d(i, j + 1) = fpc*(rhoA_d(i, j))/rtot 
+               g2_d(i, j + 1) = fpc*(rhoB_d(i, j))/rtot 
+               !4
+               feq = p_d(4)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j))  !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
+               f4_d(i, j - 1) = fpc*(rhoA_d(i, j))/rtot 
+               g4_d(i, j - 1) = fpc*(rhoB_d(i, j))/rtot 
+               !5
+               udotc = (ushifted + vshifted)/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(5)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j))  !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
+               f5_d(i + 1, j + 1) = fpc*(rhoA_d(i, j))/rtot 
+               g5_d(i + 1, j + 1) = fpc*(rhoB_d(i, j))/rtot 
+               !7
+               feq = p_d(7)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j))  !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
+               f7_d(i - 1, j - 1) = fpc*(rhoA_d(i, j))/rtot 
+               g7_d(i - 1, j - 1) = fpc*(rhoB_d(i, j))/rtot 
+               !6
+               udotc = (-ushifted + vshifted)/cssq_d
+               temp = -uu + 0.5_db*udotc*udotc
+               feq = p_d(6)*(rtot + (temp + udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j))  !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
+               f6_d(i - 1, j + 1) = fpc*(rhoA_d(i, j))/rtot 
+               g6_d(i - 1, j + 1) = fpc*(rhoB_d(i, j))/rtot 
+               !8
+               feq = p_d(8)*(rtot + (temp - udotc))
+               fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j))  !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
+               f8_d(i + 1, j - 1) = fpc*(rhoA_d(i, j))/rtot 
+               g8_d(i + 1, j - 1) = fpc*(rhoB_d(i, j))/rtot 
+            endif
+         #else   
+            !first version
       
-      uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
-      feq = p_d(0)*(rtot - uu)
-      fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) -st_coeff*mod_psi*b0_d
-      f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
-      g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
+            !chromodynamic
+            psi_x=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i+1,j)-psi_d(i-1,j)) + p_d(5)*(psi_d(i+1,j+1) + psi_d(i+1,j-1)-psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+            psi_y=(1.0_db/cssq_D)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
+            
+            mod_psi = sqrt(psi_x**2 + psi_y**2)
+            mod_psi_sq = psi_x**2 + psi_y**2
+            norm_x = 0.0_db
+            norm_y = 0.0_db
+            rtot = 0.0_db
+            rtot = rhoA_d(i, j) + rhoB_d(i, j)
+            rprod = rhoA_d(i, j)*rhoB_d(i, j)
+            nu_avg = 1.0_db/(rhoA_d(i, j)*one_ov_nu1_d/rtot + rhoB_d(i, j)*one_ov_nu2_d/rtot)
+            omega_d = 2.0_db/(6.0_db*nu_avg + 1.0_db)
+            st_coeff = (9.0_db/4.0_db)*sigma_d*omega_d
+               
+            addendum0 = 0.0_db
+            addendum1 = 0.0_db
+            addendum2 = 0.0_db
+            addendum3 = 0.0_db
+            addendum4 = 0.0_db
+            addendum5 = 0.0_db
+            addendum6 = 0.0_db
+            addendum7 = 0.0_db
+            addendum8 = 0.0_db
+            gaddendum0 = 0.0_db
+            gaddendum1 = 0.0_db
+            gaddendum2 = 0.0_db
+            gaddendum3 = 0.0_db
+            gaddendum4 = 0.0_db
+            gaddendum5 = 0.0_db
+            gaddendum6 = 0.0_db
+            gaddendum7 = 0.0_db
+            gaddendum8 = 0.0_db
       
-      !1
-      udotc = ushifted/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(1)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(1)*(psi_x**2.0_db)/mod_psi_sq - b1_d) !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
-      f1_d(i + 1, j) = fpc*(rhoA_d(i, j))/rtot + p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2.0_db)
-      g1_d(i + 1, j) = fpc*(rhoB_d(i, j))/rtot - p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2.0_db)
-      !3
-      feq = p_d(3)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(3)*(psi_x**2.0_db)/mod_psi_sq - b1_d) !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
-      f3_d(i - 1, j) = fpc*(rhoA_d(i, j))/rtot + p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2.0_db)
-      g3_d(i - 1, j) = fpc*(rhoB_d(i, j))/rtot - p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2.0_db)
-      !2
-      udotc = vshifted/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(2)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(2)*(psi_y**2.0_db)/mod_psi_sq - b1_d) !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
-      f2_d(i, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2.0_db)
-      g2_d(i, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2.0_db)
-      !4
-      feq = p_d(4)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(4)*(psi_y**2.0_db)/mod_psi_sq - b1_d) !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
-      f4_d(i, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2.0_db)
-      g4_d(i, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2.0_db)
-      !5
-      udotc = (ushifted + vshifted)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(5)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(5)*((psi_x + psi_y)**2.0_db)/mod_psi_sq - b2_d) !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
-      f5_d(i + 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
-      g5_d(i + 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
-      !7
-      feq = p_d(7)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(7)*((-psi_x - psi_y)**2.0_db)/mod_psi_sq - b2_d) !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
-      f7_d(i - 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
-      g7_d(i - 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
-      !6
-      udotc = (-ushifted + vshifted)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(6)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(6)*((-psi_x + psi_y)**2.0_db)/mod_psi_sq - b2_d) !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
-      f6_d(i - 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
-      g6_d(i - 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2.0_db)
-      !8
-      feq = p_d(8)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + &
-       st_coeff*mod_psi*(p_d(8)*((psi_x - psi_y)**2.0_db)/mod_psi_sq - b2_d) !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
-      f8_d(i + 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
-      g8_d(i + 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2.0_db)
+            if (mod_psi > 0.0001) then ! i'm sitting on the interface
+               addendum0 = -st_coeff*mod_psi*b0_d
+               addendum1 = st_coeff*mod_psi*(p_d(1)*psi_x**2/mod_psi_sq - b1_d)
+               addendum2 = st_coeff*mod_psi*(p_d(2)*psi_y**2/mod_psi_sq - b1_d)
+               addendum3 = st_coeff*mod_psi*(p_d(3)*psi_x**2/mod_psi_sq - b1_d)
+               addendum4 = st_coeff*mod_psi*(p_d(4)*psi_y**2/mod_psi_sq - b1_d)
+               addendum5 = st_coeff*mod_psi*(p_d(5)*(psi_x + psi_y)**2/mod_psi_sq - b2_d)
+               addendum6 = st_coeff*mod_psi*(p_d(6)*(-psi_x + psi_y)**2/mod_psi_sq - b2_d)
+               addendum7 = st_coeff*mod_psi*(p_d(7)*(-psi_x - psi_y)**2/mod_psi_sq - b2_d)
+               addendum8 = st_coeff*mod_psi*(p_d(8)*(psi_x - psi_y)**2/mod_psi_sq - b2_d)
+               !recoloring
+               gaddendum1 = p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2)
+               gaddendum2 = p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2)
+               gaddendum3 = p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2)
+               gaddendum4 = p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2)
+               gaddendum5 = p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
+               gaddendum6 = p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
+               gaddendum7 = p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
+               gaddendum8 = p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
+               norm_x = psi_x/mod_psi
+               norm_y = psi_y/mod_psi
+               ! se psi interfaccia vicina a 3-4-5lu è piu' grande del mio valore allora applico nci
+            
+            end if
       
+            ushifted = u_d(i, j) + fx_d + float(nci_loc_d(i, j))*(norm_x)*max_press_excess_d*abs(rhob_d(i, j))
+            vshifted = v_d(i, j) + fy_d + float(nci_loc_d(i, j))*(norm_y)*max_press_excess_d*abs(rhob_d(i, j))
+ 
+            uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
+            feq = p_d(0)*(rtot - uu)
+            fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + addendum0
+            f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
+            g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
       
-      else
-      uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
-      feq = p_d(0)*(rtot - uu)
-      fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) 
-      f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
-      g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
+            !1
+            udotc = ushifted/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            feq = p_d(1)*(rtot + (temp + udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + addendum1 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
+            f1_d(i + 1, j) = fpc*(rhoA_d(i, j))/rtot + gaddendum1
+            g1_d(i + 1, j) = fpc*(rhoB_d(i, j))/rtot - gaddendum1
+            !3
+            feq = p_d(3)*(rtot + (temp - udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + addendum3 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
+            f3_d(i - 1, j) = fpc*(rhoA_d(i, j))/rtot + gaddendum3
+            g3_d(i - 1, j) = fpc*(rhoB_d(i, j))/rtot - gaddendum3
+            !2
+            udotc = vshifted/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            feq = p_d(2)*(rtot + (temp + udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + addendum2 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+            f2_d(i, j + 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum2
+            g2_d(i, j + 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum2
+            !4
+            feq = p_d(4)*(rtot + (temp - udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + addendum4 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
+            f4_d(i, j - 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum4
+            g4_d(i, j - 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum4
+            !5
+            udotc = (ushifted + vshifted)/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            feq = p_d(5)*(rtot + (temp + udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + addendum5 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
+            f5_d(i + 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum5
+            g5_d(i + 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum5
+            !7
+            feq = p_d(7)*(rtot + (temp - udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + addendum7 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
+            f7_d(i - 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum7
+            g7_d(i - 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum7
+            !6
+            udotc = (-ushifted + vshifted)/cssq_d
+            temp = -uu + 0.5_db*udotc*udotc
+            feq = p_d(6)*(rtot + (temp + udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + addendum6 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
+            f6_d(i - 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum6
+            g6_d(i - 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum6
+            !8
+            feq = p_d(8)*(rtot + (temp - udotc))
+            fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + addendum8 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
+            f8_d(i + 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum8
+            g8_d(i + 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum8
+         #endif
+      end subroutine streamcoll
+
+      attributes(global) subroutine bcs_no_slip()
       
-      !1
-      udotc = ushifted/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(1)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j))  !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
-      f1_d(i + 1, j) = fpc*(rhoA_d(i, j))/rtot 
-      g1_d(i + 1, j) = fpc*(rhoB_d(i, j))/rtot 
-      !3
-      feq = p_d(3)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j))  !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
-      f3_d(i - 1, j) = fpc*(rhoA_d(i, j))/rtot 
-      g3_d(i - 1, j) = fpc*(rhoB_d(i, j))/rtot 
-      !2
-      udotc = vshifted/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(2)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j))  !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
-      f2_d(i, j + 1) = fpc*(rhoA_d(i, j))/rtot 
-      g2_d(i, j + 1) = fpc*(rhoB_d(i, j))/rtot 
-      !4
-      feq = p_d(4)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j))  !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
-      f4_d(i, j - 1) = fpc*(rhoA_d(i, j))/rtot 
-      g4_d(i, j - 1) = fpc*(rhoB_d(i, j))/rtot 
-      !5
-      udotc = (ushifted + vshifted)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(5)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j))  !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
-      f5_d(i + 1, j + 1) = fpc*(rhoA_d(i, j))/rtot 
-      g5_d(i + 1, j + 1) = fpc*(rhoB_d(i, j))/rtot 
-      !7
-      feq = p_d(7)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j))  !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
-      f7_d(i - 1, j - 1) = fpc*(rhoA_d(i, j))/rtot 
-      g7_d(i - 1, j - 1) = fpc*(rhoB_d(i, j))/rtot 
-      !6
-      udotc = (-ushifted + vshifted)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(6)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j))  !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
-      f6_d(i - 1, j + 1) = fpc*(rhoA_d(i, j))/rtot 
-      g6_d(i - 1, j + 1) = fpc*(rhoB_d(i, j))/rtot 
-      !8
-      feq = p_d(8)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j))  !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
-      f8_d(i + 1, j - 1) = fpc*(rhoA_d(i, j))/rtot 
-      g8_d(i + 1, j - 1) = fpc*(rhoB_d(i, j))/rtot 
-      
-      
-      
-      
-      
-      endif
-      
-      
-#else   
-!versione prima
-      
-      !chromodynamic
-      psi_x=(1.0_db/cssq_d)*(p_d(1)*(psi_d(i+1,j)-psi_d(i-1,j)) + p_d(5)*(psi_d(i+1,j+1) + psi_d(i+1,j-1)-psi_d(i-1,j+1)-psi_d(i-1,j-1)))
-      psi_y=(1.0_db/cssq_D)*(p_d(1)*(psi_d(i,j+1)-psi_d(i,j-1)) + p_d(5)*(psi_d(i+1,j+1) - psi_d(i+1,j-1)+psi_d(i-1,j+1)-psi_d(i-1,j-1)))
-      
-      mod_psi = sqrt(psi_x**2 + psi_y**2)
-      mod_psi_sq = psi_x**2 + psi_y**2
-      norm_x = 0.0_db
-      norm_y = 0.0_db
-      rtot = 0.0_db
-      rtot = rhoA_d(i, j) + rhoB_d(i, j)
-      rprod = rhoA_d(i, j)*rhoB_d(i, j)
-      nu_avg = 1.0_db/(rhoA_d(i, j)*one_ov_nu1_d/rtot + rhoB_d(i, j)*one_ov_nu2_d/rtot)
-      omega_d = 2.0_db/(6.0_db*nu_avg + 1.0_db)
-      st_coeff = (9.0_db/4.0_db)*sigma_d*omega_d
+            implicit none
+            
+            integer :: i, j
+
+            i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
+            j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
+
+            !write(*,*)i,j,p_d(0)*myrho_d
+            if (isfluid_d(i, j) .ne. 0) return
+            
+            psi_d(i,j)=-1.0_db
          
-      addendum0 = 0.0_db
-      addendum1 = 0.0_db
-      addendum2 = 0.0_db
-      addendum3 = 0.0_db
-      addendum4 = 0.0_db
-      addendum5 = 0.0_db
-      addendum6 = 0.0_db
-      addendum7 = 0.0_db
-      addendum8 = 0.0_db
-      gaddendum0 = 0.0_db
-      gaddendum1 = 0.0_db
-      gaddendum2 = 0.0_db
-      gaddendum3 = 0.0_db
-      gaddendum4 = 0.0_db
-      gaddendum5 = 0.0_db
-      gaddendum6 = 0.0_db
-      gaddendum7 = 0.0_db
-      gaddendum8 = 0.0_db
-      
-      if (mod_psi > 0.0001) then ! i'm sitting on the interface
-         addendum0 = -st_coeff*mod_psi*b0_d
-         addendum1 = st_coeff*mod_psi*(p_d(1)*psi_x**2/mod_psi_sq - b1_d)
-         addendum2 = st_coeff*mod_psi*(p_d(2)*psi_y**2/mod_psi_sq - b1_d)
-         addendum3 = st_coeff*mod_psi*(p_d(3)*psi_x**2/mod_psi_sq - b1_d)
-         addendum4 = st_coeff*mod_psi*(p_d(4)*psi_y**2/mod_psi_sq - b1_d)
-         addendum5 = st_coeff*mod_psi*(p_d(5)*(psi_x + psi_y)**2/mod_psi_sq - b2_d)
-         addendum6 = st_coeff*mod_psi*(p_d(6)*(-psi_x + psi_y)**2/mod_psi_sq - b2_d)
-         addendum7 = st_coeff*mod_psi*(p_d(7)*(-psi_x - psi_y)**2/mod_psi_sq - b2_d)
-         addendum8 = st_coeff*mod_psi*(p_d(8)*(psi_x - psi_y)**2/mod_psi_sq - b2_d)
-         !recoloring
-         gaddendum1 = p_d(1)*(rtot)*(rprod*beta_d*psi_x/mod_psi/rtot**2)
-         gaddendum2 = p_d(2)*(rtot)*(rprod*beta_d*psi_y/mod_psi/rtot**2)
-         gaddendum3 = p_d(3)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi)/rtot**2)
-         gaddendum4 = p_d(4)*(rtot)*(rprod*beta_d*(-psi_y/mod_psi)/rtot**2)
-         gaddendum5 = p_d(5)*(rtot)*(rprod*beta_d*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
-         gaddendum6 = p_d(6)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
-         gaddendum7 = p_d(7)*(rtot)*(rprod*beta_d*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
-         gaddendum8 = p_d(8)*(rtot)*(rprod*beta_d*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
-         norm_x = psi_x/mod_psi
-         norm_y = psi_y/mod_psi
-         ! se psi interfaccia vicina a 3-4-5lu è piu' grande del mio valore allora applico nci
-      
-      end if
-      
-      ushifted = u_d(i, j) + fx_d + float(nci_loc_d(i, j))*(norm_x)*max_press_excess_d*abs(rhob_d(i, j))
-      vshifted = v_d(i, j) + fy_d + float(nci_loc_d(i, j))*(norm_y)*max_press_excess_d*abs(rhob_d(i, j))
-      
-      
-      uu = 0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq_d
-      feq = p_d(0)*(rtot - uu)
-      fpc = feq + (1.0_db - omega_d)*pi2cssq0_d*(-cssq_d*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + addendum0
-      f0_d(i, j) = fpc*(rhoA_d(i, j))/rtot
-      g0_d(i, j) = fpc*(rhoB_d(i, j))/rtot
-      
-      !1
-      udotc = ushifted/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(1)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + addendum1 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq
-      f1_d(i + 1, j) = fpc*(rhoA_d(i, j))/rtot + gaddendum1
-      g1_d(i + 1, j) = fpc*(rhoB_d(i, j))/rtot - gaddendum1
-      !3
-      feq = p_d(3)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pxx_d(i, j) - cssq_d*pyy_d(i, j)) + addendum3 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq
-      f3_d(i - 1, j) = fpc*(rhoA_d(i, j))/rtot + gaddendum3
-      g3_d(i - 1, j) = fpc*(rhoB_d(i, j))/rtot - gaddendum3
-      !2
-      udotc = vshifted/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(2)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + addendum2 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
-      f2_d(i, j + 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum2
-      g2_d(i, j + 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum2
-      !4
-      feq = p_d(4)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq1_d*((1.0_db - cssq_d)*pyy_d(i, j) - cssq_d*pxx_d(i, j)) + addendum4 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq
-      f4_d(i, j - 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum4
-      g4_d(i, j - 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum4
-      !5
-      udotc = (ushifted + vshifted)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(5)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + addendum5 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq
-      f5_d(i + 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum5
-      g5_d(i + 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum5
-      !7
-      feq = p_d(7)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy5_7_d*pxy_d(i, j)) + addendum7 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq
-      f7_d(i - 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum7
-      g7_d(i - 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum7
-      !6
-      udotc = (-ushifted + vshifted)/cssq_d
-      temp = -uu + 0.5_db*udotc*udotc
-      feq = p_d(6)*(rtot + (temp + udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + addendum6 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq
-      f6_d(i - 1, j + 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum6
-      g6_d(i - 1, j + 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum6
-      !8
-      feq = p_d(8)*(rtot + (temp - udotc))
-      fpc = feq + (1.0_db - omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i, j) + qyy_d*pyy_d(i, j) + 2.0_db*qxy6_8_d*pxy_d(i, j)) + addendum8 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq
-      f8_d(i + 1, j - 1) = fpc*(rhoA_d(i, j))/rtot + gaddendum8
-      g8_d(i + 1, j - 1) = fpc*(rhoB_d(i, j))/rtot - gaddendum8
-#endif
-  end subroutine streamcoll
 
-  attributes(global) subroutine bcs_no_slip()
-      
-      implicit none
-      
-      integer :: i, j
+            f8_d(i + 1, j - 1) = f6_d(i, j)!gpc
+            f7_d(i - 1, j - 1) = f5_d(i, j)!hpc
 
-      i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
-      j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
+            f6_d(i - 1, j + 1) = f8_d(i, j)!gpc
+            f5_d(i + 1, j + 1) = f7_d(i, j)!hpc
 
-      !write(*,*)i,j,p_d(0)*myrho_d
-      if (isfluid_d(i, j) .ne. 0) return
-      
-      psi_d(i,j)=-1.0_db
-     
+            f4_d(i, j - 1) = f2_d(i, j)!gpc
+            f3_d(i - 1, j) = f1_d(i, j)!hpc
 
-      f8_d(i + 1, j - 1) = f6_d(i, j)!gpc
-      f7_d(i - 1, j - 1) = f5_d(i, j)!hpc
+            f2_d(i, j + 1) = f4_d(i, j)!gpc
+            f1_d(i + 1, j) = f3_d(i, j)!hpc
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!
+            g8_d(i + 1, j - 1) = g6_d(i, j)!gpc
+            g7_d(i - 1, j - 1) = g5_d(i, j)!hpc
 
-      f6_d(i - 1, j + 1) = f8_d(i, j)!gpc
-      f5_d(i + 1, j + 1) = f7_d(i, j)!hpc
+            g6_d(i - 1, j + 1) = g8_d(i, j)!gpc
+            g5_d(i + 1, j + 1) = g7_d(i, j)!hpc
 
-      f4_d(i, j - 1) = f2_d(i, j)!gpc
-      f3_d(i - 1, j) = f1_d(i, j)!hpc
+            g4_d(i, j - 1) = g2_d(i, j)!gpc
+            g3_d(i - 1, j) = g1_d(i, j)!hpc
 
-      f2_d(i, j + 1) = f4_d(i, j)!gpc
-      f1_d(i + 1, j) = f3_d(i, j)!hpc
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!
-      g8_d(i + 1, j - 1) = g6_d(i, j)!gpc
-      g7_d(i - 1, j - 1) = g5_d(i, j)!hpc
+            g2_d(i, j + 1) = g4_d(i, j)!gpc
+            g1_d(i + 1, j) = g3_d(i, j)!hpc
 
-      g6_d(i - 1, j + 1) = g8_d(i, j)!gpc
-      g5_d(i + 1, j + 1) = g7_d(i, j)!hpc
+      end subroutine bcs_no_slip
 
-      g4_d(i, j - 1) = g2_d(i, j)!gpc
-      g3_d(i - 1, j) = g1_d(i, j)!hpc
+      attributes(global) subroutine pbc_edge_x()
+            
+            implicit none
+            
+            integer :: i, j
 
-      g2_d(i, j + 1) = g4_d(i, j)!gpc
-      g1_d(i + 1, j) = g3_d(i, j)!hpc
+            j = (blockIdx%x - 1)*TILE_DIM_d + threadIdx%x
+            
+            if (j > ny_d) return
 
-  end subroutine bcs_no_slip
+            if (j > 2 .and. j < ny_d - 1) then
 
-  attributes(global) subroutine pbc_edge_x()
-      
-      implicit none
-      
-      integer :: i, j
+               f1_d(2, j) = f1_d(nx_d, j)
+               f5_d(2, j) = f5_d(nx_d, j)
+               f8_d(2, j) = f8_d(nx_d, j)
 
-      j = (blockIdx%x - 1)*TILE_DIM_d + threadIdx%x
-      
-      if (j > ny_d) return
+               f3_d(nx_d - 1, j) = f3_d(1, j)
+               f6_d(nx_d - 1, j) = f6_d(1, j)
+               f7_d(nx_d - 1, j) = f7_d(1, j)
 
-    if (j > 2 .and. j < ny_d - 1) then
+            else
 
-         f1_d(2, j) = f1_d(nx_d, j)
-         f5_d(2, j) = f5_d(nx_d, j)
-         f8_d(2, j) = f8_d(nx_d, j)
+               if (j == 2) then
+                  f1_d(2, j) = f1_d(nx_d, j)
+                  f8_d(2, j) = f8_d(nx_d, j)
 
-         f3_d(nx_d - 1, j) = f3_d(1, j)
-         f6_d(nx_d - 1, j) = f6_d(1, j)
-         f7_d(nx_d - 1, j) = f7_d(1, j)
+                  f3_d(nx_d - 1, j) = f3_d(1, j)
+                  f7_d(nx_d - 1, j) = f7_d(1, j)
 
-      else
+               end if
 
-      if (j == 2) then
-        f1_d(2, j) = f1_d(nx_d, j)
-        f8_d(2, j) = f8_d(nx_d, j)
+               if (j == ny_d - 1) then
+                  f1_d(2, j) = f1_d(nx_d, j)
+                  f5_d(2, j) = f5_d(nx_d, j)
 
-        f3_d(nx_d - 1, j) = f3_d(1, j)
-        f7_d(nx_d - 1, j) = f7_d(1, j)
+                  f3_d(nx_d - 1, j) = f3_d(1, j)
+                  f6_d(nx_d - 1, j) = f6_d(1, j)
+               end if
+            end if
+      end subroutine pbc_edge_x
 
-      end if
+      attributes(global) subroutine pbc_edge_y()
 
-      if (j == ny_d - 1) then
-        f1_d(2, j) = f1_d(nx_d, j)
-        f5_d(2, j) = f5_d(nx_d, j)
+               integer :: i
 
-        f3_d(nx_d - 1, j) = f3_d(1, j)
-        f6_d(nx_d - 1, j) = f6_d(1, j)
+               i = (blockIdx%x - 1)*TILE_DIM_d + threadIdx%x
+               if (i > nx_d) return
 
-      end if
+               if (i > 2 .and. i < nx_d - 1) then
 
-    end if
+                  f2_d(i, 2) = f2_d(i, ny_d)
+                  f5_d(i, 2) = f5_d(i, ny_d)
+                  f6_d(i, 2) = f6_d(i, ny_d)
 
-  end subroutine pbc_edge_x
+                  f4_d(i, ny_d - 1) = f4_d(i, 1)
+                  f7_d(i, ny_d - 1) = f7_d(i, 1)
+                  f8_d(i, ny_d - 1) = f8_d(i, 1)
 
-  attributes(global) subroutine pbc_edge_y()
-      
-      implicit none
-      
-      integer :: i
+               else
 
-      i = (blockIdx%x - 1)*TILE_DIM_d + threadIdx%x
-      if (i > nx_d) return
+                  if (i == 2) then
+                     f2_d(i, 2) = f2_d(i, ny_d)
+                     f6_d(i, 2) = f6_d(i, ny_d)
 
-      if (i > 2 .and. i < nx_d - 1) then
+                     f4_d(i, ny_d - 1) = f4_d(i, 1)
+                     f7_d(i, ny_d - 1) = f7_d(i, 1)
 
-         f2_d(i, 2) = f2_d(i, ny_d)
-         f5_d(i, 2) = f5_d(i, ny_d)
-         f6_d(i, 2) = f6_d(i, ny_d)
+                  end if
 
-         f4_d(i, ny_d - 1) = f4_d(i, 1)
-         f7_d(i, ny_d - 1) = f7_d(i, 1)
-         f8_d(i, ny_d - 1) = f8_d(i, 1)
+                  if (i == nx_d - 1) then
+                     f2_d(i, 2) = f2_d(i, ny_d)
+                     f5_d(i, 2) = f5_d(i, ny_d)
 
-      else
+                     f4_d(i, ny_d - 1) = f4_d(i, 1)
+                     f8_d(i, ny_d - 1) = f8_d(i, 1)
 
-          if (i == 2) then
-            f2_d(i, 2) = f2_d(i, ny_d)
-            f6_d(i, 2) = f6_d(i, ny_d)
+                  end if
 
-            f4_d(i, ny_d - 1) = f4_d(i, 1)
-            f7_d(i, ny_d - 1) = f7_d(i, 1)
+               end if
 
-          end if
+      end subroutine pbc_edge_y
 
-          if (i == nx_d - 1) then
-            f2_d(i, 2) = f2_d(i, ny_d)
-            f5_d(i, 2) = f5_d(i, ny_d)
+      attributes(global) subroutine store_print()
 
-            f4_d(i, ny_d - 1) = f4_d(i, 1)
-            f8_d(i, ny_d - 1) = f8_d(i, 1)
+               integer :: i, j
 
-          end if
+               i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
+               j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
 
-      end if
+               !write(*,*)i,j,p_d(0)*myrho_d
+               if (isfluid_d(i, j) .eq. 1) then
+                  rhoprint_d(i, j, 1) = rhoA_d(i, j)
+                  velprint_d(1, i, j, 1) = u_d(i, j)
+                  velprint_d(2, i, j, 1) = v_d(i, j)
+                  velprint_d(3, i, j, 1) = 0
 
-  end subroutine pbc_edge_y
+               else
 
-  attributes(global) subroutine store_print()
-    
-    implicit none
-    
-    integer :: i, j
+                  rhoprint_d(i, j, 1) = 0.0_db
+                  velprint_d(1, i, j, 1) = 0.0_db
+                  velprint_d(2, i, j, 1) = 0.0_db
+                  velprint_d(3, i, j, 1) = 0.0_db
 
-      i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
-      j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
+               end if
 
-      !write(*,*)i,j,p_d(0)*myrho_d
-      if (isfluid_d(i, j) .eq. 1) then
-         rhoprint_d(i, j, 1) = rhoA_d(i, j)
-         velprint_d(1, i, j, 1) = u_d(i, j)
-         velprint_d(2, i, j, 1) = v_d(i, j)
-         velprint_d(3, i, j, 1) = 0
+               return
 
-      else
-
-         rhoprint_d(i, j, 1) = 0.0_db
-         velprint_d(1, i, j, 1) = 0.0_db
-         velprint_d(2, i, j, 1) = 0.0_db
-         velprint_d(3, i, j, 1) = 0.0_db
-
-      end if
-
-      return
-
-  end subroutine store_print
+      end subroutine store_print
 
 end module mysubs
-
+!******************************prints*************************!
 module prints
 
-  use mysubs
-
-   implicit none
-
-   integer, parameter :: mxln = 120
-   character(len=8), allocatable, dimension(:) :: namevarvtk
-   character(len=500), allocatable, dimension(:) :: headervtk
-   character(len=30), allocatable, dimension(:) :: footervtk
-   integer, allocatable, dimension(:) :: ndimvtk
-   integer, allocatable, dimension(:) :: vtkoffset
-   integer, allocatable, dimension(:) :: ndatavtk
-   integer, allocatable, dimension(:) :: nheadervtk
-   integer :: nfilevtk
-   integer, allocatable, dimension(:) :: varlistvtk
-   character :: delimiter
-   character(len=*), parameter :: filenamevtk = 'out'
-
-   real(kind=4), allocatable, dimension(:, :, :) :: rhoprint
-   real(kind=4), allocatable, dimension(:, :, :, :) :: velprint
-   logical :: lelittle
-   character(len=mxln) :: dir_out
-   character(len=mxln) :: extentvtk
-   character(len=mxln) :: sevt1, sevt2
-   character(len=1), allocatable, dimension(:) :: head1, head2
-
-contains
-
-  subroutine header_vtk(nx, ny, nz, mystring500, namevar, extent, ncomps, iinisub, iend, myoffset, &
-                         new_myoffset, indent)
+      use mysubs
 
       implicit none
 
-      integer, intent(in) :: nx, ny, nz
-      character(len=8), intent(in) :: namevar
-      character(len=120), intent(in) :: extent
-      integer, intent(in) :: ncomps, iinisub, myoffset
-      integer, intent(out) :: iend, new_myoffset
-      integer, intent(inout) :: indent
-
-      !namevar='density1'
-
-      character(len=500), intent(out) :: mystring500
-      ! End-character for binary-record finalize.
-      character(1), parameter:: end_rec = char(10)
-      character(1) :: string1
-      character(len=*), parameter :: topology = 'ImageData'
-      integer :: ioffset, nele, bytechar, byteint, byter4, byter8, iini
-
-      iini = iinisub
-      bytechar = kind(end_rec)
-      byteint = kind(iini)
-      byter4 = 4
-      byter8 = 8
-
-      mystring500 = repeat(' ', 500)
-
-      iend = iini
-
-      iini = iend + 1
-      nele = 22
-      iend = iend + nele
-      mystring500(iini:iend) = '<?xml version="1.0"?>'//end_rec
-
-      new_myoffset = myoffset
-      new_myoffset = new_myoffset + nele*bytechar
-
-      iini = iend + 1
-      nele = 67
-      iend = iend + nele
-      if (lelittle) then
-         mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
-                                  '" version="0.1" byte_order="LittleEndian">'//end_rec
-      else
-         mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
-                                  '" version="0.1" byte_order="BigEndian">   '//end_rec
-      end if
-
-      new_myoffset = new_myoffset + 67*bytechar
-
-      indent = indent + 2
-      iini = iend + 1
-      nele = 70
-      iend = iend + nele
-      mystring500(iini:iend) = repeat(' ', indent)//'<'//trim(topology)//' WholeExtent="'// &
-                               trim(extent)//'">'//end_rec
-
-      new_myoffset = new_myoffset + 70*bytechar
-
-      indent = indent + 2
-      iini = iend + 1
-      nele = 63
-      iend = iend + nele
-      mystring500(iini:iend) = repeat(' ', indent)//'<Piece Extent="'//trim(extent)//'">'//end_rec
-
-      new_myoffset = new_myoffset + 63*bytechar
-
-      ! initializing offset pointer
-      ioffset = 0
-
-      indent = indent + 2
-      iini = iend + 1
-      nele = 18
-      iend = iend + nele
-      mystring500(iini:iend) = repeat(' ', indent)//'<PointData>'//end_rec
-
-      new_myoffset = new_myoffset + 18*bytechar
-
-      indent = indent + 2
-      iini = iend + 1
-      nele = 115
-      iend = iend + nele
-
-      if (ncomps /= 1 .and. ncomps /= 3) then
-         write (6, '(a)') 'ERROR in header_vtk'
-         stop
-      end if
-      write (string1, '(i1)') ncomps
-      mystring500(iini:iend) = repeat(' ', indent)//'<DataArray type="Float32" Name="'// &
-                               namevar//'" NumberOfComponents="'//string1//'" '// &
-                               'format="appended" offset="'//space_fmtnumb12(ioffset)//'"/>'//end_rec
-
-      new_myoffset = new_myoffset + 115*bytechar
-
-      indent = indent - 2
-      iini = iend + 1
-      nele = 19
-      iend = iend + nele
-      mystring500(iini:iend) = repeat(' ', indent)//'</PointData>'//end_rec
-
-      new_myoffset = new_myoffset + 19*bytechar
-
-      indent = indent - 2
-      iini = iend + 1
-      nele = 13
-      iend = iend + nele
-      mystring500(iini:iend) = repeat(' ', indent)//'</Piece>'//end_rec
+      integer, parameter :: mxln = 120
+      character(len=8), allocatable, dimension(:) :: namevarvtk
+      character(len=500), allocatable, dimension(:) :: headervtk
+      character(len=30), allocatable, dimension(:) :: footervtk
+      integer, allocatable, dimension(:) :: ndimvtk
+      integer, allocatable, dimension(:) :: vtkoffset
+      integer, allocatable, dimension(:) :: ndatavtk
+      integer, allocatable, dimension(:) :: nheadervtk
+      integer :: nfilevtk
+      integer, allocatable, dimension(:) :: varlistvtk
+      character :: delimiter
+      character(len=*), parameter :: filenamevtk = 'out'
+
+      real(kind=4), allocatable, dimension(:, :, :) :: rhoprint
+      real(kind=4), allocatable, dimension(:, :, :, :) :: velprint
+      logical :: lelittle
+      character(len=mxln) :: dir_out
+      character(len=mxln) :: extentvtk
+      character(len=mxln) :: sevt1, sevt2
+      character(len=1), allocatable, dimension(:) :: head1, head2
+
+      contains
+
+      subroutine header_vtk(nx, ny, nz, mystring500, namevar, extent, ncomps, iinisub, iend, myoffset, &
+                              new_myoffset, indent)
+
+            implicit none
+
+            integer, intent(in) :: nx, ny, nz
+            character(len=8), intent(in) :: namevar
+            character(len=120), intent(in) :: extent
+            integer, intent(in) :: ncomps, iinisub, myoffset
+            integer, intent(out) :: iend, new_myoffset
+            integer, intent(inout) :: indent
+
+            !namevar='density1'
+
+            character(len=500), intent(out) :: mystring500
+            ! End-character for binary-record finalize.
+            character(1), parameter:: end_rec = char(10)
+            character(1) :: string1
+            character(len=*), parameter :: topology = 'ImageData'
+            integer :: ioffset, nele, bytechar, byteint, byter4, byter8, iini
+
+            iini = iinisub
+            bytechar = kind(end_rec)
+            byteint = kind(iini)
+            byter4 = 4
+            byter8 = 8
+
+            mystring500 = repeat(' ', 500)
+
+            iend = iini
+
+            iini = iend + 1
+            nele = 22
+            iend = iend + nele
+            mystring500(iini:iend) = '<?xml version="1.0"?>'//end_rec
+
+            new_myoffset = myoffset
+            new_myoffset = new_myoffset + nele*bytechar
+
+            iini = iend + 1
+            nele = 67
+            iend = iend + nele
+            if (lelittle) then
+               mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+                                       '" version="0.1" byte_order="LittleEndian">'//end_rec
+            else
+               mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+                                       '" version="0.1" byte_order="BigEndian">   '//end_rec
+            end if
+
+            new_myoffset = new_myoffset + 67*bytechar
+
+            indent = indent + 2
+            iini = iend + 1
+            nele = 70
+            iend = iend + nele
+            mystring500(iini:iend) = repeat(' ', indent)//'<'//trim(topology)//' WholeExtent="'// &
+                                    trim(extent)//'">'//end_rec
+
+            new_myoffset = new_myoffset + 70*bytechar
+
+            indent = indent + 2
+            iini = iend + 1
+            nele = 63
+            iend = iend + nele
+            mystring500(iini:iend) = repeat(' ', indent)//'<Piece Extent="'//trim(extent)//'">'//end_rec
+
+            new_myoffset = new_myoffset + 63*bytechar
+
+            ! initializing offset pointer
+            ioffset = 0
+
+            indent = indent + 2
+            iini = iend + 1
+            nele = 18
+            iend = iend + nele
+            mystring500(iini:iend) = repeat(' ', indent)//'<PointData>'//end_rec
+
+            new_myoffset = new_myoffset + 18*bytechar
 
-      new_myoffset = new_myoffset + 13*bytechar
+            indent = indent + 2
+            iini = iend + 1
+            nele = 115
+            iend = iend + nele
 
-      indent = indent - 2
-      iini = iend + 1
-      nele = 15
-      iend = iend + nele
-      mystring500(iini:iend) = repeat(' ', indent)//'</'//trim(topology)//'>'//end_rec
-
-      new_myoffset = new_myoffset + 15*bytechar
-
-      iini = iend + 1
-      nele = 32
-      iend = iend + nele
-      mystring500(iini:iend) = repeat(' ', indent)//'<AppendedData encoding="raw">'//end_rec
-
-      new_myoffset = new_myoffset + 32*bytechar
-
-      iini = iend + 1
-      nele = 1
-      iend = iend + nele
-      mystring500(iini:iend) = '_'
-
-      new_myoffset = new_myoffset + 1*bytechar
-
-      return
-
-  end subroutine header_vtk
-
-   subroutine footer_vtk(nx, ny, nz, mystring30, iinisub, iend, myoffset, &
-                         new_myoffset, indent)
-
-      implicit none
-
-      integer, intent(in) :: nx, ny, nz
-      integer, intent(in) :: iinisub, myoffset
-      integer, intent(out) :: iend, new_myoffset
-      integer, intent(inout) :: indent
-
-      character(len=30), intent(out) :: mystring30
-      ! End-character for binary-record finalize.
-      character(1), parameter:: end_rec = char(10)
-      character(1) :: string1
-      character(len=*), parameter :: topology = 'ImageData'
-      integer :: ioffset, nele, bytechar, byteint, byter4, byter8, iini
-
-      iini = iinisub
-      bytechar = kind(end_rec)
-      byteint = kind(iini)
-      byter4 = 4
-      byter8 = 8
-
-      mystring30 = repeat(' ', 30)
-
-      iend = iini
-
-      iini = iend + 1
-      nele = 1
-      iend = iend + nele
-      mystring30(iini:iend) = end_rec
-
-      new_myoffset = myoffset
-      new_myoffset = new_myoffset + 1*bytechar
-
-      iini = iend + 1
-      nele = 18
-      iend = iend + nele
-      mystring30(iini:iend) = repeat(' ', indent)//'</AppendedData>'//end_rec
-
-      new_myoffset = new_myoffset + 18*bytechar
-
-      iini = iend + 1
-      nele = 11
-      iend = iend + nele
-      mystring30(iini:iend) = '</VTKFile>'//end_rec
-
-      if (iend /= 30) then
-         write (6, '(a)') 'ERROR in footer_vtk'
-         stop
-      end if
-
-      return
-
-   end subroutine footer_vtk
-
-  subroutine test_little_endian(ltest)
-
-      !***********************************************************************
-      !
-      !     LBsoft subroutine for checking if the computing architecture
-      !     is working in little-endian or big-endian
-      !
-      !     licensed under Open Software License v. 3.0 (OSL-3.0)
-      !     author: M. Lauricella
-      !     last modification October 2019
-      !
-      !***********************************************************************
-
-      implicit none
-      integer, parameter :: ik1 = selected_int_kind(2)
-      integer, parameter :: ik4 = selected_int_kind(9)
-
-      logical, intent(out) :: ltest
-
-      if (btest(transfer(int((/1, 0, 0, 0/), ik1), 1_ik4), 0)) then
-         !it is little endian
-         ltest = .true.
-      else
-         !it is big endian
-         ltest = .false.
-      end if
-
-      return
-
-  end subroutine test_little_endian
-
-  !!!!!!!!!!!!!!!!!!!!!!init_output!!!!!!!!!!!!!!!!!!!
-  subroutine init_output(nx, ny, nz, ncomp, lvtk)
-
-      !***********************************************************************
-      !
-      !     LBsoft subroutine for creating the folders containing the files
-      !     in image VTK legacy binary format in parallel IO
-      !
-      !     licensed under Open Software License v. 3.0 (OSL-3.0)
-      !     author: M. Lauricella
-      !     last modification October 2018
-      !
-      !***********************************************************************
-
-      implicit none
-
-      integer, intent(in) :: nx, ny, nz, ncomp
-      logical, intent(in) :: lvtk
-      character(len=255) :: path, makedirectory
-      logical :: lexist
-
-      integer :: i, j, k, nn, indent, myoffset, new_myoffset, iend
-      integer, parameter :: byter4 = 4
-      integer, parameter :: byteint = 4
-      integer, allocatable :: printlistvtk(:)
-      integer, parameter :: ioxyz = 54
-      character(len=*), parameter :: filexyz = 'isfluid.xyz'
-      character(len=120) :: mystring120
-
-      call test_little_endian(lelittle)
-
-      sevt1 = repeat(' ', mxln)
-      sevt2 = repeat(' ', mxln)
-
-      path = repeat(' ', 255)
-      call getcwd(path)
-
-      !call get_environment_variable('DELIMITER',delimiter)
-      path = trim(path)
-      delimiter = path(1:1)
-      if (delimiter == ' ') delimiter = '/'
-
-      makedirectory = repeat(' ', 255)
-      makedirectory = 'output'//delimiter
-      dir_out = trim(makedirectory)
-
-#ifdef _INTEL
-      inquire (directory=trim(makedirectory), exist=lexist)
-#else
-      inquire (file=trim(makedirectory), exist=lexist)
-#endif
-
-      if (.not. lexist) then
-         makedirectory = repeat(' ', 255)
-         makedirectory = 'mkdir output'
-         call system(makedirectory)
-      end if
-      mystring120 = repeat(' ', 120)
-
-      makedirectory = repeat(' ', 255)
-      makedirectory = trim(path)//delimiter//'output'//delimiter
-
-      extentvtk = space_fmtnumb(1)//' '//space_fmtnumb(nx)//' ' &
-                  //space_fmtnumb(1)//' '//space_fmtnumb(ny)//' ' &
-                  //space_fmtnumb(1)//' '//space_fmtnumb(nz)
-
-      if (ncomp == 1) then
-         nfilevtk = 2
-      elseif (ncomp == 2) then
-         nfilevtk = 3
-      end if
-
-      allocate (printlistvtk(nfilevtk))
-      do i = 1, nfilevtk
-         printlistvtk(i) = i
-      end do
-
-      allocate (varlistvtk(nfilevtk))
-      allocate (namevarvtk(nfilevtk))
-      allocate (ndimvtk(nfilevtk))
-      allocate (headervtk(nfilevtk))
-      allocate (footervtk(nfilevtk))
-      allocate (nheadervtk(nfilevtk))
-      allocate (vtkoffset(nfilevtk))
-      allocate (ndatavtk(nfilevtk))
-      varlistvtk(1:nfilevtk) = printlistvtk(1:nfilevtk)
-
-      if (ncomp == 1) then
-         do i = 1, nfilevtk
-            select case (printlistvtk(i))
-            case (1)
-               namevarvtk(i) = 'rho     '
-               ndimvtk(i) = 1
-            case (2)
-               namevarvtk(i) = 'vel     '
-               ndimvtk(i) = 3
-            case default
-               write (6, '(a)') 'ERROR in init_output'
+            if (ncomps /= 1 .and. ncomps /= 3) then
+               write (6, '(a)') 'ERROR in header_vtk'
                stop
-            end select
+            end if
+            write (string1, '(i1)') ncomps
+            mystring500(iini:iend) = repeat(' ', indent)//'<DataArray type="Float32" Name="'// &
+                                    namevar//'" NumberOfComponents="'//string1//'" '// &
+                                    'format="appended" offset="'//space_fmtnumb12(ioffset)//'"/>'//end_rec
+
+            new_myoffset = new_myoffset + 115*bytechar
+
+            indent = indent - 2
+            iini = iend + 1
+            nele = 19
+            iend = iend + nele
+            mystring500(iini:iend) = repeat(' ', indent)//'</PointData>'//end_rec
+
+            new_myoffset = new_myoffset + 19*bytechar
+
+            indent = indent - 2
+            iini = iend + 1
+            nele = 13
+            iend = iend + nele
+            mystring500(iini:iend) = repeat(' ', indent)//'</Piece>'//end_rec
+
+            new_myoffset = new_myoffset + 13*bytechar
+
+            indent = indent - 2
+            iini = iend + 1
+            nele = 15
+            iend = iend + nele
+            mystring500(iini:iend) = repeat(' ', indent)//'</'//trim(topology)//'>'//end_rec
+
+            new_myoffset = new_myoffset + 15*bytechar
+
+            iini = iend + 1
+            nele = 32
+            iend = iend + nele
+            mystring500(iini:iend) = repeat(' ', indent)//'<AppendedData encoding="raw">'//end_rec
+
+            new_myoffset = new_myoffset + 32*bytechar
+
+            iini = iend + 1
+            nele = 1
+            iend = iend + nele
+            mystring500(iini:iend) = '_'
+
+            new_myoffset = new_myoffset + 1*bytechar
+
+            return
+
+      end subroutine header_vtk
+
+      subroutine footer_vtk(nx, ny, nz, mystring30, iinisub, iend, myoffset, &
+                           new_myoffset, indent)
+
+         implicit none
+
+         integer, intent(in) :: nx, ny, nz
+         integer, intent(in) :: iinisub, myoffset
+         integer, intent(out) :: iend, new_myoffset
+         integer, intent(inout) :: indent
+
+         character(len=30), intent(out) :: mystring30
+         ! End-character for binary-record finalize.
+         character(1), parameter:: end_rec = char(10)
+         character(1) :: string1
+         character(len=*), parameter :: topology = 'ImageData'
+         integer :: ioffset, nele, bytechar, byteint, byter4, byter8, iini
+
+         iini = iinisub
+         bytechar = kind(end_rec)
+         byteint = kind(iini)
+         byter4 = 4
+         byter8 = 8
+
+         mystring30 = repeat(' ', 30)
+
+         iend = iini
+
+         iini = iend + 1
+         nele = 1
+         iend = iend + nele
+         mystring30(iini:iend) = end_rec
+
+         new_myoffset = myoffset
+         new_myoffset = new_myoffset + 1*bytechar
+
+         iini = iend + 1
+         nele = 18
+         iend = iend + nele
+         mystring30(iini:iend) = repeat(' ', indent)//'</AppendedData>'//end_rec
+
+         new_myoffset = new_myoffset + 18*bytechar
+
+         iini = iend + 1
+         nele = 11
+         iend = iend + nele
+         mystring30(iini:iend) = '</VTKFile>'//end_rec
+
+         if (iend /= 30) then
+            write (6, '(a)') 'ERROR in footer_vtk'
+            stop
+         end if
+
+         return
+
+      end subroutine footer_vtk
+
+      subroutine test_little_endian(ltest)
+
+            !***********************************************************************
+            !
+            !     LBsoft subroutine for checking if the computing architecture
+            !     is working in little-endian or big-endian
+            !
+            !     licensed under Open Software License v. 3.0 (OSL-3.0)
+            !     author: M. Lauricella
+            !     last modification October 2019
+            !
+            !***********************************************************************
+
+            implicit none
+            integer, parameter :: ik1 = selected_int_kind(2)
+            integer, parameter :: ik4 = selected_int_kind(9)
+
+            logical, intent(out) :: ltest
+
+            if (btest(transfer(int((/1, 0, 0, 0/), ik1), 1_ik4), 0)) then
+               !it is little endian
+               ltest = .true.
+            else
+               !it is big endian
+               ltest = .false.
+            end if
+
+            return
+
+      end subroutine test_little_endian
+
+   !!!!!!!!!!!!!!!!!!!!!!init_output!!!!!!!!!!!!!!!!!!!
+      subroutine init_output(nx, ny, nz, ncomp, lvtk)
+
+            !***********************************************************************
+            !
+            !     LBsoft subroutine for creating the folders containing the files
+            !     in image VTK legacy binary format in parallel IO
+            !
+            !     licensed under Open Software License v. 3.0 (OSL-3.0)
+            !     author: M. Lauricella
+            !     last modification October 2018
+            !
+            !***********************************************************************
+
+            implicit none
+
+            integer, intent(in) :: nx, ny, nz, ncomp
+            logical, intent(in) :: lvtk
+            character(len=255) :: path, makedirectory
+            logical :: lexist
+
+            integer :: i, j, k, nn, indent, myoffset, new_myoffset, iend
+            integer, parameter :: byter4 = 4
+            integer, parameter :: byteint = 4
+            integer, allocatable :: printlistvtk(:)
+            integer, parameter :: ioxyz = 54
+            character(len=*), parameter :: filexyz = 'isfluid.xyz'
+            character(len=120) :: mystring120
+
+            call test_little_endian(lelittle)
+
+            sevt1 = repeat(' ', mxln)
+            sevt2 = repeat(' ', mxln)
+
+            path = repeat(' ', 255)
+            call getcwd(path)
+
+            !call get_environment_variable('DELIMITER',delimiter)
+            path = trim(path)
+            delimiter = path(1:1)
+            if (delimiter == ' ') delimiter = '/'
+
+            makedirectory = repeat(' ', 255)
+            makedirectory = 'output'//delimiter
+            dir_out = trim(makedirectory)
+
+            #ifdef _INTEL
+               inquire (directory=trim(makedirectory), exist=lexist)
+            #else
+               inquire (file=trim(makedirectory), exist=lexist)
+            #endif
+
+            if (.not. lexist) then
+                  makedirectory = repeat(' ', 255)
+                  makedirectory = 'mkdir output'
+                  call system(makedirectory)
+            end if
+            mystring120 = repeat(' ', 120)
+
+            makedirectory = repeat(' ', 255)
+            makedirectory = trim(path)//delimiter//'output'//delimiter
+
+            extentvtk = space_fmtnumb(1)//' '//space_fmtnumb(nx)//' ' &
+                        //space_fmtnumb(1)//' '//space_fmtnumb(ny)//' ' &
+                        //space_fmtnumb(1)//' '//space_fmtnumb(nz)
+
+            if (ncomp == 1) then
+                  nfilevtk = 2
+            elseif (ncomp == 2) then
+                  nfilevtk = 3
+            end if   
+            allocate (printlistvtk(nfilevtk))
+            do i = 1, nfilevtk
+                  printlistvtk(i) = i
+            end do
+
+            allocate (varlistvtk(nfilevtk))
+            allocate (namevarvtk(nfilevtk))
+            allocate (ndimvtk(nfilevtk))
+            allocate (headervtk(nfilevtk))
+            allocate (footervtk(nfilevtk))
+            allocate (nheadervtk(nfilevtk))
+            allocate (vtkoffset(nfilevtk))
+            allocate (ndatavtk(nfilevtk))
+            varlistvtk(1:nfilevtk) = printlistvtk(1:nfilevtk)
+
+            if (ncomp == 1) then
+                  do i = 1, nfilevtk
+                        select case (printlistvtk(i))
+                        case (1)
+                           namevarvtk(i) = 'rho     '
+                           ndimvtk(i) = 1
+                        case (2)
+                           namevarvtk(i) = 'vel     '
+                           ndimvtk(i) = 3
+                        case default
+                           write (6, '(a)') 'ERROR in init_output'
+                           stop
+                        end select
+                  end do
+            elseif (ncomp == 2) then
+                  do i = 1, nfilevtk
+                        select case (printlistvtk(i))
+                        case (1)
+                           namevarvtk(i) = 'rho1    '
+                           ndimvtk(i) = 1
+                        case (2)
+                           namevarvtk(i) = 'rho2    '
+                           ndimvtk(i) = 1
+                        case (3)
+                           namevarvtk(i) = 'vel     '
+                           ndimvtk(i) = 3
+                        case default
+                           write (6, '(a)') 'ERROR in init_output'
+                           stop
+                        end select
+                  end do
+            end if
+            nn = nx*ny*nz
+
+            do i = 1, nfilevtk
+               myoffset = 0
+               indent = 0
+               call header_vtk(nx, ny, nz, headervtk(i), namevarvtk(i), extentvtk, ndimvtk(i), 0, iend, myoffset, &
+                              new_myoffset, indent)
+               vtkoffset(i) = new_myoffset
+               myoffset = new_myoffset + byteint + ndimvtk(i)*nn*byter4
+               ndatavtk(i) = ndimvtk(i)*nn*byter4
+               nheadervtk(i) = iend
+               call footer_vtk(nx, ny, nz, footervtk(i), 0, iend, myoffset, &
+                              new_myoffset, indent)
+            end do
+
+            return
+
+      end subroutine init_output
+
+      subroutine string_char(mychar, nstring, mystring)
+
+         implicit none
+
+         integer :: i
+         character(1), allocatable, dimension(:) :: mychar
+         integer, intent(in) :: nstring
+         character(len=*), intent(in) :: mystring
+
+         allocate (mychar(nstring))
+
+         do i = 1, nstring
+            mychar(i) = mystring(i:i)
          end do
-      elseif (ncomp == 2) then
-         do i = 1, nfilevtk
-            select case (printlistvtk(i))
-            case (1)
-               namevarvtk(i) = 'rho1    '
-               ndimvtk(i) = 1
-            case (2)
-               namevarvtk(i) = 'rho2    '
-               ndimvtk(i) = 1
-            case (3)
-               namevarvtk(i) = 'vel     '
-               ndimvtk(i) = 3
-            case default
-               write (6, '(a)') 'ERROR in init_output'
-               stop
-            end select
+
+      end subroutine string_char
+
+      function space_fmtnumb(inum)
+
+         !***********************************************************************
+         !
+         !     LBsoft function for returning the string of six characters
+         !     with integer digits and leading spaces to the left
+         !     originally written in JETSPIN by M. Lauricella et al.
+         !
+         !     licensed under Open Software License v. 3.0 (OSL-3.0)
+         !     author: M. Lauricella
+         !     last modification October 2019
+         !
+         !***********************************************************************
+
+         implicit none
+
+         integer, intent(in) :: inum
+         character(len=6) :: space_fmtnumb
+         integer :: numdigit, irest
+         real(kind=8) :: tmp
+         character(len=22) :: cnumberlabel
+
+         numdigit = dimenumb(inum)
+         irest = 6 - numdigit
+         if (irest > 0) then
+            write (cnumberlabel, "(a,i8,a,i8,a)") "(a", irest, ",i", numdigit, ")"
+            write (space_fmtnumb, fmt=cnumberlabel) repeat(' ', irest), inum
+         else
+            write (cnumberlabel, "(a,i8,a)") "(i", numdigit, ")"
+            write (space_fmtnumb, fmt=cnumberlabel) inum
+         end if
+
+         return
+
+      end function space_fmtnumb
+
+      function space_fmtnumb12(inum)
+
+         !***********************************************************************
+         !
+         !     LBsoft function for returning the string of six characters
+         !     with integer digits and leading TWELVE spaces to the left
+         !     originally written in JETSPIN by M. Lauricella et al.
+         !
+         !     licensed under Open Software License v. 3.0 (OSL-3.0)
+         !     author: M. Lauricella
+         !     last modification October 2019
+         !
+         !***********************************************************************
+
+         implicit none
+
+         integer, intent(in) :: inum
+         character(len=12) :: space_fmtnumb12
+         integer :: numdigit, irest
+         real(kind=8) :: tmp
+         character(len=22) :: cnumberlabel
+
+         numdigit = dimenumb(inum)
+         irest = 12 - numdigit
+         if (irest > 0) then
+            write (cnumberlabel, "(a,i8,a,i8,a)") "(a", irest, ",i", numdigit, ")"
+            write (space_fmtnumb12, fmt=cnumberlabel) repeat(' ', irest), inum
+         else
+            write (cnumberlabel, "(a,i8,a)") "(i", numdigit, ")"
+            write (space_fmtnumb12, fmt=cnumberlabel) inum
+         end if
+
+         return
+
+      end function space_fmtnumb12
+
+      function dimenumb(inum)
+
+         !***********************************************************************
+         !
+         !     LBsoft function for returning the number of digits
+         !     of an integer number
+         !     originally written in JETSPIN by M. Lauricella et al.
+         !
+         !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+         !     author: M. Lauricella
+         !     last modification July 2018
+         !
+         !***********************************************************************
+
+         implicit none
+
+         integer, intent(in) :: inum
+         integer :: dimenumb
+         integer :: i
+         real(kind=db) :: tmp
+
+         i = 1
+         tmp = real(inum, kind=db)
+         do
+            if (tmp < 10.0_db) exit
+            i = i + 1
+            tmp = tmp/10.0_db
          end do
-      end if
-      nn = nx*ny*nz
 
-      do i = 1, nfilevtk
-         myoffset = 0
-         indent = 0
-         call header_vtk(nx, ny, nz, headervtk(i), namevarvtk(i), extentvtk, ndimvtk(i), 0, iend, myoffset, &
-                         new_myoffset, indent)
-         vtkoffset(i) = new_myoffset
-         myoffset = new_myoffset + byteint + ndimvtk(i)*nn*byter4
-         ndatavtk(i) = ndimvtk(i)*nn*byter4
-         nheadervtk(i) = iend
-         call footer_vtk(nx, ny, nz, footervtk(i), 0, iend, myoffset, &
-                         new_myoffset, indent)
-      end do
+         dimenumb = i
 
-      return
+         return
 
-  end subroutine init_output
+      end function dimenumb
 
-   subroutine string_char(mychar, nstring, mystring)
+      function write_fmtnumb(inum)
 
-      implicit none
+         !***********************************************************************
+         !
+         !     LBsoft function for returning the string of six characters
+         !     with integer digits and leading zeros to the left
+         !     originally written in JETSPIN by M. Lauricella et al.
+         !
+         !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+         !     author: M. Lauricella
+         !     last modification July 2018
+         !
+         !***********************************************************************
 
-      integer :: i
-      character(1), allocatable, dimension(:) :: mychar
-      integer, intent(in) :: nstring
-      character(len=*), intent(in) :: mystring
+         implicit none
 
-      allocate (mychar(nstring))
+         integer, intent(in) :: inum
+         character(len=6) :: write_fmtnumb
+         integer :: numdigit, irest
+         !real*8 :: tmp
+         character(len=22) :: cnumberlabel
 
-      do i = 1, nstring
-         mychar(i) = mystring(i:i)
-      end do
+         numdigit = dimenumb(inum)
+         irest = 6 - numdigit
+         if (irest > 0) then
+            write (cnumberlabel, "(a,i8,a,i8,a)") "(a", irest, ",i", numdigit, ")"
+            write (write_fmtnumb, fmt=cnumberlabel) repeat('0', irest), inum
+         else
+            write (cnumberlabel, "(a,i8,a)") "(i", numdigit, ")"
+            write (write_fmtnumb, fmt=cnumberlabel) inum
+         end if
 
-   end subroutine string_char
+         return
+      end function write_fmtnumb
 
-   function space_fmtnumb(inum)
+      subroutine get_memory_gpu(fout, fout2)
 
-      !***********************************************************************
-      !
-      !     LBsoft function for returning the string of six characters
-      !     with integer digits and leading spaces to the left
-      !     originally written in JETSPIN by M. Lauricella et al.
-      !
-      !     licensed under Open Software License v. 3.0 (OSL-3.0)
-      !     author: M. Lauricella
-      !     last modification October 2019
-      !
-      !***********************************************************************
+         !***********************************************************************
+         !
+         !     LBsoft subroutine for register the memory usage
+         !
+         !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+         !     modified by: M. Lauricella
+         !     last modification July 2018
+         !
+         !***********************************************************************
+         #ifdef _OPENACC
+               use openacc
+               use accel_lib
+         #elif defined _CUDA
+               use cudafor
+         #endif
 
-      implicit none
+               implicit none
 
-      integer, intent(in) :: inum
-      character(len=6) :: space_fmtnumb
-      integer :: numdigit, irest
-      real(kind=8) :: tmp
-      character(len=22) :: cnumberlabel
+               real(kind=db), intent(out) :: fout, fout2
+               real(kind=db) :: myd(2), myd2(2)
+               integer :: istat
+         #ifdef _OPENACC
+               integer :: myfree, total
+         #elif defined _CUDA
+               integer(kind=cuda_count_kind) :: myfree, total
+         #else
+               integer :: myfree, total
+         #endif
 
-      numdigit = dimenumb(inum)
-      irest = 6 - numdigit
-      if (irest > 0) then
-         write (cnumberlabel, "(a,i8,a,i8,a)") "(a", irest, ",i", numdigit, ")"
-         write (space_fmtnumb, fmt=cnumberlabel) repeat(' ', irest), inum
-      else
-         write (cnumberlabel, "(a,i8,a)") "(i", numdigit, ")"
-         write (space_fmtnumb, fmt=cnumberlabel) inum
-      end if
+         #ifdef _OPENACC
+               myfree = acc_get_free_memory()
+               total = acc_get_memory()
+         #elif defined _CUDA
+               istat = cudaMemGetInfo(myfree, total)
+         #else
+               myfree = 0
+               total = 0
+         #endif
+         fout = real(total - myfree, kind=4)/(1024.0**3.0)
+         fout2 = real(total, kind=4)/(1024.0**3.0)
 
-      return
+         return
 
-   end function space_fmtnumb
+      end subroutine get_memory_gpu
 
-   function space_fmtnumb12(inum)
+      subroutine print_memory_registration_gpu(iu, mybanner, mybanner2, &
+                                             mymemory, totmem)
 
-      !***********************************************************************
-      !
-      !     LBsoft function for returning the string of six characters
-      !     with integer digits and leading TWELVE spaces to the left
-      !     originally written in JETSPIN by M. Lauricella et al.
-      !
-      !     licensed under Open Software License v. 3.0 (OSL-3.0)
-      !     author: M. Lauricella
-      !     last modification October 2019
-      !
-      !***********************************************************************
+         !***********************************************************************
+         !
+         !     LBcuda subroutine for printing the memory registration
+         !
+         !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+         !     author: M. Lauricella
+         !     last modification April 2022
+         !
+         !***********************************************************************
 
-      implicit none
+         implicit none
 
-      integer, intent(in) :: inum
-      character(len=12) :: space_fmtnumb12
-      integer :: numdigit, irest
-      real(kind=8) :: tmp
-      character(len=22) :: cnumberlabel
+         integer, intent(in) :: iu
+         character(len=*), intent(in) :: mybanner, mybanner2
+         real(kind=db), intent(in) :: mymemory, totmem
 
-      numdigit = dimenumb(inum)
-      irest = 12 - numdigit
-      if (irest > 0) then
-         write (cnumberlabel, "(a,i8,a,i8,a)") "(a", irest, ",i", numdigit, ")"
-         write (space_fmtnumb12, fmt=cnumberlabel) repeat(' ', irest), inum
-      else
-         write (cnumberlabel, "(a,i8,a)") "(i", numdigit, ")"
-         write (space_fmtnumb12, fmt=cnumberlabel) inum
-      end if
+         character(len=12) :: r_char, r_char2
 
-      return
+         character(len=*), parameter :: of = '(a)'
 
-   end function space_fmtnumb12
+         write (r_char, '(f12.4)') mymemory
+         write (r_char2, '(f12.4)') totmem
+         write (iu, of) "                                                                               "
+         write (iu, of) "******************************GPU MEMORY MONITOR*******************************"
+         write (iu, of) "                                                                               "
+         write (iu, '(4a)') trim(mybanner), " = ", trim(adjustl(r_char)), " (GB)"
+         write (iu, '(4a)') trim(mybanner2), " = ", trim(adjustl(r_char2)), " (GB)"
+         write (iu, of) "                                                                               "
+         write (iu, of) "*******************************************************************************"
+         write (iu, of) "                                                                               "
 
-   function dimenumb(inum)
+         return
 
-      !***********************************************************************
-      !
-      !     LBsoft function for returning the number of digits
-      !     of an integer number
-      !     originally written in JETSPIN by M. Lauricella et al.
-      !
-      !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-      !     author: M. Lauricella
-      !     last modification July 2018
-      !
-      !***********************************************************************
-
-      implicit none
-
-      integer, intent(in) :: inum
-      integer :: dimenumb
-      integer :: i
-      real(kind=db) :: tmp
-
-      i = 1
-      tmp = real(inum, kind=db)
-      do
-         if (tmp < 10.0_db) exit
-         i = i + 1
-         tmp = tmp/10.0_db
-      end do
-
-      dimenumb = i
-
-      return
-
-   end function dimenumb
-
-   function write_fmtnumb(inum)
-
-      !***********************************************************************
-      !
-      !     LBsoft function for returning the string of six characters
-      !     with integer digits and leading zeros to the left
-      !     originally written in JETSPIN by M. Lauricella et al.
-      !
-      !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-      !     author: M. Lauricella
-      !     last modification July 2018
-      !
-      !***********************************************************************
-
-      implicit none
-
-      integer, intent(in) :: inum
-      character(len=6) :: write_fmtnumb
-      integer :: numdigit, irest
-      !real*8 :: tmp
-      character(len=22) :: cnumberlabel
-
-      numdigit = dimenumb(inum)
-      irest = 6 - numdigit
-      if (irest > 0) then
-         write (cnumberlabel, "(a,i8,a,i8,a)") "(a", irest, ",i", numdigit, ")"
-         write (write_fmtnumb, fmt=cnumberlabel) repeat('0', irest), inum
-      else
-         write (cnumberlabel, "(a,i8,a)") "(i", numdigit, ")"
-         write (write_fmtnumb, fmt=cnumberlabel) inum
-      end if
-
-      return
-   end function write_fmtnumb
-
-subroutine get_memory_gpu(fout, fout2)
-
-  !***********************************************************************
-  !
-  !     LBsoft subroutine for register the memory usage
-  !
-  !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-  !     modified by: M. Lauricella
-  !     last modification July 2018
-  !
-  !***********************************************************************
-#ifdef _OPENACC
-      use openacc
-      use accel_lib
-#elif defined _CUDA
-      use cudafor
-#endif
-
-      implicit none
-
-      real(kind=db), intent(out) :: fout, fout2
-      real(kind=db) :: myd(2), myd2(2)
-      integer :: istat
-#ifdef _OPENACC
-      integer :: myfree, total
-#elif defined _CUDA
-      integer(kind=cuda_count_kind) :: myfree, total
-#else
-      integer :: myfree, total
-#endif
-
-#ifdef _OPENACC
-      myfree = acc_get_free_memory()
-      total = acc_get_memory()
-#elif defined _CUDA
-      istat = cudaMemGetInfo(myfree, total)
-#else
-      myfree = 0
-      total = 0
-#endif
-      fout = real(total - myfree, kind=4)/(1024.0**3.0)
-      fout2 = real(total, kind=4)/(1024.0**3.0)
-
-      return
-
-   end subroutine get_memory_gpu
-
-   subroutine print_memory_registration_gpu(iu, mybanner, mybanner2, &
-                                            mymemory, totmem)
-
-!***********************************************************************
-!
-!     LBcuda subroutine for printing the memory registration
-!
-!     licensed under the 3-Clause BSD License (BSD-3-Clause)
-!     author: M. Lauricella
-!     last modification April 2022
-!
-!***********************************************************************
-
-      implicit none
-
-      integer, intent(in) :: iu
-      character(len=*), intent(in) :: mybanner, mybanner2
-      real(kind=db), intent(in) :: mymemory, totmem
-
-      character(len=12) :: r_char, r_char2
-
-      character(len=*), parameter :: of = '(a)'
-
-      write (r_char, '(f12.4)') mymemory
-      write (r_char2, '(f12.4)') totmem
-      write (iu, of) "                                                                               "
-      write (iu, of) "******************************GPU MEMORY MONITOR*******************************"
-      write (iu, of) "                                                                               "
-      write (iu, '(4a)') trim(mybanner), " = ", trim(adjustl(r_char)), " (GB)"
-      write (iu, '(4a)') trim(mybanner2), " = ", trim(adjustl(r_char2)), " (GB)"
-      write (iu, of) "                                                                               "
-      write (iu, of) "*******************************************************************************"
-      write (iu, of) "                                                                               "
-
-      return
-
-   end subroutine print_memory_registration_gpu
+      end subroutine print_memory_registration_gpu
 
 end module
 
@@ -1360,7 +1340,7 @@ program lb_openacc
    nsteps = 10
    stamp = 1
    lprint = .true.
-   lvtk = .true.
+   lvtk = .false.
    lpbc = .false.
    lasync = .false.
    fx = 0.0_db*10.0_db**(-5.0_db)
@@ -1502,37 +1482,37 @@ program lb_openacc
    call setup_pops <<< dimGrid, dimBlock >>> (radius)
    istat = cudaDeviceSynchronize
    
-   allocate (rhoprint(1:nx, 1:ny, 1:nz), velprint(3, 1:nx, 1:ny, 1:nz))
-   allocate (rhoprint_d(1:nx_d, 1:ny_d, 1:nz_d), velprint_d(3, 1:nx_d, 1:ny_d, 1:nz_d))
+   allocate(rhoprint(1:nx, 1:ny, 1:nz), velprint(3, 1:nx, 1:ny, 1:nz))
+   allocate(rhoprint_d(1:nx_d, 1:ny_d, 1:nz_d), velprint_d(3, 1:nx_d, 1:ny_d, 1:nz_d))
    if (lprint) then
-      call init_output(nx, ny, nz, 1, lvtk)
-      call string_char(head1, nheadervtk(1), headervtk(1))
-      call string_char(head2, nheadervtk(2), headervtk(2))
+         call init_output(nx, ny, nz, 1, lvtk)
+         call string_char(head1, nheadervtk(1), headervtk(1))
+         call string_char(head2, nheadervtk(2), headervtk(2))
    end if
 
    istat = cudaDeviceSynchronize
    iframe = 0
    step = 0
    if (lprint) then
-      call moments <<< dimGrid, dimBlock, 0, stream1 >>> ()
-      call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
-      istat = cudaEventRecord(dummyEvent1, stream1)
-      istat = cudaEventSynchronize(dummyEvent1)
-      !write(6,*)'ciao 1',step,iframe
-      if (lasync) then
-         istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-         istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-      else
-         istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz)
-         istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz)
-         istat = cudaEventRecord(dummyEvent, 0)
-         istat = cudaEventSynchronize(dummyEvent)
-         if (lvtk) then
-            call print_vtk_sync
+         call moments <<< dimGrid, dimBlock, 0, stream1 >>> ()
+         call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
+         istat = cudaEventRecord(dummyEvent1, stream1)
+         istat = cudaEventSynchronize(dummyEvent1)
+         !write(6,*)'ciao 1',step,iframe
+         if (lasync) then
+               istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
+               istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
          else
-            call print_raw_sync
+               istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz)
+               istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz)
+               istat = cudaEventRecord(dummyEvent, 0)
+               istat = cudaEventSynchronize(dummyEvent)
+               if (lvtk) then
+                  call print_vtk_sync
+               else
+                  call print_raw_sync
+               end if
          end if
-      end if
    end if
 
    !*************************************time loop************************
@@ -1545,62 +1525,58 @@ program lb_openacc
       call moments <<< dimGrid, dimBlock, 0, stream1 >>> ()
 
       !***********************************PRINT************************
-      if (mod(step, stamp) .eq. 0) write (6, '(a,i8)') 'step : ', step
-      if (lprint) then
-         if (mod(step, stamp) .eq. 0) then
-            iframe = iframe + 1
-            !write(6,*)'ciao 1',step,iframe
-            istat = cudaEventRecord(dummyEvent1, stream1)
-            istat = cudaEventSynchronize(dummyEvent1)
-            call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
-            istat = cudaEventRecord(dummyEvent1, stream1)
-            istat = cudaEventSynchronize(dummyEvent1)
-            if (lasync) then
-               call close_print_async
-               istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-               istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-            else
-               istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost)
-               istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost)
-               istat = cudaEventRecord(dummyEvent, 0)
-               istat = cudaEventSynchronize(dummyEvent)
+         if (mod(step, stamp) .eq. 0) write (6, '(a,i8)') 'step : ', step
+         if (lprint) then
+            if (mod(step, stamp) .eq. 0) then
+                  iframe = iframe + 1
+                  !write(6,*)'ciao 1',step,iframe
+                  istat = cudaEventRecord(dummyEvent1, stream1)
+                  istat = cudaEventSynchronize(dummyEvent1)
+                  call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
+                  istat = cudaEventRecord(dummyEvent1, stream1)
+                  istat = cudaEventSynchronize(dummyEvent1)
+                  if (lasync) then
+                     call close_print_async
+                     istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
+                     istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
+                  else
+                     istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost)
+                     istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost)
+                     istat = cudaEventRecord(dummyEvent, 0)
+                     istat = cudaEventSynchronize(dummyEvent)
+                  if (lvtk) then
+                     call print_vtk_sync
+                  else
+                     call print_raw_sync
+                  end if
+               end if
+            end if
+        
+            if (mod(step - stamp/4, stamp) .eq. 0 .and. lasync) then
+               !write(6,*)'ciao 2',step,iframe
+               istat = cudaEventRecord(dummyEvent2, stream2)
+               istat = cudaEventSynchronize(dummyEvent2)
                if (lvtk) then
-                  call print_vtk_sync
+                  call print_vtk_async
                else
-                  call print_raw_sync
+                  call print_raw_async
                end if
             end if
          end if
-         if (mod(step - stamp/4, stamp) .eq. 0 .and. lasync) then
-            !write(6,*)'ciao 2',step,iframe
-            istat = cudaEventRecord(dummyEvent2, stream2)
-            istat = cudaEventSynchronize(dummyEvent2)
-            if (lvtk) then
-               call print_vtk_async
-            else
-               call print_raw_async
-            end if
+
+         !***********************************collision + no slip + forcing: fused implementation*********
+         call streamcoll <<< dimGrid, dimBlock, 0, stream1  >>> ()
+         !********************************************bcs no slip*****************************************!
+         call bcs_no_slip <<< dimGrid, dimBlock, 0, stream1 >>> ()
+         !******************************************call periodic bcs: always after fused************************
+         !periodic along y
+         if (lpbc) then
+            call pbc_edge_x <<< (ny + TILE_DIM - 1)/TILE_DIM, TILE_DIM, 0, stream1 >>> ()
+            !call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
          end if
-      end if
 
-      !***********************************collision + no slip + forcing: fused implementation*********
-      call streamcoll <<< dimGrid, dimBlock, 0, stream1  >>> ()
-
-      !********************************************bcs no slip*****************************************!
-
-      call bcs_no_slip <<< dimGrid, dimBlock, 0, stream1 >>> ()
-
-        !!$acc end kernels
-      !******************************************call periodic bcs: always after fused************************
-      !periodic along y
-        !!$acc kernels
-      if (lpbc) then
-         call pbc_edge_x <<< (ny + TILE_DIM - 1)/TILE_DIM, TILE_DIM, 0, stream1 >>> ()
-         !call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
-      end if
-
-      istat = cudaEventRecord(dummyEvent, stream1)
-      istat = cudaEventSynchronize(dummyEvent)
+         istat = cudaEventRecord(dummyEvent, stream1)
+         istat = cudaEventSynchronize(dummyEvent)
 
    end do
 
@@ -1614,6 +1590,7 @@ program lb_openacc
          call print_raw_sync
       end if
    end if
+   
    istat = cudaDeviceSynchronize
    call cpu_time(ts2)
    istat = cudaEventRecord(stopEvent, 0)
@@ -1629,63 +1606,63 @@ program lb_openacc
    write (6, *) 'time elapsed as measured from cpu_time: ', ts2 - ts1, ' s of your life time'
    write (6, *) 'glups: ', real(nx)*real(ny)*real(nsteps)*real(1.d-9, kind=db)/(ts2 - ts1)
 
-   istat = cudaDeviceSynchronize
-   call store_print <<< dimGrid, dimBlock >>> ()
-   istat = cudaDeviceSynchronize
-   istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz)
-   istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz)
-   istat = cudaDeviceSynchronize
+   ! istat = cudaDeviceSynchronize
+   ! call store_print <<< dimGrid, dimBlock >>> ()
+   ! istat = cudaDeviceSynchronize
+   ! istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz)
+   ! istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz)
+   ! istat = cudaDeviceSynchronize
 
-   open (101, file='v.out', status='replace')
-   do j = 1, ny
-      !do i=1,nx
-      i = nx/2
-      write (101, *) velprint(2, i, j, 1)
-      !enddo
-   end do
-   close (101)
+   ! open (101, file='v.out', status='replace')
+   ! do j = 1, ny
+   !    !do i=1,nx
+   !    i = nx/2
+   !    write (101, *) velprint(2, i, j, 1)
+   !    !enddo
+   ! end do
+   ! close (101)
 
-   call get_memory_gpu(mymemory, totmemory)
-   call print_memory_registration_gpu(6, 'DEVICE memory occupied at the end', &
-                                      'total DEVICE memory', mymemory, totmemory)
+   ! call get_memory_gpu(mymemory, totmemory)
+   ! call print_memory_registration_gpu(6, 'DEVICE memory occupied at the end', &
+   !                                    'total DEVICE memory', mymemory, totmemory)
 
 contains
 
    subroutine printDeviceProperties(prop, iu, num)
 
-      use cudafor
-      type(cudadeviceprop) :: prop
-      integer, intent(in) :: iu, num
+         use cudafor
+         type(cudadeviceprop) :: prop
+         integer, intent(in) :: iu, num
 
-      write (iu, 907) "                                                                               "
-      write (iu, 907) "*****************************GPU FEATURE MONITOR*******************************"
-      write (iu, 907) "                                                                               "
+         write (iu, 907) "                                                                               "
+         write (iu, 907) "*****************************GPU FEATURE MONITOR*******************************"
+         write (iu, 907) "                                                                               "
 
-      write (iu, 900) "Device Number: ", num
-      write (iu, 901) "Device Name: ", trim(prop%name)
-      write (iu, 903) "Total Global Memory: ", real(prop%totalGlobalMem)/1e9, " Gbytes"
-      write (iu, 902) "sharedMemPerBlock: ", prop%sharedMemPerBlock, " bytes"
-      write (iu, 900) "regsPerBlock: ", prop%regsPerBlock
-      write (iu, 900) "warpSize: ", prop%warpSize
-      write (iu, 900) "maxThreadsPerBlock: ", prop%maxThreadsPerBlock
-      write (iu, 904) "maxThreadsDim: ", prop%maxThreadsDim
-      write (iu, 904) "maxGridSize: ", prop%maxGridSize
-      write (iu, 903) "ClockRate: ", real(prop%clockRate)/1e6, " GHz"
-      write (iu, 902) "Total Const Memory: ", prop%totalConstMem, " bytes"
-      write (iu, 905) "Compute Capability Revision: ", prop%major, prop%minor
-      write (iu, 902) "TextureAlignment: ", prop%textureAlignment, " bytes"
-      write (iu, 906) "deviceOverlap: ", prop%deviceOverlap
-      write (iu, 900) "multiProcessorCount: ", prop%multiProcessorCount
-      write (iu, 906) "integrated: ", prop%integrated
-      write (iu, 906) "canMapHostMemory: ", prop%canMapHostMemory
-      write (iu, 906) "ECCEnabled: ", prop%ECCEnabled
-      write (iu, 906) "UnifiedAddressing: ", prop%unifiedAddressing
-      write (iu, 900) "L2 Cache Size: ", prop%l2CacheSize
-      write (iu, 900) "maxThreadsPerSMP: ", prop%maxThreadsPerMultiProcessor
+         write (iu, 900) "Device Number: ", num
+         write (iu, 901) "Device Name: ", trim(prop%name)
+         write (iu, 903) "Total Global Memory: ", real(prop%totalGlobalMem)/1e9, " Gbytes"
+         write (iu, 902) "sharedMemPerBlock: ", prop%sharedMemPerBlock, " bytes"
+         write (iu, 900) "regsPerBlock: ", prop%regsPerBlock
+         write (iu, 900) "warpSize: ", prop%warpSize
+         write (iu, 900) "maxThreadsPerBlock: ", prop%maxThreadsPerBlock
+         write (iu, 904) "maxThreadsDim: ", prop%maxThreadsDim
+         write (iu, 904) "maxGridSize: ", prop%maxGridSize
+         write (iu, 903) "ClockRate: ", real(prop%clockRate)/1e6, " GHz"
+         write (iu, 902) "Total Const Memory: ", prop%totalConstMem, " bytes"
+         write (iu, 905) "Compute Capability Revision: ", prop%major, prop%minor
+         write (iu, 902) "TextureAlignment: ", prop%textureAlignment, " bytes"
+         write (iu, 906) "deviceOverlap: ", prop%deviceOverlap
+         write (iu, 900) "multiProcessorCount: ", prop%multiProcessorCount
+         write (iu, 906) "integrated: ", prop%integrated
+         write (iu, 906) "canMapHostMemory: ", prop%canMapHostMemory
+         write (iu, 906) "ECCEnabled: ", prop%ECCEnabled
+         write (iu, 906) "UnifiedAddressing: ", prop%unifiedAddressing
+         write (iu, 900) "L2 Cache Size: ", prop%l2CacheSize
+         write (iu, 900) "maxThreadsPerSMP: ", prop%maxThreadsPerMultiProcessor
 
-      write (iu, 907) "                                                                               "
-      write (iu, 907) "*******************************************************************************"
-      write (iu, 907) "                                                                               "
+         write (iu, 907) "                                                                               "
+         write (iu, 907) "*******************************************************************************"
+         write (iu, 907) "                                                                               "
 
 900   format(a, i0)
 901   format(a, a)
@@ -1695,9 +1672,7 @@ contains
 905   format(a, i0, '.', i0)
 906   format(a, l0)
 907   format(a)
-
       return
-
    end subroutine printDeviceProperties
 
    subroutine print_raw_sync

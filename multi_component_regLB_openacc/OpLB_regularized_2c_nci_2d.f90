@@ -1,7 +1,7 @@
 
  module prints
   
-  implicit none
+    implicit none
   
     integer, parameter :: db=4 !kind(1.0)
     integer, parameter :: mxln=120
@@ -26,632 +26,629 @@
     character(len=1), allocatable, dimension(:) :: head1,head2
     
   
-  contains
+    contains
   
-  subroutine header_vtk(nx,ny,nz,mystring500,namevar,extent,ncomps,iinisub,iend,myoffset, &
-   new_myoffset,indent)
+    subroutine header_vtk(nx,ny,nz,mystring500,namevar,extent,ncomps,iinisub,iend,myoffset, &
+                          new_myoffset,indent)
   
-  implicit none
+      implicit none
   
-  integer, intent(in) :: nx,ny,nz
-  character(len=8),intent(in) :: namevar
-  character(len=120),intent(in) :: extent
-  integer, intent(in) :: ncomps,iinisub,myoffset
-  integer, intent(out) :: iend,new_myoffset
-  integer, intent(inout) :: indent
-  
-  !namevar='density1'
-  
-  character(len=500), intent(out) :: mystring500
-  ! End-character for binary-record finalize.
-  character(1), parameter:: end_rec = char(10) 
-  character(1) :: string1
-  character(len=*),parameter :: topology='ImageData' 
-  integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
-  
-  iini=iinisub
-  bytechar=kind(end_rec)
-  byteint=kind(iini)
-  byter4  = 4
-  byter8  = 8
-  
-  mystring500=repeat(' ',500)
-  
-  iend=iini
-  
-  iini=iend+1
-  nele=22
-  iend=iend+nele
-  mystring500(iini:iend)='<?xml version="1.0"?>'//end_rec
-  
-  new_myoffset=myoffset
-  new_myoffset = new_myoffset + nele * bytechar
- 
-  
-  iini=iend+1
-  nele=67
-  iend=iend+nele
-  if(lelittle)then  
-    mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
-     '" version="0.1" byte_order="LittleEndian">'//end_rec
-  else
-    mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
-     '" version="0.1" byte_order="BigEndian">   '//end_rec
-  endif
-  
-  new_myoffset = new_myoffset + 67 * bytechar
- 
-  
-  indent = indent + 2
-  iini=iend+1
-  nele=70
-  iend=iend+nele
-  mystring500(iini:iend) = repeat(' ',indent)//'<'//trim(topology)//' WholeExtent="'//&
-                 trim(extent)//'">'//end_rec
-  
+      integer, intent(in) :: nx,ny,nz
+      character(len=8),intent(in) :: namevar
+      character(len=120),intent(in) :: extent
+      integer, intent(in) :: ncomps,iinisub,myoffset
+      integer, intent(out) :: iend,new_myoffset
+      integer, intent(inout) :: indent
+      
+      !namevar='density1'
+      
+      character(len=500), intent(out) :: mystring500
+      ! End-character for binary-record finalize.
+      character(1), parameter:: end_rec = char(10) 
+      character(1) :: string1
+      character(len=*),parameter :: topology='ImageData' 
+      integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
+      
+      iini=iinisub
+      bytechar=kind(end_rec)
+      byteint=kind(iini)
+      byter4  = 4
+      byter8  = 8
+      
+      mystring500=repeat(' ',500)
+      
+      iend=iini
+      
+      iini=iend+1
+      nele=22
+      iend=iend+nele
+      mystring500(iini:iend)='<?xml version="1.0"?>'//end_rec
+      
+      new_myoffset=myoffset
+      new_myoffset = new_myoffset + nele * bytechar
+    
+      
+      iini=iend+1
+      nele=67
+      iend=iend+nele
+      if(lelittle)then  
+        mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+        '" version="0.1" byte_order="LittleEndian">'//end_rec
+      else
+        mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+        '" version="0.1" byte_order="BigEndian">   '//end_rec
+      endif
+      
+      new_myoffset = new_myoffset + 67 * bytechar
+    
+      
+      indent = indent + 2
+      iini=iend+1
+      nele=70
+      iend=iend+nele
+      mystring500(iini:iend) = repeat(' ',indent)//'<'//trim(topology)//' WholeExtent="'//&
+                    trim(extent)//'">'//end_rec
+      
 
-  new_myoffset = new_myoffset + 70 * bytechar
- 
-  
-  indent = indent + 2
-  iini=iend+1
-  nele=63
-  iend=iend+nele
-  mystring500(iini:iend) = repeat(' ',indent)//'<Piece Extent="'//trim(extent)//'">'//end_rec
-  
-  new_myoffset = new_myoffset + 63 * bytechar
- 
-  
-! initializing offset pointer
-  ioffset = 0 
-  
-  indent = indent + 2
-  iini=iend+1
-  nele=18
-  iend=iend+nele
-  mystring500(iini:iend)=repeat(' ',indent)//'<PointData>'//end_rec
-  
-  new_myoffset = new_myoffset + 18 * bytechar
-  
-  indent = indent + 2
-  iini=iend+1
-  nele=115
-  iend=iend+nele
-  
-  if(ncomps/=1 .and. ncomps/=3)then
-    write(6,'(a)')'ERROR in header_vtk'
-    stop
-  endif
-  write(string1,'(i1)')ncomps
-  mystring500(iini:iend)=repeat(' ',indent)//'<DataArray type="Float32" Name="'// &
-   namevar//'" NumberOfComponents="'//string1// '" '//&
-   'format="appended" offset="'//space_fmtnumb12(ioffset)//'"/>'//end_rec
-  
-  new_myoffset = new_myoffset + 115 * bytechar
- 
-  
-  indent = indent - 2
-  iini=iend+1
-  nele=19
-  iend=iend+nele
-  mystring500(iini:iend)=repeat(' ',indent)//'</PointData>'//end_rec
-  
-  new_myoffset = new_myoffset + 19 * bytechar
-  
-  
-  indent = indent - 2
-  iini=iend+1
-  nele=13
-  iend=iend+nele
-  mystring500(iini:iend)=repeat(' ',indent)//'</Piece>'//end_rec
-  
-  
-  new_myoffset = new_myoffset + 13 * bytechar
- 
-  
-  indent = indent - 2
-  iini=iend+1
-  nele=15
-  iend=iend+nele
-  mystring500(iini:iend)=repeat(' ',indent)//'</'//trim(topology)//'>'//end_rec
-
-  new_myoffset = new_myoffset + 15 * bytechar
- 
-
-  iini=iend+1
-  nele=32
-  iend=iend+nele
-  mystring500(iini:iend)=repeat(' ',indent)//'<AppendedData encoding="raw">'//end_rec
-  
-  new_myoffset = new_myoffset + 32 * bytechar
-  
-  iini=iend+1
-  nele=1
-  iend=iend+nele
-  mystring500(iini:iend)='_'
-  
-  new_myoffset = new_myoffset + 1 * bytechar
-  
-  return
-  
- end subroutine header_vtk
- 
- subroutine footer_vtk(nx,ny,nz,mystring30,iinisub,iend,myoffset, &
-  new_myoffset,indent)
- 
-  implicit none
-  
-  integer, intent(in) :: nx,ny,nz
-  integer, intent(in) :: iinisub,myoffset
-  integer, intent(out) :: iend,new_myoffset
-  integer, intent(inout) :: indent
-  
-  
-  character(len=30), intent(out) :: mystring30
-  ! End-character for binary-record finalize.
-  character(1), parameter:: end_rec = char(10) 
-  character(1) :: string1
-  character(len=*),parameter :: topology='ImageData' 
-  integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
-  
-  iini=iinisub
-  bytechar=kind(end_rec)
-  byteint=kind(iini)
-  byter4  = 4
-  byter8  = 8
-  
-  mystring30=repeat(' ',30)
-  
-  iend=iini
-  
-  iini=iend+1
-  nele=1
-  iend=iend+nele
-  mystring30(iini:iend)=end_rec
-  
-  new_myoffset = myoffset
-  new_myoffset = new_myoffset + 1 * bytechar
- 
-  
-  
-  iini=iend+1
-  nele=18
-  iend=iend+nele
-  mystring30(iini:iend)=repeat(' ',indent)//'</AppendedData>'//end_rec
-  
-  new_myoffset = new_myoffset + 18 * bytechar
-  
-  iini=iend+1
-  nele=11
-  iend=iend+nele
-  mystring30(iini:iend)='</VTKFile>'//end_rec
-  
-  if(iend/=30)then
-     write(6,'(a)')'ERROR in footer_vtk'
-    stop
-  endif
-  
-  return
-  
- end subroutine footer_vtk
-  
- subroutine test_little_endian(ltest)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for checking if the computing architecture
-!     is working in little-endian or big-endian
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2019
-!     
-!***********************************************************************
- 
-  implicit none 
-  integer, parameter :: ik1 = selected_int_kind(2) 
-  integer, parameter :: ik4 = selected_int_kind(9) 
-   
-  logical, intent(out) :: ltest
-   
-  if(btest(transfer(int((/1,0,0,0/),ik1),1_ik4),0)) then 
-    !it is little endian
-    ltest=.true.
-  else 
-    !it is big endian
-    ltest=.false.
-  end if 
-   
-  return
-   
- end subroutine test_little_endian 
- 
- subroutine init_output(nx,ny,nz,ncomp,lvtk)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for creating the folders containing the files
-!     in image VTK legacy binary format in parallel IO
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2018
-!     
-!***********************************************************************
-
-  
-  implicit none
-  
-  integer, intent(in) :: nx,ny,nz,ncomp
-  logical, intent(in) :: lvtk
-  character(len=255) :: path,makedirectory
-  logical :: lexist
-  
-  integer :: i,j,k,nn,indent,myoffset,new_myoffset,iend
-  integer, parameter :: byter4=4
-  integer, parameter :: byteint=4
-  integer, allocatable :: printlistvtk(:)
-  integer, parameter :: ioxyz=54
-  character(len=*), parameter :: filexyz='isfluid.xyz'
-  character(len=120) :: mystring120
-  
-  call test_little_endian(lelittle)
-  
-  sevt1=repeat(' ',mxln)
-  sevt2=repeat(' ',mxln)
-  
-  path = repeat(' ',255)
-  call getcwd(path)
-  
-  !call get_environment_variable('DELIMITER',delimiter)
-  path = trim(path)
-  delimiter = path(1:1)
-  if (delimiter==' ') delimiter='/'
-
-
-  
-  makedirectory=repeat(' ',255)
-  makedirectory = 'output'//delimiter
-  dir_out=trim(makedirectory)
-#ifdef _INTEL
-  inquire(directory=trim(makedirectory),exist=lexist)
-#else
-  inquire(file=trim(makedirectory),exist=lexist)
-#endif
-  
-  if(.not. lexist)then
-    makedirectory=repeat(' ',255)
-    makedirectory = 'mkdir output'
-    call system(makedirectory)
-  endif
-  mystring120=repeat(' ',120)
-  
-  
-  makedirectory=repeat(' ',255)
-  makedirectory=trim(path)//delimiter//'output'//delimiter
-  
-  extentvtk =  space_fmtnumb(1) // ' ' // space_fmtnumb(nx) // ' ' &
-        // space_fmtnumb(1) // ' ' // space_fmtnumb(ny) // ' ' &
-        // space_fmtnumb(1) // ' ' // space_fmtnumb(nz)
-  
-  if(ncomp==1)then
-    nfilevtk=2
-  elseif(ncomp==2)then
-    nfilevtk=3
-  endif
-  
-  allocate(printlistvtk(nfilevtk))
-  do i=1,nfilevtk
-    printlistvtk(i)=i
-  enddo
-  
-  allocate(varlistvtk(nfilevtk))
-  allocate(namevarvtk(nfilevtk))
-  allocate(ndimvtk(nfilevtk))
-  allocate(headervtk(nfilevtk))
-  allocate(footervtk(nfilevtk))
-  allocate(nheadervtk(nfilevtk))
-  allocate(vtkoffset(nfilevtk))
-  allocate(ndatavtk(nfilevtk))
-  varlistvtk(1:nfilevtk)=printlistvtk(1:nfilevtk)
-  
-  if(ncomp==1)then
-    do i=1,nfilevtk
-      select case(printlistvtk(i))
-      case(1)
-        namevarvtk(i)='rho     '
-        ndimvtk(i)=1
-      case(2)
-        namevarvtk(i)='vel     '
-        ndimvtk(i)=3
-      case default
-        write(6,'(a)')'ERROR in init_output'
+      new_myoffset = new_myoffset + 70 * bytechar
+    
+      
+      indent = indent + 2
+      iini=iend+1
+      nele=63
+      iend=iend+nele
+      mystring500(iini:iend) = repeat(' ',indent)//'<Piece Extent="'//trim(extent)//'">'//end_rec
+      
+      new_myoffset = new_myoffset + 63 * bytechar
+    
+      
+      ! initializing offset pointer
+      ioffset = 0 
+      
+      indent = indent + 2
+      iini=iend+1
+      nele=18
+      iend=iend+nele
+      mystring500(iini:iend)=repeat(' ',indent)//'<PointData>'//end_rec
+      
+      new_myoffset = new_myoffset + 18 * bytechar
+      
+      indent = indent + 2
+      iini=iend+1
+      nele=115
+      iend=iend+nele
+      
+      if(ncomps/=1 .and. ncomps/=3)then
+        write(6,'(a)')'ERROR in header_vtk'
         stop
-      end select
-    enddo
-  elseif(ncomp==2)then
-    do i=1,nfilevtk
-      select case(printlistvtk(i))
-      case(1)
-        namevarvtk(i)='rho1    '
-        ndimvtk(i)=1
-      case(2)
-        namevarvtk(i)='rho2    '
-        ndimvtk(i)=1
-      case(3)
-        namevarvtk(i)='vel     '
-        ndimvtk(i)=3
-      case default
-        write(6,'(a)')'ERROR in init_output'
+      endif
+      write(string1,'(i1)')ncomps
+      mystring500(iini:iend)=repeat(' ',indent)//'<DataArray type="Float32" Name="'// &
+      namevar//'" NumberOfComponents="'//string1// '" '//&
+      'format="appended" offset="'//space_fmtnumb12(ioffset)//'"/>'//end_rec
+      
+      new_myoffset = new_myoffset + 115 * bytechar
+    
+      
+      indent = indent - 2
+      iini=iend+1
+      nele=19
+      iend=iend+nele
+      mystring500(iini:iend)=repeat(' ',indent)//'</PointData>'//end_rec
+      
+      new_myoffset = new_myoffset + 19 * bytechar
+      
+      
+      indent = indent - 2
+      iini=iend+1
+      nele=13
+      iend=iend+nele
+      mystring500(iini:iend)=repeat(' ',indent)//'</Piece>'//end_rec
+      
+      
+      new_myoffset = new_myoffset + 13 * bytechar
+    
+      
+      indent = indent - 2
+      iini=iend+1
+      nele=15
+      iend=iend+nele
+      mystring500(iini:iend)=repeat(' ',indent)//'</'//trim(topology)//'>'//end_rec
+
+      new_myoffset = new_myoffset + 15 * bytechar
+    
+
+      iini=iend+1
+      nele=32
+      iend=iend+nele
+      mystring500(iini:iend)=repeat(' ',indent)//'<AppendedData encoding="raw">'//end_rec
+      
+      new_myoffset = new_myoffset + 32 * bytechar
+      
+      iini=iend+1
+      nele=1
+      iend=iend+nele
+      mystring500(iini:iend)='_'
+      
+      new_myoffset = new_myoffset + 1 * bytechar
+      
+      return
+  
+    end subroutine header_vtk
+ 
+    subroutine footer_vtk(nx,ny,nz,mystring30,iinisub,iend,myoffset, &
+              new_myoffset,indent)
+ 
+      implicit none
+  
+      integer, intent(in) :: nx,ny,nz
+      integer, intent(in) :: iinisub,myoffset
+      integer, intent(out) :: iend,new_myoffset
+      integer, intent(inout) :: indent
+      
+      
+      character(len=30), intent(out) :: mystring30
+      ! End-character for binary-record finalize.
+      character(1), parameter:: end_rec = char(10) 
+      character(1) :: string1
+      character(len=*),parameter :: topology='ImageData' 
+      integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
+      
+      iini=iinisub
+      bytechar=kind(end_rec)
+      byteint=kind(iini)
+      byter4  = 4
+      byter8  = 8
+      
+      mystring30=repeat(' ',30)
+      
+      iend=iini
+      
+      iini=iend+1
+      nele=1
+      iend=iend+nele
+      mystring30(iini:iend)=end_rec
+      
+      new_myoffset = myoffset
+      new_myoffset = new_myoffset + 1 * bytechar
+    
+      
+      
+      iini=iend+1
+      nele=18
+      iend=iend+nele
+      mystring30(iini:iend)=repeat(' ',indent)//'</AppendedData>'//end_rec
+      
+      new_myoffset = new_myoffset + 18 * bytechar
+      
+      iini=iend+1
+      nele=11
+      iend=iend+nele
+      mystring30(iini:iend)='</VTKFile>'//end_rec
+      
+      if(iend/=30)then
+        write(6,'(a)')'ERROR in footer_vtk'
         stop
-      end select
-    enddo
-  endif
-  nn=nx*ny*nz
+      endif
+      
+      return
   
-  do i=1,nfilevtk
-    myoffset=0
-    indent=0
-    call header_vtk(nx,ny,nz,headervtk(i),namevarvtk(i),extentvtk,ndimvtk(i),0,iend,myoffset, &
-    new_myoffset,indent)
-    vtkoffset(i)=new_myoffset
-    myoffset=new_myoffset+byteint+ndimvtk(i)*nn*byter4
-    ndatavtk(i)=ndimvtk(i)*nn*byter4
-    nheadervtk(i)=iend
-    call footer_vtk(nx,ny,nz,footervtk(i),0,iend,myoffset, &
-     new_myoffset,indent)
-  enddo
+    end subroutine footer_vtk
   
-  return
+    subroutine test_little_endian(ltest)
+ 
+      !***********************************************************************
+      !     
+      !     LBsoft subroutine for checking if the computing architecture
+      !     is working in little-endian or big-endian
+      !     
+      !     licensed under Open Software License v. 3.0 (OSL-3.0)
+      !     author: M. Lauricella
+      !     last modification October 2019
+      !     
+      !***********************************************************************
+ 
+      implicit none 
+      integer, parameter :: ik1 = selected_int_kind(2) 
+      integer, parameter :: ik4 = selected_int_kind(9) 
+      
+      logical, intent(out) :: ltest
+      
+      if(btest(transfer(int((/1,0,0,0/),ik1),1_ik4),0)) then 
+        !it is little endian
+        ltest=.true.
+      else 
+        !it is big endian
+        ltest=.false.
+      end if 
+      
+      return
+   
+    end subroutine test_little_endian 
+ 
+    subroutine init_output(nx,ny,nz,ncomp,lvtk)
+ 
+      !***********************************************************************
+      !     
+      !     LBsoft subroutine for creating the folders containing the files
+      !     in image VTK legacy binary format in parallel IO
+      !     
+      !     licensed under Open Software License v. 3.0 (OSL-3.0)
+      !     author: M. Lauricella
+      !     last modification October 2018
+      !     
+      !***********************************************************************
 
- end subroutine init_output
- 
- subroutine string_char(mychar,nstring,mystring)
- 
-  implicit none
   
-  integer :: i
-  character(1), allocatable, dimension(:) :: mychar
-  integer, intent(in) :: nstring
-  character(len=*), intent(in) :: mystring
+      implicit none
   
-  allocate(mychar(nstring))
+      integer, intent(in) :: nx,ny,nz,ncomp
+      logical, intent(in) :: lvtk
+      character(len=255) :: path,makedirectory
+      logical :: lexist
+      
+      integer :: i,j,k,nn,indent,myoffset,new_myoffset,iend
+      integer, parameter :: byter4=4
+      integer, parameter :: byteint=4
+      integer, allocatable :: printlistvtk(:)
+      integer, parameter :: ioxyz=54
+      character(len=*), parameter :: filexyz='isfluid.xyz'
+      character(len=120) :: mystring120
+      
+      call test_little_endian(lelittle)
+      
+      sevt1=repeat(' ',mxln)
+      sevt2=repeat(' ',mxln)
+      
+      path = repeat(' ',255)
+      call getcwd(path)
+      
+      !call get_environment_variable('DELIMITER',delimiter)
+      path = trim(path)
+      delimiter = path(1:1)
+      if (delimiter==' ') delimiter='/'
+
+
+      
+      makedirectory=repeat(' ',255)
+      makedirectory = 'output'//delimiter
+      dir_out=trim(makedirectory)
+      #ifdef _INTEL
+        inquire(directory=trim(makedirectory),exist=lexist)
+      #else
+        inquire(file=trim(makedirectory),exist=lexist)
+      #endif
+      
+      if(.not. lexist)then
+          makedirectory=repeat(' ',255)
+          makedirectory = 'mkdir output'
+          call system(makedirectory)
+      endif
+      mystring120=repeat(' ',120)
+      
+      
+      makedirectory=repeat(' ',255)
+      makedirectory=trim(path)//delimiter//'output'//delimiter
+      
+      extentvtk =  space_fmtnumb(1) // ' ' // space_fmtnumb(nx) // ' ' &
+            // space_fmtnumb(1) // ' ' // space_fmtnumb(ny) // ' ' &
+            // space_fmtnumb(1) // ' ' // space_fmtnumb(nz)
+      
+      if(ncomp==1)then
+          nfilevtk=2
+      elseif(ncomp==2)then
+          nfilevtk=3
+      endif
+      
+      allocate(printlistvtk(nfilevtk))
+      do i=1,nfilevtk
+          printlistvtk(i)=i
+      enddo
+      
+      allocate(varlistvtk(nfilevtk))
+      allocate(namevarvtk(nfilevtk))
+      allocate(ndimvtk(nfilevtk))
+      allocate(headervtk(nfilevtk))
+      allocate(footervtk(nfilevtk))
+      allocate(nheadervtk(nfilevtk))
+      allocate(vtkoffset(nfilevtk))
+      allocate(ndatavtk(nfilevtk))
+      varlistvtk(1:nfilevtk)=printlistvtk(1:nfilevtk)
+      
+      if(ncomp==1)then
+          do i=1,nfilevtk
+              select case(printlistvtk(i))
+              case(1)
+                namevarvtk(i)='rho     '
+                ndimvtk(i)=1
+              case(2)
+                namevarvtk(i)='vel     '
+                ndimvtk(i)=3
+              case default
+                write(6,'(a)')'ERROR in init_output'
+                stop
+              end select
+          enddo
+      elseif(ncomp==2)then
+          do i=1,nfilevtk
+              select case(printlistvtk(i))
+              case(1)
+                namevarvtk(i)='rho1    '
+                ndimvtk(i)=1
+              case(2)
+                namevarvtk(i)='rho2    '
+                ndimvtk(i)=1
+              case(3)
+                namevarvtk(i)='vel     '
+                ndimvtk(i)=3
+              case default
+                write(6,'(a)')'ERROR in init_output'
+                stop
+              end select
+          enddo
+      endif
+      nn=nx*ny*nz
+      
+      do i=1,nfilevtk
+          myoffset=0
+          indent=0
+          call header_vtk(nx,ny,nz,headervtk(i),namevarvtk(i),extentvtk,ndimvtk(i),0,iend,myoffset, &
+          new_myoffset,indent)
+          vtkoffset(i)=new_myoffset
+          myoffset=new_myoffset+byteint+ndimvtk(i)*nn*byter4
+          ndatavtk(i)=ndimvtk(i)*nn*byter4
+          nheadervtk(i)=iend
+          call footer_vtk(nx,ny,nz,footervtk(i),0,iend,myoffset, &
+          new_myoffset,indent)
+      enddo
+      
+      return
+
+    endsubroutine init_output
+ 
+    subroutine string_char(mychar,nstring,mystring)
+ 
+      implicit none
+      
+      integer :: i
+      character(1), allocatable, dimension(:) :: mychar
+      integer, intent(in) :: nstring
+      character(len=*), intent(in) :: mystring
+      
+      allocate(mychar(nstring))
+      
+      do i=1,nstring
+        mychar(i)=mystring(i:i)
+      enddo
   
-  do i=1,nstring
-    mychar(i)=mystring(i:i)
-  enddo
-  
- end subroutine string_char
+    end subroutine string_char
  
-  function space_fmtnumb(inum)
+    function space_fmtnumb(inum)
  
-!***********************************************************************
-!     
-!     LBsoft function for returning the string of six characters 
-!     with integer digits and leading spaces to the left
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2019
-!     
-!***********************************************************************
+      !***********************************************************************
+      !     
+      !     LBsoft function for returning the string of six characters 
+      !     with integer digits and leading spaces to the left
+      !     originally written in JETSPIN by M. Lauricella et al.
+      !     
+      !     licensed under Open Software License v. 3.0 (OSL-3.0)
+      !     author: M. Lauricella
+      !     last modification October 2019
+      !     
+      !***********************************************************************
  
-  implicit none
-
-  integer,intent(in) :: inum
-  character(len=6) :: space_fmtnumb
-  integer :: numdigit,irest
-  real(kind=8) :: tmp
-  character(len=22) :: cnumberlabel
-
-  numdigit=dimenumb(inum)
-  irest=6-numdigit
-  if(irest>0)then
-    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
-    write(space_fmtnumb,fmt=cnumberlabel)repeat(' ',irest),inum
-  else
-    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
-    write(space_fmtnumb,fmt=cnumberlabel)inum
-  endif
-  
-  return
-
- end function space_fmtnumb
- 
- function space_fmtnumb12(inum)
- 
-!***********************************************************************
-!     
-!     LBsoft function for returning the string of six characters 
-!     with integer digits and leading TWELVE spaces to the left
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2019
-!     
-!***********************************************************************
- 
-  implicit none
-
-  integer,intent(in) :: inum
-  character(len=12) :: space_fmtnumb12
-  integer :: numdigit,irest
-  real(kind=8) :: tmp
-  character(len=22) :: cnumberlabel
-
-  numdigit=dimenumb(inum)
-  irest=12-numdigit
-  if(irest>0)then
-    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
-    write(space_fmtnumb12,fmt=cnumberlabel)repeat(' ',irest),inum
-  else
-    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
-    write(space_fmtnumb12,fmt=cnumberlabel)inum
-  endif
-  
-  return
-
- end function space_fmtnumb12
- 
-  function dimenumb(inum)
- 
-    !***********************************************************************
-    !    
-    !     LBsoft function for returning the number of digits
-    !     of an integer number
-    !     originally written in JETSPIN by M. Lauricella et al.
-    !    
-    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-    !     author: M. Lauricella
-    !     last modification July 2018
-    !    
-    !***********************************************************************
-
       implicit none
 
       integer,intent(in) :: inum
-      integer :: dimenumb
-      integer :: i
-      real(kind=db) :: tmp
+      character(len=6) :: space_fmtnumb
+      integer :: numdigit,irest
+      real(kind=8) :: tmp
+      character(len=22) :: cnumberlabel
 
-      i=1
-      tmp=real(inum,kind=db)
-      do
-      if(tmp< 10.0_db )exit
-        i=i+1
-        tmp=tmp/ 10.0_db
-      enddo
-
-      dimenumb=i
-
+      numdigit=dimenumb(inum)
+      irest=6-numdigit
+      if(irest>0)then
+        write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+        write(space_fmtnumb,fmt=cnumberlabel)repeat(' ',irest),inum
+      else
+        write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+        write(space_fmtnumb,fmt=cnumberlabel)inum
+      endif
+      
       return
 
-     end function dimenumb
+    end function space_fmtnumb
+ 
+    function space_fmtnumb12(inum)
+ 
+      !***********************************************************************
+      !     
+      !     LBsoft function for returning the string of six characters 
+      !     with integer digits and leading TWELVE spaces to the left
+      !     originally written in JETSPIN by M. Lauricella et al.
+      !     
+      !     licensed under Open Software License v. 3.0 (OSL-3.0)
+      !     author: M. Lauricella
+      !     last modification October 2019
+      !     
+      !***********************************************************************
+      
+        implicit none
+
+        integer,intent(in) :: inum
+        character(len=12) :: space_fmtnumb12
+        integer :: numdigit,irest
+        real(kind=8) :: tmp
+        character(len=22) :: cnumberlabel
+
+        numdigit=dimenumb(inum)
+        irest=12-numdigit
+        if(irest>0)then
+          write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+          write(space_fmtnumb12,fmt=cnumberlabel)repeat(' ',irest),inum
+        else
+          write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+          write(space_fmtnumb12,fmt=cnumberlabel)inum
+        endif
+        
+        return
+
+    end function space_fmtnumb12
+ 
+    function dimenumb(inum)
+ 
+        !***********************************************************************
+        !    
+        !     LBsoft function for returning the number of digits
+        !     of an integer number
+        !     originally written in JETSPIN by M. Lauricella et al.
+        !    
+        !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+        !     author: M. Lauricella
+        !     last modification July 2018
+        !    
+        !***********************************************************************
+
+        implicit none
+
+        integer,intent(in) :: inum
+        integer :: dimenumb
+        integer :: i
+        real(kind=db) :: tmp
+
+        i=1
+        tmp=real(inum,kind=db)
+        do
+        if(tmp< 10.0_db )exit
+          i=i+1
+          tmp=tmp/ 10.0_db
+        enddo
+
+        dimenumb=i
+
+        return
+
+    end function dimenumb
 
     function write_fmtnumb(inum)
  
-    !***********************************************************************
-    !    
-    !     LBsoft function for returning the string of six characters
-    !     with integer digits and leading zeros to the left
-    !     originally written in JETSPIN by M. Lauricella et al.
-    !    
-    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-    !     author: M. Lauricella
-    !     last modification July 2018
-    !    
-    !***********************************************************************
- 
-    implicit none
-
-    integer,intent(in) :: inum
-    character(len=6) :: write_fmtnumb
-    integer :: numdigit,irest
-    !real*8 :: tmp
-    character(len=22) :: cnumberlabel
+        !***********************************************************************
+        !    
+        !     LBsoft function for returning the string of six characters
+        !     with integer digits and leading zeros to the left
+        !     originally written in JETSPIN by M. Lauricella et al.
+        !    
+        !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+        !     author: M. Lauricella
+        !     last modification July 2018
+        !    
+        !***********************************************************************
     
-    numdigit=dimenumb(inum)
-    irest=6-numdigit
-    if(irest>0)then
-        write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
-        write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
-    else
-        write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
-        write(write_fmtnumb,fmt=cnumberlabel)inum
-    endif
- 
-    return
+        implicit none
+
+        integer,intent(in) :: inum
+        character(len=6) :: write_fmtnumb
+        integer :: numdigit,irest
+        !real*8 :: tmp
+        character(len=22) :: cnumberlabel
+        
+        numdigit=dimenumb(inum)
+        irest=6-numdigit
+        if(irest>0)then
+            write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+            write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
+        else
+            write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+            write(write_fmtnumb,fmt=cnumberlabel)inum
+        endif
+    
+        return
     end function write_fmtnumb   
     
     subroutine get_memory_gpu(fout,fout2)
 
-!***********************************************************************
-!     
-!     LBsoft subroutine for register the memory usage
-!     
-!     licensed under the 3-Clause BSD License (BSD-3-Clause)
-!     modified by: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************  
-#ifdef _OPENACC
-  use openacc
-  use accel_lib
-#elif defined _CUDA  
-  use cudafor
-#endif
+      !***********************************************************************
+      !     
+      !     LBsoft subroutine for register the memory usage
+      !     
+      !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+      !     modified by: M. Lauricella
+      !     last modification July 2018
+      !     
+      !***********************************************************************  
+      #ifdef _OPENACC
+        use openacc
+        use accel_lib
+      #elif defined _CUDA  
+        use cudafor
+      #endif
   
-  implicit none
+      implicit none
   
-  real(kind=db), intent(out) :: fout,fout2
-  real(kind=db) :: myd(2),myd2(2)
-  integer :: istat
-#ifdef _OPENACC  
-  integer :: myfree, total
-#elif defined _CUDA  
-  integer(kind=cuda_count_kind) :: myfree, total
-#else
-  integer :: myfree, total
-#endif  
+      real(kind=db), intent(out) :: fout,fout2
+      real(kind=db) :: myd(2),myd2(2)
+      integer :: istat
+      #ifdef _OPENACC  
+        integer :: myfree, total
+      #elif defined _CUDA  
+        integer(kind=cuda_count_kind) :: myfree, total
+      #else
+        integer :: myfree, total
+      #endif  
+      
+      #ifdef _OPENACC
+        myfree=acc_get_free_memory()
+        total=acc_get_memory() 
+      #elif defined _CUDA
+        istat = cudaMemGetInfo( myfree, total )
+      #else
+        myfree=0
+        total=0
+      #endif  
+      fout = real(total-myfree,kind=4)/(1024.0**3.0)
+      fout2 = real(total,kind=4)/(1024.0**3.0)
+      
+      return
   
-#ifdef _OPENACC
-  myfree=acc_get_free_memory()
-  total=acc_get_memory() 
-#elif defined _CUDA
-  istat = cudaMemGetInfo( myfree, total )
-#else
-  myfree=0
-  total=0
-#endif  
-  fout = real(total-myfree,kind=4)/(1024.0**3.0)
-  fout2 = real(total,kind=4)/(1024.0**3.0)
-  
-  return
-  
- end subroutine get_memory_gpu
+    end subroutine get_memory_gpu
     
- subroutine print_memory_registration_gpu(iu,mybanner,mybanner2,&
-  mymemory,totmem)
+    subroutine print_memory_registration_gpu(iu,mybanner,mybanner2,&
+          mymemory,totmem)
  
-!***********************************************************************
-!     
-!     LBcuda subroutine for printing the memory registration
-!     
-!     licensed under the 3-Clause BSD License (BSD-3-Clause)
-!     author: M. Lauricella
-!     last modification April 2022
-!     
-!***********************************************************************
+      !***********************************************************************
+      !     
+      !     LBcuda subroutine for printing the memory registration
+      !     
+      !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+      !     author: M. Lauricella
+      !     last modification April 2022
+      !     
+      !***********************************************************************
   
-  implicit none
+      implicit none
+      
+      integer, intent(in) :: iu
+      character(len=*), intent(in) :: mybanner,mybanner2
+      real(kind=db), intent(in) :: mymemory,totmem
+      
+      character(len=12) :: r_char,r_char2
+      
+      character(len=*),parameter :: of='(a)'
+    
+      write (r_char,'(f12.4)')mymemory
+      write (r_char2,'(f12.4)')totmem
+      write(iu,of)"                                                                               "
+      write(iu,of)"******************************GPU MEMORY MONITOR*******************************"
+      write(iu,of)"                                                                               "
+      write(iu,'(4a)')trim(mybanner)," = ",trim(adjustl(r_char))," (GB)"
+      write(iu,'(4a)')trim(mybanner2)," = ",trim(adjustl(r_char2))," (GB)"
+      write(iu,of)"                                                                               "
+      write(iu,of)"*******************************************************************************"
+      write(iu,of)"                                                                               "
+      
+      return
   
-  integer, intent(in) :: iu
-  character(len=*), intent(in) :: mybanner,mybanner2
-  real(kind=db), intent(in) :: mymemory,totmem
-  
-  character(len=12) :: r_char,r_char2
-  
-  character(len=*),parameter :: of='(a)'
-  
-  
-  
- 
-  write (r_char,'(f12.4)')mymemory
-  write (r_char2,'(f12.4)')totmem
-  write(iu,of)"                                                                               "
-  write(iu,of)"******************************GPU MEMORY MONITOR*******************************"
-  write(iu,of)"                                                                               "
-  write(iu,'(4a)')trim(mybanner)," = ",trim(adjustl(r_char))," (GB)"
-  write(iu,'(4a)')trim(mybanner2)," = ",trim(adjustl(r_char2))," (GB)"
-  write(iu,of)"                                                                               "
-  write(iu,of)"*******************************************************************************"
-  write(iu,of)"                                                                               "
-  
-  return
-  
- end subroutine print_memory_registration_gpu
+    end subroutine print_memory_registration_gpu
  
  end module
 
@@ -724,10 +721,10 @@ program lb_openacc
         ngpus=0
 #endif
     !*******************************user parameters**************************
-        nx=128!500!500
-        ny=64 !500!600
+        nx=256!500!500
+        ny=256 !500!600
         nsteps=10
-        stamp=1
+        stamp=10
         fx=0.0_db*10.0**(-7)
         fy=-0.0_db*10.0**(-6)
     !**********************************allocation****************************
@@ -842,14 +839,14 @@ program lb_openacc
                     endif
                 enddo
             enddo
-!            do i=(nx/2+radius+5)-radius,(nx/2+radius+5) +radius
-!                do j=ny/2-radius,ny/2+radius
-!                    if ((i-(nx/2+radius+5))**2+(j-ny/2)**2<=radius**2)then
-!                        psi(i,j)=1.0_db
-!                        u(i,j)=-0.0
-!                    endif
-!                enddo
-!            enddo
+            ! do i=(nx/2+radius+5)-radius,(nx/2+radius+5) +radius
+            !     do j=ny/2-radius,ny/2+radius
+            !         if ((i-(nx/2+radius+5))**2+(j-ny/2)**2<=radius**2)then
+            !             psi(i,j)=1.0_db
+            !             u(i,j)=-0.0
+            !         endif
+            !     enddo
+            ! enddo
         !***************************************constriction drops************************************!
             ! do i=(nx/2-radius-5)-radius,(nx/2-radius-5) +radius
             !     do j=2*radius+10-2*radius,2*radius+10+2*radius
@@ -1031,44 +1028,44 @@ program lb_openacc
             !$acc end kernels 
             
             if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
-        if(lprint)then
-          if(mod(step,stamp).eq.0)then
-            iframe=iframe+1
-            !$acc wait(1)
-            !$acc kernels present(rhoprint,velprint,rhoa,u,v) async(1)
-            !$acc loop independent collapse(2)  private(i,j)
-              do j=1,ny
-                do i=1,nx
-                  rhoprint(i,j,1)=real(rhoA(i,j),kind=4)
-                  velprint(1,i,j,1)=real(u(i,j),kind=4)
-                  velprint(2,i,j,1)=real(v(i,j),kind=4)
-                enddo
-              enddo
-           !$acc end kernels 
-           !$acc wait(1)
-           if(lasync)then
-              call close_print_async
-              !$acc update host(rhoprint,velprint) async(2)
-           else
-              !$acc update host(rhoprint,velprint) async(2)
-              !$acc wait(2)
-              if(lvtk)then
-                call print_vtk_sync
+            if(lprint)then
+              if(mod(step,stamp).eq.0)then
+                iframe=iframe+1
+                !$acc wait(1)
+                !$acc kernels present(rhoprint,velprint,rhoa,u,v) async(1)
+                !$acc loop independent collapse(2)  private(i,j)
+                  do j=1,ny
+                    do i=1,nx
+                      rhoprint(i,j,1)=real(rhoA(i,j),kind=4)
+                      velprint(1,i,j,1)=real(u(i,j),kind=4)
+                      velprint(2,i,j,1)=real(v(i,j),kind=4)
+                    enddo
+                  enddo
+              !$acc end kernels 
+              !$acc wait(1)
+              if(lasync)then
+                  call close_print_async
+                  !$acc update host(rhoprint,velprint) async(2)
               else
-                call print_raw_sync
+                  !$acc update host(rhoprint,velprint) async(2)
+                  !$acc wait(2)
+                  if(lvtk)then
+                    call print_vtk_sync
+                  else
+                    call print_raw_sync
+                  endif
+                endif
+              endif
+              if(mod(step-stamp/4,stamp).eq.0 .and. lasync)then
+                !write(6,*)'ciao 2',step,iframe
+                !$acc wait(2)  
+                if(lvtk)then
+                  call print_vtk_async
+                else
+                  call print_raw_async
+                endif
               endif
             endif
-          endif
-          if(mod(step-stamp/4,stamp).eq.0 .and. lasync)then
-            !write(6,*)'ciao 2',step,iframe
-            !$acc wait(2)  
-            if(lvtk)then
-              call print_vtk_async
-            else
-              call print_raw_async
-            endif
-          endif
-        endif
         !********************collision + no slip + forcing: fused implementation*********
             !$acc kernels 
             !$acc loop collapse(2)  
@@ -1119,44 +1116,84 @@ program lb_openacc
                         omega=2.0_db/(6.0_db*nu_avg + 1.0_db)
                         st_coeff=(9.0_db/4.0_db)*sigma*omega
                         addendum0=0.0_db
-                        addendum1=0.0_db
-                        addendum2=0.0_db
-                        addendum3=0.0_db
-                        addendum4=0.0_db
-                        addendum5=0.0_db
-                        addendum6=0.0_db
-                        addendum7=0.0_db
-                        addendum8=0.0_db
                         gaddendum0=0.0_db
-                        gaddendum1=0.0_db
-                        gaddendum2=0.0_db
-                        gaddendum3=0.0_db
-                        gaddendum4=0.0_db
-                        gaddendum5=0.0_db
-                        gaddendum6=0.0_db
-                        gaddendum7=0.0_db
-                        gaddendum8=0.0_db 
                         if(mod_psi>0.0001)then ! i'm sitting on the interface 
-                            addendum0=-st_coeff*mod_psi*b0
-                            addendum1=st_coeff*mod_psi*(p(1)*psi_x**2/mod_psi_sq - b1)
-                            addendum2=st_coeff*mod_psi*(p(2)*psi_y**2/mod_psi_sq - b1)
-                            addendum3=st_coeff*mod_psi*(p(3)*psi_x**2/mod_psi_sq - b1)
-                            addendum4=st_coeff*mod_psi*(p(4)*psi_y**2/mod_psi_sq - b1)
-                            addendum5=st_coeff*mod_psi*(p(5)*(psi_x+psi_y)**2/mod_psi_sq - b2)
-                            addendum6=st_coeff*mod_psi*(p(6)*(-psi_x+psi_y)**2/mod_psi_sq - b2)
-                            addendum7=st_coeff*mod_psi*(p(7)*(-psi_x-psi_y)**2/mod_psi_sq - b2)
-                            addendum8=st_coeff*mod_psi*(p(8)*(psi_x-psi_y)**2/mod_psi_sq - b2)
-                            !recoloring
-                            gaddendum1=p(1)*(rtot)*(rprod*beta*psi_x/mod_psi/rtot**2)
-                            gaddendum2=p(2)*(rtot)*(rprod*beta*psi_y/mod_psi/rtot**2)
-                            gaddendum3=p(3)*(rtot)*(rprod*beta*(-psi_x/mod_psi)/rtot**2)
-                            gaddendum4=p(4)*(rtot)*(rprod*beta*(-psi_y/mod_psi)/rtot**2)
-                            gaddendum5=p(5)*(rtot)*(rprod*beta*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
-                            gaddendum6=p(6)*(rtot)*(rprod*beta*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
-                            gaddendum7=p(7)*(rtot)*(rprod*beta*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
-                            gaddendum8=p(8)*(rtot)*(rprod*beta*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
                             norm_x=psi_x/mod_psi
                             norm_y=psi_y/mod_psi
+                            ushifted=u(i,j) + fx + float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhob(i,j))
+                            vshifted=v(i,j) + fy + float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhob(i,j))
+
+                            addendum0=-st_coeff*mod_psi*b0
+                            uu=0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq
+                            feq=p(0)*(rtot-uu)
+                            fpc=feq + (1.0_db-omega)*pi2cssq0*(- cssq*pyy(i,j)-cssq*pxx(i,j))  + addendum0
+                            f0(i,j)=fpc*(rhoA(i,j))/rtot 
+                            g0(i,j)=fpc*(rhoB(i,j))/rtot
+
+                            addendum0=st_coeff*mod_psi*(p(1)*psi_x**2/mod_psi_sq - b1)
+                            gaddendum0=p(1)*(rtot)*(rprod*beta*psi_x/mod_psi/rtot**2)
+                            !1-3
+                            udotc=ushifted/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(1)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) )+ addendum0 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
+                            f1(i+1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g1(i+1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0
+                            addendum0=st_coeff*mod_psi*(p(3)*psi_x**2/mod_psi_sq - b1)
+                            gaddendum0=p(3)*(rtot)*(rprod*beta*(-psi_x/mod_psi)/rtot**2)
+                            feq=p(3)*(rtot+(temp - udotc))
+                            fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) + addendum0 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
+                            f3(i-1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0 
+                            g3(i-1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0 
+
+                            !2-4
+                            addendum0=st_coeff*mod_psi*(p(2)*psi_y**2/mod_psi_sq - b1)
+                            gaddendum0=p(2)*(rtot)*(rprod*beta*psi_y/mod_psi/rtot**2)
+                            udotc=vshifted/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(2)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+                            f2(i,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0  
+                            g2(i,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
+                            addendum0=st_coeff*mod_psi*(p(4)*psi_y**2/mod_psi_sq - b1)
+                            gaddendum0=p(4)*(rtot)*(rprod*beta*(-psi_y/mod_psi)/rtot**2)
+                            feq=p(4)*(rtot+(temp - udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
+                            f4(i,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
+                            g4(i,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
+
+                            !5-7
+                            addendum0=st_coeff*mod_psi*(p(5)*(psi_x+psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(5)*(rtot)*(rprod*beta*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
+                            udotc=(ushifted+vshifted)/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(5)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
+                            f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot - gaddendum0
+                            addendum0=st_coeff*mod_psi*(p(7)*(-psi_x-psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(7)*(rtot)*(rprod*beta*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
+                            feq=p(7)*(rtot+(temp - udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
+                            f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0
+
+                            !6-8
+                            addendum0=st_coeff*mod_psi*(p(6)*(-psi_x+psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(6)*(rtot)*(rprod*beta*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
+                            udotc=(-ushifted+vshifted)/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(6)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + addendum0 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
+                            f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
+                            addendum0=st_coeff*mod_psi*(p(8)*(psi_x-psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(8)*(rtot)*(rprod*beta*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
+                            feq=p(8)*(rtot+(temp - udotc))
+                            fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  + addendum0 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
+                            f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
+                            g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
+                            
                             ! se psi interfaccia vicina a 3-4-5lu è piu' grande del mio valore allora applico nci
                         endif
                         !regularized collision + perturbation + recolouring
@@ -1171,50 +1208,50 @@ program lb_openacc
                         udotc=ushifted/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(1)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) )+ addendum1 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
-                        f1(i+1,j)= fpc*(rhoA(i,j))/rtot + gaddendum1
-                        g1(i+1,j)= fpc*(rhoB(i,j))/rtot - gaddendum1
+                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) )+ addendum0 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
+                        f1(i+1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0
+                        g1(i+1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0
                         !3
                         feq=p(3)*(rtot+(temp - udotc))
-                        fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) + addendum3 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
-                        f3(i-1,j)= fpc*(rhoA(i,j))/rtot + gaddendum3 
-                        g3(i-1,j)= fpc*(rhoB(i,j))/rtot - gaddendum3 
+                        fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) + addendum0 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
+                        f3(i-1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0
+                        g3(i-1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0 
                         !2
                         udotc=vshifted/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(2)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum2 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
-                        f2(i,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum2  
-                        g2(i,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum2   
+                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+                        f2(i,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0  
+                        g2(i,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0   
                         !4
                         feq=p(4)*(rtot+(temp - udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum4 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
-                        f4(i,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum4 
-                        g4(i,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum4 
+                        fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
+                        f4(i,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
+                        g4(i,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
                         !5
                         udotc=(ushifted+vshifted)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(5)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum5 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
-                        f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot + gaddendum5
-                        g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot - gaddendum5
+                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
+                        f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot + gaddendum0
+                        g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot - gaddendum0
                         !7
                         feq=p(7)*(rtot+(temp - udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum7 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
-                        f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum7
-                        g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum7
+                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
+                        f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0
+                        g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0
                         !6
                         udotc=(-ushifted+vshifted)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
                         feq=p(6)*(rtot+(temp + udotc))
-                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + addendum6 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
-                        f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum6
-                        g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum6
+                        fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + addendum0 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
+                        f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0
+                        g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
                         !8
                         feq=p(8)*(rtot+(temp - udotc))
-                        fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  + addendum8 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
-                        f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum8 
-                        g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum8 
+                        fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  + addendum0 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
+                        f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
+                        g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
                     endif
                 enddo
             enddo
