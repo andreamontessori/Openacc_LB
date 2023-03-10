@@ -675,7 +675,7 @@ program lb_openacc
         
         real(kind=4)  :: ts1,ts2,radius
         real(kind=db) :: visc_LB,uu,udotc,omega,feq,geq
-        real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
+        real(kind=db) :: fneq1
         real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2,pi2cssq0
         real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,temp,fpc
         real(kind=db) :: addendum0
@@ -723,8 +723,8 @@ program lb_openacc
     !*******************************user parameters**************************
         nx=256!500!500
         ny=256 !500!600
-        nsteps=10
-        stamp=10
+        nsteps=100
+        stamp=100
         fx=0.0_db*10.0**(-7)
         fy=-0.0_db*10.0**(-6)
     !**********************************allocation****************************
@@ -984,6 +984,9 @@ program lb_openacc
             do j=1,ny
                 do i=1,nx
                     if(isfluid(i,j).eq.1)then
+                        pxx(i,j)=0.0_db
+                        pyy(i,j)=0.0_db
+                        pxy(i,j)=0.0_db
                         rhoA(i,j) = (f0(i,j)+f1(i,j)+f2(i,j)+f3(i,j)+f4(i,j)+f5(i,j)+f6(i,j)+f7(i,j)+f8(i,j))
                         rhoB(i,j)=  (g0(i,j)+g1(i,j)+g2(i,j)+g3(i,j)+g4(i,j)+g5(i,j)+g6(i,j)+g7(i,j)+g8(i,j))
                         
@@ -1002,26 +1005,38 @@ program lb_openacc
                         temp = -uu + 0.5_db*udotc*udotc
                         rtot=rhoA(i,j)+rhoB(i,j)
                         fneq1=f1(i,j)+g1(i,j)-p(1)*(rtot + (temp + udotc))
-                        fneq3=f3(i,j)+g3(i,j)-p(3)*(rtot + (temp - udotc))
+                        pxx(i,j)=pxx(i,j)+fneq1
+                        fneq1=f3(i,j)+g3(i,j)-p(3)*(rtot + (temp - udotc))
+                        pxx(i,j)=pxx(i,j)+fneq1
                         !2-4
                         udotc=v(i,j)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq2=f2(i,j)+g2(i,j)-p(2)*(rtot + (temp + udotc))
-                        fneq4=f4(i,j)+g4(i,j)-p(4)*(rtot + (temp - udotc))
+                        fneq1=f2(i,j)+g2(i,j)-p(2)*(rtot + (temp + udotc))
+                        pyy(i,j)=pyy(i,j)+fneq1
+                        fneq1=f4(i,j)+g4(i,j)-p(4)*(rtot + (temp - udotc))
+                        pyy(i,j)=pyy(i,j)+fneq1
                         !5-7
                         udotc=(u(i,j)+v(i,j))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq5=f5(i,j)+g5(i,j)-p(5)*(rtot + (temp + udotc))
-                        fneq7=f7(i,j)+g7(i,j)-p(7)*(rtot + (temp - udotc))
+                        fneq1=f5(i,j)+g5(i,j)-p(5)*(rtot + (temp + udotc))
+                        pxx(i,j)=pxx(i,j)+fneq1
+                        pyy(i,j)=pyy(i,j)+fneq1
+                        pxy(i,j)=pxy(i,j)+fneq1
+                        fneq1=f7(i,j)+g7(i,j)-p(7)*(rtot + (temp - udotc))
+                        pxx(i,j)=pxx(i,j)+fneq1
+                        pyy(i,j)=pyy(i,j)+fneq1
+                        pxy(i,j)=pxy(i,j)+fneq1
                         !6-8
                         udotc=(-u(i,j)+v(i,j))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq6=f6(i,j)+g6(i,j)-p(6)*(rtot + (temp + udotc))
-                        fneq8=f8(i,j)+g8(i,j)-p(8)*(rtot + (temp - udotc))
-                        !
-                        pxx(i,j)= fneq1 + fneq3 + fneq5 + fneq6 + fneq7 + fneq8
-                        pyy(i,j)= fneq2 + fneq4 + fneq5 + fneq6 + fneq7 + fneq8
-                        pxy(i,j)= fneq5 - fneq6 + fneq7 - fneq8
+                        fneq1=f6(i,j)+g6(i,j)-p(6)*(rtot + (temp + udotc))
+                        pxx(i,j)=pxx(i,j)+fneq1
+                        pyy(i,j)=pyy(i,j)+fneq1
+                        pxy(i,j)=pxy(i,j)-fneq1
+                        fneq1=f8(i,j)+g8(i,j)-p(8)*(rtot + (temp - udotc))
+                        pxx(i,j)=pxx(i,j)+fneq1
+                        pyy(i,j)=pyy(i,j)+fneq1
+                        pxy(i,j)=pxy(i,j)-fneq1
                     endif
                 enddo
             enddo
@@ -1100,13 +1115,11 @@ program lb_openacc
             do j=1,ny
                 do i=1,nx 
                     if(isfluid(i,j).eq.1)then 
-                        !oneminusuu= -uu !1.0_db - uu
-                        !0
-                        !chromodynamic
+                        !chromodynamic 
                         psi_x=(1.0_db/cssq)*(p(1)*(psi(i+1,j)-psi(i-1,j)) + p(5)*(psi(i+1,j+1) + psi(i+1,j-1)-psi(i-1,j+1)-psi(i-1,j-1)))
-                        psi_y=(1.0_db/cssq)*(p(1)*(psi(i,j+1)-psi(i,j-1)) + p(5)*(psi(i+1,j+1) - psi(i+1,j-1)+psi(i-1,j+1)-psi(i-1,j-1)))
+                        psi_y=(1.0_db/cssq)*(p(1)*(psi(i,j+1)-psi(i,j-1)) + p(5)*(psi(i+1,j+1) - psi(i+1,j-1)+psi(i-1,j+1)-psi(i-1,j-1)))   
                         mod_psi=sqrt(psi_x**2+psi_y**2)
-                        mod_psi_sq=psi_x**2+psi_y**2 
+                        mod_psi_sq=psi_x**2+psi_y**2
                         norm_x=0.0_db
                         norm_y=0.0_db
                         rtot=0.0_db
@@ -1118,138 +1131,142 @@ program lb_openacc
                         addendum0=0.0_db
                         gaddendum0=0.0_db
                         if(mod_psi>0.0001)then ! i'm sitting on the interface 
-                          norm_x=psi_x/mod_psi
-                          norm_y=psi_y/mod_psi
-                          ushifted=u(i,j) + fx + float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhob(i,j))
-                          vshifted=v(i,j) + fy + float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhob(i,j))
+            
+                            norm_x=psi_x/mod_psi
+                            norm_y=psi_y/mod_psi
+                            
+                            ushifted=u(i,j) + fx + float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhob(i,j))
+                            vshifted=v(i,j) + fy + float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhob(i,j))
 
-                          addendum0=-st_coeff*mod_psi*b0
-                          uu=0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq
-                          feq=p(0)*(rtot-uu)
-                          fpc=feq + (1.0_db-omega)*pi2cssq0*(- cssq*pyy(i,j)-cssq*pxx(i,j))  + addendum0
-                          f0(i,j)=fpc*(rhoA(i,j))/rtot 
-                          g0(i,j)=fpc*(rhoB(i,j))/rtot
+                            addendum0=-st_coeff*mod_psi*b0
+                            uu=0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq
+                            feq=p(0)*(rtot-uu)
+                            fpc=feq + (1.0_db-omega)*pi2cssq0*(- cssq*pyy(i,j)-cssq*pxx(i,j))  + addendum0
+                            f0(i,j)=fpc*(rhoA(i,j))/rtot 
+                            g0(i,j)=fpc*(rhoB(i,j))/rtot
+                           
+                            !1-3
+                            addendum0=st_coeff*mod_psi*(p(1)*psi_x**2/mod_psi_sq - b1)
+                            gaddendum0=p(1)*(rtot)*(rprod*beta*psi_x/mod_psi/rtot**2)
+                            udotc=ushifted/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(1)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) )+ addendum0 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
+                            f1(i+1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g1(i+1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0
+                            addendum0=st_coeff*mod_psi*(p(3)*psi_x**2/mod_psi_sq - b1)
+                            gaddendum0=p(3)*(rtot)*(rprod*beta*(-psi_x/mod_psi)/rtot**2)
+                            feq=p(3)*(rtot+(temp - udotc))
+                            fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) + addendum0 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
+                            f3(i-1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0 
+                            g3(i-1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0 
 
-                          addendum0=st_coeff*mod_psi*(p(1)*psi_x**2/mod_psi_sq - b1)
-                          gaddendum0=p(1)*(rtot)*(rprod*beta*psi_x/mod_psi/rtot**2)
-                          !1-3
-                          udotc=ushifted/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(1)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) )+ addendum0 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
-                          f1(i+1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g1(i+1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0
-                          addendum0=st_coeff*mod_psi*(p(3)*psi_x**2/mod_psi_sq - b1)
-                          gaddendum0=p(3)*(rtot)*(rprod*beta*(-psi_x/mod_psi)/rtot**2)
-                          feq=p(3)*(rtot+(temp - udotc))
-                          fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) + addendum0 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
-                          f3(i-1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0 
-                          g3(i-1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0 
+                            !2-4
+                            addendum0=st_coeff*mod_psi*(p(2)*psi_y**2/mod_psi_sq - b1)
+                            gaddendum0=p(2)*(rtot)*(rprod*beta*psi_y/mod_psi/rtot**2)
+                            udotc=vshifted/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(2)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+                            f2(i,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0  
+                            g2(i,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
+                            addendum0=st_coeff*mod_psi*(p(4)*psi_y**2/mod_psi_sq - b1)
+                            gaddendum0=p(4)*(rtot)*(rprod*beta*(-psi_y/mod_psi)/rtot**2)
+                            feq=p(4)*(rtot+(temp - udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
+                            f4(i,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
+                            g4(i,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
 
-                          !2-4
-                          addendum0=st_coeff*mod_psi*(p(2)*psi_y**2/mod_psi_sq - b1)
-                          gaddendum0=p(2)*(rtot)*(rprod*beta*psi_y/mod_psi/rtot**2)
-                          udotc=vshifted/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(2)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
-                          f2(i,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0  
-                          g2(i,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
-                          addendum0=st_coeff*mod_psi*(p(4)*psi_y**2/mod_psi_sq - b1)
-                          gaddendum0=p(4)*(rtot)*(rprod*beta*(-psi_y/mod_psi)/rtot**2)
-                          feq=p(4)*(rtot+(temp - udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
-                          f4(i,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
-                          g4(i,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
+                            !5-7
+                            addendum0=st_coeff*mod_psi*(p(5)*(psi_x+psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(5)*(rtot)*(rprod*beta*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
+                            udotc=(ushifted+vshifted)/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(5)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
+                            f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot - gaddendum0
+                            
+                            addendum0=st_coeff*mod_psi*(p(7)*(-psi_x-psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(7)*(rtot)*(rprod*beta*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
+                            feq=p(7)*(rtot+(temp - udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
+                            f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0
 
-                          !5-7
-                          addendum0=st_coeff*mod_psi*(p(5)*(psi_x+psi_y)**2/mod_psi_sq - b2)
-                          gaddendum0=p(5)*(rtot)*(rprod*beta*(psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
-                          udotc=(ushifted+vshifted)/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(5)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
-                          f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot - gaddendum0
-                          addendum0=st_coeff*mod_psi*(p(7)*(-psi_x-psi_y)**2/mod_psi_sq - b2)
-                          gaddendum0=p(7)*(rtot)*(rprod*beta*(-psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
-                          feq=p(7)*(rtot+(temp - udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
-                          f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0
-
-                          !6-8
-                          addendum0=st_coeff*mod_psi*(p(6)*(-psi_x+psi_y)**2/mod_psi_sq - b2)
-                          gaddendum0=p(6)*(rtot)*(rprod*beta*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
-                          udotc=(-ushifted+vshifted)/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(6)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + addendum0 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
-                          f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
-                          addendum0=st_coeff*mod_psi*(p(8)*(psi_x-psi_y)**2/mod_psi_sq - b2)
-                          gaddendum0=p(8)*(rtot)*(rprod*beta*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
-                          feq=p(8)*(rtot+(temp - udotc))
-                          fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  + addendum0 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
-                          f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
-                          g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0    
+                            !6-8
+                            addendum0=st_coeff*mod_psi*(p(6)*(-psi_x+psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(6)*(rtot)*(rprod*beta*(-psi_x/mod_psi + psi_y/mod_psi)/rtot**2)
+                            udotc=(-ushifted+vshifted)/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(6)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + addendum0 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
+                            f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0
+                            g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
+                           
+                            addendum0=st_coeff*mod_psi*(p(8)*(psi_x-psi_y)**2/mod_psi_sq - b2)
+                            gaddendum0=p(8)*(rtot)*(rprod*beta*(psi_x/mod_psi - psi_y/mod_psi)/rtot**2)
+                            feq=p(8)*(rtot+(temp - udotc))
+                            fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  + addendum0 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
+                            f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
+                            g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0    
                         else
-                          !regularized collision + perturbation + recolouring
-                          ushifted=u(i,j) + fx 
-                          vshifted=v(i,j) + fy 
-                          uu=0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq
-                          feq=p(0)*(rtot-uu)
-                          fpc=feq + (1.0_db-omega)*pi2cssq0*(- cssq*pyy(i,j)-cssq*pxx(i,j))  + addendum0
-                          f0(i,j)=fpc*(rhoA(i,j))/rtot 
-                          g0(i,j)=fpc*(rhoB(i,j))/rtot
-                          !1
-                          udotc=ushifted/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(1)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j) )+ addendum0 !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
-                          f1(i+1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g1(i+1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0
-                          !3
-                          feq=p(3)*(rtot+(temp - udotc))
-                          fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) + addendum0 !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
-                          f3(i-1,j)= fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g3(i-1,j)= fpc*(rhoB(i,j))/rtot - gaddendum0 
-                          !2
-                          udotc=vshifted/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(2)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
-                          f2(i,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0  
-                          g2(i,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0   
-                          !4
-                          feq=p(4)*(rtot+(temp - udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
-                          f4(i,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
-                          g4(i,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
-                          !5
-                          udotc=(ushifted+vshifted)/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(5)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
-                          f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot - gaddendum0
-                          !7
-                          feq=p(7)*(rtot+(temp - udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + addendum0 !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
-                          f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0
-                          !6
-                          udotc=(-ushifted+vshifted)/cssq
-                          temp = -uu + 0.5_db*udotc*udotc
-                          feq=p(6)*(rtot+(temp + udotc))
-                          fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + addendum0 !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
-                          f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot + gaddendum0
-                          g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot - gaddendum0
-                          !8
-                          feq=p(8)*(rtot+(temp - udotc))
-                          fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  + addendum0 !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
-                          f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot + gaddendum0 
-                          g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot - gaddendum0 
+                            !regularized collision + perturbation + recolouring
+                            ushifted=u(i,j) + fx 
+                            vshifted=v(i,j) + fy 
+                            uu=0.5_db*(ushifted*ushifted + vshifted*vshifted)/cssq
+                            feq=p(0)*(rtot-uu)
+                            fpc=feq + (1.0_db-omega)*pi2cssq0*(- cssq*pyy(i,j)-cssq*pxx(i,j))  
+                            f0(i,j)=fpc*(rhoA(i,j))/rtot 
+                            g0(i,j)=fpc*(rhoB(i,j))/rtot
+                            !1
+                            udotc=ushifted/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(1)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j)) !+ (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(1)/cssq 
+                            f1(i+1,j)= fpc*(rhoA(i,j))/rtot 
+                            g1(i+1,j)= fpc*(rhoB(i,j))/rtot 
+                            !3
+                            feq=p(3)*(rtot+(temp - udotc))
+                            fpc=feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j) - cssq*pyy(i,j))  !- (fx+float(nci_loc(i,j))*(norm_x)*max_press_excess*abs(rhoa(i,j)))*p(3)/cssq 
+                            f3(i-1,j)= fpc*(rhoA(i,j))/rtot 
+                            g3(i-1,j)= fpc*(rhoB(i,j))/rtot  
+                            !2
+                            udotc=vshifted/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(2)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  !+ (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(2)/cssq  !
+                            f2(i,j+1)= fpc*(rhoA(i,j))/rtot   
+                            g2(i,j+1)= fpc*(rhoB(i,j))/rtot    
+                            !4
+                            feq=p(4)*(rtot+(temp - udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j)) + addendum0 !- (fy+float(nci_loc(i,j))*(norm_y)*max_press_excess*abs(rhoa(i,j)))*p(4)/cssq 
+                            f4(i,j-1)=fpc*(rhoA(i,j))/rtot  
+                            g4(i,j-1)=fpc*(rhoB(i,j))/rtot  
+                            !5
+                            udotc=(ushifted+vshifted)/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(5)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j))  !+ (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(5)/cssq 
+                            f5(i+1,j+1)=fpc*(rhoA(i,j))/rtot 
+                            g5(i+1,j+1)=fpc*(rhoB(i,j))/rtot 
+                            !7
+                            feq=p(7)*(rtot+(temp - udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j))  !- (fx + fy + float(nci_loc(i,j))*(norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(7)/cssq 
+                            f7(i-1,j-1)=fpc*(rhoA(i,j))/rtot 
+                            g7(i-1,j-1)=fpc*(rhoB(i,j))/rtot 
+                            !6
+                            udotc=(-ushifted+vshifted)/cssq
+                            temp = -uu + 0.5_db*udotc*udotc
+                            feq=p(6)*(rtot+(temp + udotc))
+                            fpc=feq  + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))  !+(-fx + fy + float(nci_loc(i,j))*(-norm_x+norm_y)*max_press_excess*abs(rhoa(i,j)))*p(6)/cssq 
+                            f6(i-1,j+1)= fpc*(rhoA(i,j))/rtot 
+                            g6(i-1,j+1)= fpc*(rhoB(i,j))/rtot 
+                            !8
+                            feq=p(8)*(rtot+(temp - udotc))
+                            fpc=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j))   !+( fx - fy + float(nci_loc(i,j))*(norm_x-norm_y)*max_press_excess*abs(rhoa(i,j)))*p(8)/cssq 
+                            f8(i+1,j-1)=fpc*(rhoA(i,j))/rtot 
+                            g8(i+1,j-1)=fpc*(rhoB(i,j))/rtot  
                         endif
                     endif
                 enddo
