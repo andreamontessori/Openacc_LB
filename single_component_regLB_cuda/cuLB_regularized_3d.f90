@@ -3,6 +3,8 @@
    
    use cudafor
    
+   implicit none 
+   
    integer, parameter :: db=4 !kind(1.0)
    ! device arrays
     integer(kind=4), allocatable,  dimension(:,:,:), device   :: isfluid_d

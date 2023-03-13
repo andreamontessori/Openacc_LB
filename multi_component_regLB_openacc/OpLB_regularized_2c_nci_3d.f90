@@ -56,8 +56,6 @@ program lb_openacc
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
-    
-    
     !#ifdef _OPENACC
     !        ngpus=acc_get_num_devices(acc_device_nvidia)
     !#else
@@ -349,7 +347,13 @@ program lb_openacc
             do j=1,ny
                 do i=1,nx
                     if(isfluid(i,j,k).eq.1)then
-                   
+                        pxx(i,j,k)=0.0_db
+                        pyy(i,j,k)=0.0_db
+                        pzz(i,j,k)=0.0_db
+                        pxy(i,j,k)=0.0_db
+                        pxz(i,j,k)=0.0_db
+                        pyz(i,j,k)=0.0_db
+
                         rhoA(i,j,k) = f0(i,j,k)+f1(i,j,k)+f2(i,j,k)+f3(i,j,k)+f4(i,j,k)+f5(i,j,k) &
                             +f6(i,j,k)+f7(i,j,k)+f8(i,j,k)+f9(i,j,k)+f10(i,j,k)+f11(i,j,k) &
                             +f12(i,j,k)+f13(i,j,k)+f14(i,j,k)+f15(i,j,k)+f16(i,j,k)+f17(i,j,k) &

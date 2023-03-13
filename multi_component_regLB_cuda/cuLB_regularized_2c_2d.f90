@@ -104,7 +104,7 @@ module mysubs
     
          integer :: i, j
          
-         real(kind=db) :: fneq1,uu, udotc, temp, fneq, locpxx, locpyy,locpxy,rtot
+         real(kind=db) :: fneq1,uu, udotc, temp,rtot
          
          i = (blockIdx%x - 1)*TILE_DIMx_d + threadIdx%x
          j = (blockIdx%y - 1)*TILE_DIMy_d + threadIdx%y
@@ -1159,205 +1159,212 @@ program lb_openacc
    
    type(dim3) :: dimGrid, dimBlock
 
-   nlinks = 8 !pari!
-   tau = 1.0_db
-   cssq = 1.0_db/3.0_db
-   visc_LB = cssq*(tau - 0.5_db)
-   one_ov_nu = 1.0_db/visc_LB
+   !*********************************** lattice parameters**************************************!
+      nlinks = 8 !pari!
+      cssq=1.0_db/3.0_db
+      !fluid 1
+      tau=1.0_db
+      visc_LB=cssq*(tau-0.5_db)
+      one_ov_nu1=1.0_db/visc_LB
+      !fluid2
+      tau=1.0_db
+      visc_LB=cssq*(tau-0.5_db)
+      one_ov_nu2=1.0_db/visc_LB
 
-   istat = cudaGetDeviceCount(ngpus)
-!#ifdef _OPENACC
-!        ngpus=acc_get_num_devices(acc_device_nvidia)
-!#else
-!        ngpus=0
-!#endif
+      istat = cudaGetDeviceCount(ngpus)
+      !#ifdef _OPENACC
+      !        ngpus=acc_get_num_devices(acc_device_nvidia)
+      !#else
+      !        ngpus=0
+      !#endif
 
    !*******************************user parameters**************************
 
-   nx = 4096
-   ny = 4096
-   TILE_DIMx = 256
-   TILE_DIMy = 2
-   TILE_DIM = 16
+      nx = 4096
+      ny = 4096
+      TILE_DIMx = 256
+      TILE_DIMy = 2
+      TILE_DIM = 16
 
-   if (mod(nx, TILE_DIMx) /= 0) then
-      write (*, *) 'nx must be a multiple of TILE_DIM'
-      stop
-   end if
-   if (mod(ny, TILE_DIMy) /= 0) then
-      write (*, *) 'ny must be a multiple of TILE_DIMy'
-      stop
-   end if
-   dimGrid = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
-   dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
+      if (mod(nx, TILE_DIMx) /= 0) then
+         write (*, *) 'nx must be a multiple of TILE_DIM'
+         stop
+      end if
+      if (mod(ny, TILE_DIMy) /= 0) then
+         write (*, *) 'ny must be a multiple of TILE_DIMy'
+         stop
+      end if
+      dimGrid = dim3(nx/TILE_DIMx, ny/TILE_DIMy, 1)
+      dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
    
-   radius=20
-   nsteps = 1000
-   stamp = 1000000
-   lprint = .true.
-   lvtk = .true.
-   lpbc = .false.
-   lasync = .false.
-   fx = 0.0_db*10.0_db**(-5.0_db)
-   fy = 0.0_db*10.0_db**(-6.0_db)
-   allocate (p(0:nlinks))
-   !allocate(f0(0:nx+1,0:ny+1),f1(0:nx+1,0:ny+1),f2(0:nx+1,0:ny+1),f3(0:nx+1,0:ny+1),f4(0:nx+1,0:ny+1))
-   !allocate(f5(0:nx+1,0:ny+1),f6(0:nx+1,0:ny+1),f7(0:nx+1,0:ny+1),f8(0:nx+1,0:ny+1))
-   !allocate(rho(1:nx,1:ny),u(1:nx,1:ny),v(1:nx,1:ny),pxx(1:nx,1:ny),pyy(1:nx,1:ny),pxy(1:nx,1:ny))
-   allocate (isfluid(1:nx, 1:ny)) !,omega_2d(1:nx,1:ny))
+      radius=20
+      nsteps = 1000
+      stamp = 1000000
+      lprint = .true.
+      lvtk = .true.
+      lpbc = .false.
+      lasync = .false.
+      fx = 0.0_db*10.0_db**(-5.0_db)
+      fy = 0.0_db*10.0_db**(-6.0_db)
+      allocate (p(0:nlinks))
 
-   !ex=(/0,1,0,-1,0,1,-1,-1,1/)
-   !ey=(/0,0,1,0,-1,1,1,-1,-1/)
+      allocate (isfluid(1:nx, 1:ny)) !,omega_2d(1:nx,1:ny))
 
-   p = (/4.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/36.0_db, &
-         1.0_db/36.0_db, 1.0_db/36.0_db, 1.0_db/36.0_db/)
+      !ex=(/0,1,0,-1,0,1,-1,-1,1/)
+      !ey=(/0,0,1,0,-1,1,1,-1,-1/)
 
-   omega = 1.0_db/tau
+      p = (/4.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/9.0_db, 1.0_db/36.0_db, &
+            1.0_db/36.0_db, 1.0_db/36.0_db, 1.0_db/36.0_db/)
 
-   ! regularized: hermite
-   qxx = 1.0_db - cssq
-   qyy = 1.0_db - cssq
-   qxy5_7 = 1.0_db
-   qxy6_8 = -1.0_db
-   pi2cssq0 = p(0)/(2.0_db*cssq**2)
-   pi2cssq1 = p(1)/(2.0_db*cssq**2)
-   pi2cssq2 = p(5)/(2.0_db*cssq**2)
+      omega = 1.0_db/tau
+
+      ! regularized: hermite
+      qxx = 1.0_db - cssq
+      qyy = 1.0_db - cssq
+      qxy5_7 = 1.0_db
+      qxy6_8 = -1.0_db
+      pi2cssq0 = p(0)/(2.0_db*cssq**2)
+      pi2cssq1 = p(1)/(2.0_db*cssq**2)
+      pi2cssq2 = p(5)/(2.0_db*cssq**2)
    !**************************************color gradient********************
-   beta = 0.95_db
-   sigma = 0.02_db
-   b0 = -4.0_db/27.0_db
-   b1 = 2.0_db/27.0_db
-   b2 = 5.0_db/108.0_db
-   max_press_excess=0.0_db
+      beta = 0.95_db
+      sigma = 0.02_db
+      b0 = -4.0_db/27.0_db
+      b1 = 2.0_db/27.0_db
+      b2 = 5.0_db/108.0_db
+      max_press_excess=0.0_db
    !*****************************************geometry************************
-   isfluid = 1
-   isfluid(1, :) = 0 !EAST
-   isfluid(nx, :) = 0 !WEST
-   isfluid(:, 1) = 0 !SOUTH
-   isfluid(:, ny) = 0 !NORTH
+      isfluid = 1
+      isfluid(1, :) = 0 !EAST
+      isfluid(nx, :) = 0 !WEST
+      isfluid(:, 1) = 0 !SOUTH
+      isfluid(:, ny) = 0 !NORTH
    !*************************************initial conditions ************************
-   myu = 0.0_db
-   myv = 0.0_db
-   myrhoA = 1.0_db
-   myrhoB = 0.0_db     
+      myu = 0.0_db
+      myv = 0.0_db
+      myrhoA = 1.0_db
+      myrhoB = 0.0_db     
    !*************************************check data ************************
-   write (6, '(a)') '*******************LB data*****************'
-   write (6, *) 'tau', tau
-   write (6, *) 'omega', omega
-   write (6, *) 'visc', visc_LB
-   write (6, *) 'fx', fx
-   write (6, *) 'cssq', cssq
-   write (6, '(a)') '*******************INPUT data*****************'
-   write (6, *) 'nx', nx
-   write (6, *) 'ny', ny
-   write (6, *) 'lpbc', lpbc
-   write (6, *) 'lprint', lprint
-   write (6, *) 'lvtk', lvtk
-   write (6, *) 'lasync', lasync
-   write (6, *) 'nsteps', nsteps
-   write (6, *) 'stamp', stamp
-   write (6, *) 'max fx', huge(fx)
-   write (6, *) 'TILE_DIMx ', TILE_DIMx
-   write (6, *) 'TILE_DIMy ', TILE_DIMy
-   write (6, *) 'TILE_DIM ', TILE_DIM
-   write (6, *) 'available gpus', ngpus
-   write (6, '(a)') '*******************************************'
-   istat = cudaGetDeviceProperties(prop, 0)
+      write (6, '(a)') '*******************LB data*****************'
+      write (6, *) 'tau', tau
+      write (6, *) 'omega', omega
+      write (6, *) 'visc', visc_LB
+      write (6, *) 'fx', fx
+      write (6, *) 'cssq', cssq
+      write (6, '(a)') '*******************INPUT data*****************'
+      write (6, *) 'nx', nx
+      write (6, *) 'ny', ny
+      write (6, *) 'lpbc', lpbc
+      write (6, *) 'lprint', lprint
+      write (6, *) 'lvtk', lvtk
+      write (6, *) 'lasync', lasync
+      write (6, *) 'nsteps', nsteps
+      write (6, *) 'stamp', stamp
+      write (6, *) 'max fx', huge(fx)
+      write (6, *) 'TILE_DIMx ', TILE_DIMx
+      write (6, *) 'TILE_DIMy ', TILE_DIMy
+      write (6, *) 'TILE_DIM ', TILE_DIM
+      write (6, *) 'available gpus', ngpus
+      write (6, '(a)') '*******************************************'
+      istat = cudaGetDeviceProperties(prop, 0)
 
-   call printDeviceProperties(prop, 6, 1)
-   ! create events and streams
-   istat = cudaStreamCreate(stream1)
-   if(lasync)istat = cudaStreamCreate(stream2)
-   istat = cudaforSetDefaultstream(stream1)
-   istat = cudaDeviceSynchronize
+      call printDeviceProperties(prop, 6, 1)
+      ! create events and streams
+      istat = cudaStreamCreate(stream1)
+      if(lasync)istat = cudaStreamCreate(stream2)
+      istat = cudaforSetDefaultstream(stream1)
+      istat = cudaDeviceSynchronize
 
-   istat = cudaEventCreate(startEvent)
-   istat = cudaEventCreate(stopEvent)
-   istat = cudaEventCreate(dummyEvent)
-   istat = cudaEventCreate(dummyEvent1)
-   istat = cudaEventCreate(dummyEvent2)
+      istat = cudaEventCreate(startEvent)
+      istat = cudaEventCreate(stopEvent)
+      istat = cudaEventCreate(dummyEvent)
+      istat = cudaEventCreate(dummyEvent1)
+      istat = cudaEventCreate(dummyEvent2)
 
-!!!!!!!!!!!!!from host to device!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   nx_d = nx
-   ny_d = ny
-   TILE_DIMx_d = TILE_DIMx
-   TILE_DIMy_d = TILE_DIMy
-   TILE_DIM_d = TILE_DIM
-   myrhoA_d = myrhoA
-   myrhoB_d = myrhoB
-   myu_d = myu
-   myv_d = myv
-   fx_d = fx
-   fy_d = fy
-   p_d = p
-   omega_d = omega
-   qxx_d = qxx
-   qyy_d = qyy
-   qxy5_7_d = qxy5_7
-   qxy6_8_d = qxy6_8
-   cssq_d = cssq
-   pi2cssq0_d = pi2cssq0
-   pi2cssq1_d = pi2cssq1
-   pi2cssq2_d = pi2cssq2
-   b0_d=b0
-   b1_d=b1
-   b2_d=b2
-   sigma_d=sigma
-   beta_d=beta
-   max_press_excess_d=max_press_excess
-   allocate (isfluid_d(1:nx_d, 1:ny_d))
-   istat = cudaDeviceSynchronize
-   istat = cudaMemcpy(isfluid_d, isfluid, nx*ny)
-   istat = cudaDeviceSynchronize
-   if (istat /= 0) write (*, *) 'status after copy isfluid:', istat
-   allocate(rhoA_d(1:nx_d,1:ny_d),rhoB_d(1:nx_d,1:ny_d),u_d(1:nx_d,1:ny_d),v_d(1:nx_d,1:ny_d),pxx_d(1:nx_d,1:ny_d),pyy_d(1:nx_d,1:ny_d),pxy_d(1:nx_d,1:ny_d))
-   allocate(f0_d(0:nx_d+1,0:ny_d+1),f1_d(0:nx_d+1,0:ny_d+1),f2_d(0:nx_d+1,0:ny_d+1),f3_d(0:nx_d+1,0:ny_d+1),f4_d(0:nx_d+1,0:ny_d+1))
-   allocate(f5_d(0:nx_d + 1, 0:ny_d + 1), f6_d(0:nx_d + 1, 0:ny_d + 1), f7_d(0:nx_d + 1, 0:ny_d + 1), f8_d(0:nx_d + 1, 0:ny_d + 1))
-   allocate(g0_d(0:nx_d+1,0:ny_d+1),g1_d(0:nx_d+1,0:ny_d+1),g2_d(0:nx_d+1,0:ny_d+1),g3_d(0:nx_d+1,0:ny_d+1),g4_d(0:nx_d+1,0:ny_d+1))
-   allocate(g5_d(0:nx_d+1,0:ny_d+1),g6_d(0:nx_d+1,0:ny_d+1),g7_d(0:nx_d+1,0:ny_d+1),g8_d(0:nx_d+1,0:ny_d+1))
-   allocate(psi_d(1:nx_d,1:ny_d),nci_loc_d(1:nx_d,1:ny_d))
-   rhoA_d=0.0_db
-   rhoB_d=0.0_db
-   psi_d=0.0_db
-   u_d=0.0_db
-   v_d=0.0_db
-   istat = cudaDeviceSynchronize
-   
-   call setup_pops <<< dimGrid, dimBlock >>> (radius)
-   istat = cudaDeviceSynchronize
-   
-   allocate(rhoprint(1:nx, 1:ny, 1:nz), velprint(3, 1:nx, 1:ny, 1:nz))
-   allocate(rhoprint_d(1:nx_d, 1:ny_d, 1:nz_d), velprint_d(3, 1:nx_d, 1:ny_d, 1:nz_d))
-   if (lprint) then
-         call init_output(nx, ny, nz, 1, lvtk)
-         call string_char(head1, nheadervtk(1), headervtk(1))
-         call string_char(head2, nheadervtk(2), headervtk(2))
-   end if
+   !**************************from host to device*********************************!
+      nx_d = nx
+      ny_d = ny
+      TILE_DIMx_d = TILE_DIMx
+      TILE_DIMy_d = TILE_DIMy
+      TILE_DIM_d = TILE_DIM
+      myrhoA_d = myrhoA
+      myrhoB_d = myrhoB
+      myu_d = myu
+      myv_d = myv
+      fx_d = fx
+      fy_d = fy
+      p_d = p
+      one_ov_nu1_d=one_ov_nu1
+      one_ov_nu2_d=one_ov_nu2
+      omega_d = omega
+      qxx_d = qxx
+      qyy_d = qyy
+      qxy5_7_d = qxy5_7
+      qxy6_8_d = qxy6_8
+      cssq_d = cssq
+      pi2cssq0_d = pi2cssq0
+      pi2cssq1_d = pi2cssq1
+      pi2cssq2_d = pi2cssq2
+      b0_d=b0
+      b1_d=b1
+      b2_d=b2
+      sigma_d=sigma
+      beta_d=beta
+      max_press_excess_d=max_press_excess
+   !*************************************************allocate on dev******************************!
+      allocate (isfluid_d(1:nx_d, 1:ny_d))
+      istat = cudaDeviceSynchronize
+      istat = cudaMemcpy(isfluid_d, isfluid, nx*ny)
+      istat = cudaDeviceSynchronize
+      if (istat /= 0) write (*, *) 'status after copy isfluid:', istat
+      allocate(rhoA_d(1:nx_d,1:ny_d),rhoB_d(1:nx_d,1:ny_d),u_d(1:nx_d,1:ny_d),v_d(1:nx_d,1:ny_d),pxx_d(1:nx_d,1:ny_d),pyy_d(1:nx_d,1:ny_d),pxy_d(1:nx_d,1:ny_d))
+      allocate(f0_d(0:nx_d+1,0:ny_d+1),f1_d(0:nx_d+1,0:ny_d+1),f2_d(0:nx_d+1,0:ny_d+1),f3_d(0:nx_d+1,0:ny_d+1),f4_d(0:nx_d+1,0:ny_d+1))
+      allocate(f5_d(0:nx_d + 1, 0:ny_d + 1), f6_d(0:nx_d + 1, 0:ny_d + 1), f7_d(0:nx_d + 1, 0:ny_d + 1), f8_d(0:nx_d + 1, 0:ny_d + 1))
+      allocate(g0_d(0:nx_d+1,0:ny_d+1),g1_d(0:nx_d+1,0:ny_d+1),g2_d(0:nx_d+1,0:ny_d+1),g3_d(0:nx_d+1,0:ny_d+1),g4_d(0:nx_d+1,0:ny_d+1))
+      allocate(g5_d(0:nx_d+1,0:ny_d+1),g6_d(0:nx_d+1,0:ny_d+1),g7_d(0:nx_d+1,0:ny_d+1),g8_d(0:nx_d+1,0:ny_d+1))
+      allocate(psi_d(1:nx_d,1:ny_d),nci_loc_d(1:nx_d,1:ny_d))
+      rhoA_d=0.0_db
+      rhoB_d=0.0_db
+      psi_d=0.0_db
+      u_d=0.0_db
+      v_d=0.0_db
+      istat = cudaDeviceSynchronize
+   !*************************************************************************************
+      call setup_pops <<< dimGrid, dimBlock >>> (radius)
+      istat = cudaDeviceSynchronize
+      
+      allocate(rhoprint(1:nx, 1:ny, 1:nz), velprint(3, 1:nx, 1:ny, 1:nz))
+      allocate(rhoprint_d(1:nx_d, 1:ny_d, 1:nz_d), velprint_d(3, 1:nx_d, 1:ny_d, 1:nz_d))
+      if (lprint) then
+            call init_output(nx, ny, nz, 1, lvtk)
+            call string_char(head1, nheadervtk(1), headervtk(1))
+            call string_char(head2, nheadervtk(2), headervtk(2))
+      end if
 
-   istat = cudaDeviceSynchronize
-   iframe = 0
-   step = 0
-   if (lprint) then
-         call moments <<< dimGrid, dimBlock, 0, stream1 >>> ()
-         call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
-         istat = cudaEventRecord(dummyEvent1, stream1)
-         istat = cudaEventSynchronize(dummyEvent1)
-         !write(6,*)'ciao 1',step,iframe
-         if (lasync) then
-               istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-               istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-         else
-               istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz)
-               istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz)
-               istat = cudaEventRecord(dummyEvent, 0)
-               istat = cudaEventSynchronize(dummyEvent)
-               if (lvtk) then
-                  call print_vtk_sync
-               else
-                  call print_raw_sync
-               end if
-         end if
-   end if
+      istat = cudaDeviceSynchronize
+      iframe = 0
+      step = 0
+      if (lprint) then
+            call moments <<< dimGrid, dimBlock, 0, stream1 >>> ()
+            call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
+            istat = cudaEventRecord(dummyEvent1, stream1)
+            istat = cudaEventSynchronize(dummyEvent1)
+            !write(6,*)'ciao 1',step,iframe
+            if (lasync) then
+                  istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
+                  istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
+            else
+                  istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz)
+                  istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz)
+                  istat = cudaEventRecord(dummyEvent, 0)
+                  istat = cudaEventSynchronize(dummyEvent)
+                  if (lvtk) then
+                     call print_vtk_sync
+                  else
+                     call print_raw_sync
+                  end if
+            end if
+      end if
 
    !*************************************time loop************************
    call cpu_time(ts1)
