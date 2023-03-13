@@ -2,6 +2,8 @@ module mysubs
 
    use cudafor
 
+   implicit none
+
    integer, parameter :: db = 4 !kind(1.0)
    real(kind=db), parameter :: Pi = real(3.141592653589793238462643383279502884d0,kind=db)
    ! device arrays
@@ -1141,12 +1143,10 @@ program lb_openacc
    logical :: lasync = .false.
    real(kind=4)  :: ts1, ts2, time
    real(kind=db) :: visc_LB, uu, udotc, omega, feq
-   !real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
    real(kind=db) :: qxx, qyy, qxy5_7, qxy6_8, pi2cssq1, pi2cssq2, pi2cssq0
    real(kind=db) :: tau, one_ov_nu, cssq, fx, fy, temp, dummy, myrhoA,myrhoB, myu, myv
    real(kind=db) :: b0, b1, b2, beta, sigma
-   real(kind=db) :: one_ov_nu2, one_ov_nu1
-   real(kind=db) :: max_press_excess, ushifted, vshifted
+   real(kind=db) :: max_press_excess
 
    integer(kind=4), allocatable, dimension(:, :)   :: isfluid
 
@@ -1174,11 +1174,11 @@ program lb_openacc
 
    !*******************************user parameters**************************
 
-   nx = 256
-   ny = 256
-   TILE_DIMx = 8
-   TILE_DIMy = 1
-   TILE_DIM = 8
+   nx = 4096
+   ny = 4096
+   TILE_DIMx = 256
+   TILE_DIMy = 2
+   TILE_DIM = 16
 
    if (mod(nx, TILE_DIMx) /= 0) then
       write (*, *) 'nx must be a multiple of TILE_DIM'
@@ -1192,8 +1192,8 @@ program lb_openacc
    dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
    
    radius=20
-   nsteps = 10
-   stamp = 10
+   nsteps = 1000
+   stamp = 1000000
    lprint = .true.
    lvtk = .true.
    lpbc = .false.
@@ -1239,18 +1239,7 @@ program lb_openacc
    myu = 0.0_db
    myv = 0.0_db
    myrhoA = 1.0_db
-   myrhoB = 0.0_db     !rho!
-   !do ll=0,nlinks
-!    f0(1:nx,1:ny)=p(0)*rho(:,:)!0.0_db
-!    f1(1:nx,1:ny)=p(1)*rho(:,:)
-!    f2(1:nx,1:ny)=p(2)*rho(:,:)
-!    f3(1:nx,1:ny)=p(3)*rho(:,:)
-!    f4(1:nx,1:ny)=p(4)*rho(:,:)
-!    f5(1:nx,1:ny)=p(5)*rho(:,:)
-!    f6(1:nx,1:ny)=p(6)*rho(:,:)
-!    f7(1:nx,1:ny)=p(7)*rho(:,:)
-!    f8(1:nx,1:ny)=p(8)*rho(:,:)
-   !enddo
+   myrhoB = 0.0_db     
    !*************************************check data ************************
    write (6, '(a)') '*******************LB data*****************'
    write (6, *) 'tau', tau
