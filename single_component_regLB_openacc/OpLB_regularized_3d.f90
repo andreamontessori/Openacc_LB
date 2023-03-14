@@ -1324,6 +1324,13 @@ program lb_openacc
         
     enddo 
     !$acc wait
+    if(lasync)then
+      if(lvtk)then
+        call print_vtk_sync(iframe)
+      else
+        call print_raw_sync(iframe)
+      endif
+    endif
     call cpu_time(ts2)
     !$acc update host(rho,u,v,w)
     !$acc end data
