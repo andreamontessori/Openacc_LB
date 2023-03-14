@@ -178,13 +178,6 @@
             pzz_d(i,j,k)=pzz_d(i,j,k)+fneq1
             pxx_d(i,j,k)=pxx_d(i,j,k)+fneq1
             pxz_d(i,j,k)=pxz_d(i,j,k)-fneq1
-            ! pxx_d(i,j,k)=fneq1+fneq2+fneq7+fneq8+fneq9+fneq10+fneq15+fneq16+fneq17+fneq18
-            ! pyy_d(i,j,k)=fneq3+fneq4+fneq7+fneq8+fneq9+fneq10+fneq11+fneq12+fneq13+fneq14
-            ! pzz_d(i,j,k)=fneq5+fneq6+fneq11+fneq12+fneq13+fneq14+fneq15+fneq16+fneq17+fneq18
-            ! pxy_d(i,j,k)= fneq7+fneq8-fneq9-fneq10
-            ! pxz_d(i,j,k)=fneq15+fneq16-fneq17-fneq18
-            ! pyz_d(i,j,k)=fneq11+fneq12-fneq13-fneq14
-    
 
       end subroutine moments
   
@@ -1222,8 +1215,8 @@ program lb_openacc
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     
     real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
-    real(kind=db) :: visc_LB,uu,udotc,omega,feq
-    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz,temp
+    real(kind=db) :: visc_LB,omega
+    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz
 
     real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
     real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0,myrho,myu,myv,myw
