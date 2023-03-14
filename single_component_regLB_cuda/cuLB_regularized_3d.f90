@@ -295,8 +295,6 @@
             !14
             feq=p2_d*(rho_d(i,j,k)+(temp - udotc))
             f14_d(i,j-1,k+1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qyy_d*pyy_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pxx_d(i,j,k)+2.0_db*qyz_13_14_d*pyz_d(i,j,k)) + (fz_d-fy_d)*p2dcssq_d
-          
-
 
       end subroutine streamcoll
   
