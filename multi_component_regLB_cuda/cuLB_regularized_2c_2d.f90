@@ -1145,7 +1145,7 @@ program lb_openacc
    real(kind=4)  :: ts1, ts2, time
    real(kind=db) :: visc_LB, uu, udotc, omega, feq
    real(kind=db) :: qxx, qyy, qxy5_7, qxy6_8, pi2cssq1, pi2cssq2, pi2cssq0
-   real(kind=db) :: tau, one_ov_nu, cssq, fx, fy, temp, dummy, myrhoA,myrhoB, myu, myv
+   real(kind=db) :: tau, one_ov_nu1, one_ov_nu2,cssq, fx, fy, temp, dummy, myrhoA,myrhoB, myu, myv
    real(kind=db) :: b0, b1, b2, beta, sigma
    real(kind=db) :: max_press_excess
 
@@ -1219,7 +1219,7 @@ program lb_openacc
 
       omega = 1.0_db/tau
 
-      ! regularized: hermite
+   !********************regularized: hermite**************************
       qxx = 1.0_db - cssq
       qyy = 1.0_db - cssq
       qxy5_7 = 1.0_db
@@ -1240,7 +1240,7 @@ program lb_openacc
       isfluid(nx, :) = 0 !WEST
       isfluid(:, 1) = 0 !SOUTH
       isfluid(:, ny) = 0 !NORTH
-   !*************************************initial conditions ************************
+   !*************************************initialize dummy vars ************************
       myu = 0.0_db
       myv = 0.0_db
       myrhoA = 1.0_db
@@ -1368,69 +1368,69 @@ program lb_openacc
       end if
 
    !*************************************time loop************************
-   call cpu_time(ts1)
-   istat = cudaEventRecord(startEvent, 0)
-   
-   do step = 1, nsteps
-      !***********************************moment + neq pressor*********
+      call cpu_time(ts1)
+      istat = cudaEventRecord(startEvent, 0)
+      
+      do step = 1, nsteps
+         !***********************************moment + neq pressor*********
 
-      call moments <<< dimGrid, dimBlock, 0, stream1 >>> ()
+         call moments <<< dimGrid, dimBlock, 0, stream1 >>> ()
 
-      !***********************************PRINT************************
-         if (mod(step, stamp) .eq. 0) write (6, '(a,i8)') 'step : ', step
-         if (lprint) then
-            if (mod(step, stamp) .eq. 0) then
-                  iframe = iframe + 1
-                  !write(6,*)'ciao 1',step,iframe
-                  istat = cudaEventRecord(dummyEvent1, stream1)
-                  istat = cudaEventSynchronize(dummyEvent1)
-                  call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
-                  istat = cudaEventRecord(dummyEvent1, stream1)
-                  istat = cudaEventSynchronize(dummyEvent1)
-                  if (lasync) then
-                     call close_print_async
-                     istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-                     istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
-                  else
-                     istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost)
-                     istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost)
-                     istat = cudaEventRecord(dummyEvent, 0)
-                     istat = cudaEventSynchronize(dummyEvent)
+         !***********************************PRINT************************
+            if (mod(step, stamp) .eq. 0) write (6, '(a,i8)') 'step : ', step
+            if (lprint) then
+               if (mod(step, stamp) .eq. 0) then
+                     iframe = iframe + 1
+                     !write(6,*)'ciao 1',step,iframe
+                     istat = cudaEventRecord(dummyEvent1, stream1)
+                     istat = cudaEventSynchronize(dummyEvent1)
+                     call store_print <<< dimGrid, dimBlock, 0, stream1 >>> ()
+                     istat = cudaEventRecord(dummyEvent1, stream1)
+                     istat = cudaEventSynchronize(dummyEvent1)
+                     if (lasync) then
+                        call close_print_async
+                        istat = cudaMemcpyAsync(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
+                        istat = cudaMemcpyAsync(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost, stream2)
+                     else
+                        istat = cudaMemcpy(rhoprint, rhoprint_d, nx*ny*nz, cudaMemcpyDeviceToHost)
+                        istat = cudaMemcpy(velprint, velprint_d, 3*nx*ny*nz, cudaMemcpyDeviceToHost)
+                        istat = cudaEventRecord(dummyEvent, 0)
+                        istat = cudaEventSynchronize(dummyEvent)
+                     if (lvtk) then
+                        call print_vtk_sync
+                     else
+                        call print_raw_sync
+                     end if
+                  end if
+               end if
+         
+               if (mod(step - stamp/4, stamp) .eq. 0 .and. lasync) then
+                  !write(6,*)'ciao 2',step,iframe
+                  istat = cudaEventRecord(dummyEvent2, stream2)
+                  istat = cudaEventSynchronize(dummyEvent2)
                   if (lvtk) then
-                     call print_vtk_sync
+                     call print_vtk_async
                   else
-                     call print_raw_sync
+                     call print_raw_async
                   end if
                end if
             end if
-        
-            if (mod(step - stamp/4, stamp) .eq. 0 .and. lasync) then
-               !write(6,*)'ciao 2',step,iframe
-               istat = cudaEventRecord(dummyEvent2, stream2)
-               istat = cudaEventSynchronize(dummyEvent2)
-               if (lvtk) then
-                  call print_vtk_async
-               else
-                  call print_raw_async
-               end if
+
+            !***********************************collision + no slip + forcing: fused implementation*********
+            call streamcoll <<< dimGrid, dimBlock, 0, stream1  >>> ()
+            !********************************************bcs no slip*****************************************!
+            call bcs_no_slip <<< dimGrid, dimBlock, 0, stream1 >>> ()
+            !******************************************call periodic bcs: always after fused************************
+            !periodic along y
+            if (lpbc) then
+               call pbc_edge_x <<< (ny + TILE_DIM - 1)/TILE_DIM, TILE_DIM, 0, stream1 >>> ()
+               !call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
             end if
-         end if
 
-         !***********************************collision + no slip + forcing: fused implementation*********
-         call streamcoll <<< dimGrid, dimBlock, 0, stream1  >>> ()
-         !********************************************bcs no slip*****************************************!
-         call bcs_no_slip <<< dimGrid, dimBlock, 0, stream1 >>> ()
-         !******************************************call periodic bcs: always after fused************************
-         !periodic along y
-         if (lpbc) then
-            call pbc_edge_x <<< (ny + TILE_DIM - 1)/TILE_DIM, TILE_DIM, 0, stream1 >>> ()
-            !call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
-         end if
+            istat = cudaEventRecord(dummyEvent, stream1)
+            istat = cudaEventSynchronize(dummyEvent)
 
-         istat = cudaEventRecord(dummyEvent, stream1)
-         istat = cudaEventSynchronize(dummyEvent)
-
-   end do
+      end do
 
    if (lasync) then
       !write(6,*)'ciao 2',step,iframe
@@ -1451,12 +1451,12 @@ program lb_openacc
    write (6, *) 'Time elapsed as measured with cuda    : ', time/1000.0, ' s of your life time'
 
    !************************************************test points**********************************************!
-!    write(6,*) 'u=',u(nx/2,ny/2) ,'v=',v(nx/2,ny/2),'rho',rho(nx/2,ny/2) !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
-!    write(6,*) 'u=',u(2,ny/2) ,'v=',v(2,ny/2),'rho',rho(2,ny/2)
-!    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
+      !    write(6,*) 'u=',u(nx/2,ny/2) ,'v=',v(nx/2,ny/2),'rho',rho(nx/2,ny/2) !'rho=',rho(nx/2,1+(ny-1)/2),nx/2,1+(ny-1)/2
+      !    write(6,*) 'u=',u(2,ny/2) ,'v=',v(2,ny/2),'rho',rho(2,ny/2)
+      !    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
 
-   write (6, *) 'time elapsed as measured from cpu_time: ', ts2 - ts1, ' s of your life time'
-   write (6, *) 'glups: ', real(nx)*real(ny)*real(nsteps)*real(1.d-9, kind=db)/(ts2 - ts1)
+      write (6, *) 'time elapsed as measured from cpu_time: ', ts2 - ts1, ' s of your life time'
+      write (6, *) 'glups: ', real(nx)*real(ny)*real(nsteps)*real(1.d-9, kind=db)/(ts2 - ts1)
 
    ! istat = cudaDeviceSynchronize
    ! call store_print <<< dimGrid, dimBlock >>> ()
