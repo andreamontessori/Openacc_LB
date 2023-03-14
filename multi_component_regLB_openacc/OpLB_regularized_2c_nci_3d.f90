@@ -56,11 +56,11 @@ program lb_openacc
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
-    !#ifdef _OPENACC
-    !        ngpus=acc_get_num_devices(acc_device_nvidia)
-    !#else
-    !        ngpus=0
-    !#endif
+        !#ifdef _OPENACC
+        !        ngpus=acc_get_num_devices(acc_device_nvidia)
+        !#else
+        !        ngpus=0
+        !#endif
 
     !**************************************user parameters**************************
         nx=416
@@ -355,14 +355,14 @@ program lb_openacc
                         pyz(i,j,k)=0.0_db
 
                         rhoA(i,j,k) = f0(i,j,k)+f1(i,j,k)+f2(i,j,k)+f3(i,j,k)+f4(i,j,k)+f5(i,j,k) &
-                            +f6(i,j,k)+f7(i,j,k)+f8(i,j,k)+f9(i,j,k)+f10(i,j,k)+f11(i,j,k) &
-                            +f12(i,j,k)+f13(i,j,k)+f14(i,j,k)+f15(i,j,k)+f16(i,j,k)+f17(i,j,k) &
-                            +f18(i,j,k)
+                                     +f6(i,j,k)+f7(i,j,k)+f8(i,j,k)+f9(i,j,k)+f10(i,j,k)+f11(i,j,k) &
+                                     +f12(i,j,k)+f13(i,j,k)+f14(i,j,k)+f15(i,j,k)+f16(i,j,k)+f17(i,j,k) &
+                                     +f18(i,j,k)
 
                         rhoB(i,j,k) = g0(i,j,k)+g1(i,j,k)+g2(i,j,k)+g3(i,j,k)+g4(i,j,k)+g5(i,j,k) &
-                            +g6(i,j,k)+g7(i,j,k)+g8(i,j,k)+g9(i,j,k)+g10(i,j,k)+g11(i,j,k) &
-                            +g12(i,j,k)+g13(i,j,k)+g14(i,j,k)+g15(i,j,k)+g16(i,j,k)+g17(i,j,k) &
-                            +g18(i,j,k)
+                                     +g6(i,j,k)+g7(i,j,k)+g8(i,j,k)+g9(i,j,k)+g10(i,j,k)+g11(i,j,k) &
+                                     +g12(i,j,k)+g13(i,j,k)+g14(i,j,k)+g15(i,j,k)+g16(i,j,k)+g17(i,j,k) &
+                                     +g18(i,j,k)
 
                         nci_loc(i,j,k)=0
                         rtot=rhoA(i,j,k)+rhoB(i,j,k)
@@ -477,12 +477,6 @@ program lb_openacc
                         !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
                         !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
                         !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
-                        ! pxx(i,j,k)=fneq1+fneq2+fneq7+fneq8+fneq9+fneq10+fneq15+fneq16+fneq17+fneq18
-                        ! pyy(i,j,k)=fneq3+fneq4+fneq7+fneq8+fneq9+fneq10+fneq11+fneq12+fneq13+fneq14
-                        ! pzz(i,j,k)=fneq5+fneq6+fneq11+fneq12+fneq13+fneq14+fneq15+fneq16+fneq17+fneq18
-                        ! pxy(i,j,k)=fneq7+fneq8-fneq9-fneq10
-                        ! pxz(i,j,k)=fneq15+fneq16-fneq17-fneq18
-                        ! pyz(i,j,k)=fneq11+fneq12-fneq13-fneq14
                     endif
                 enddo
             enddo
@@ -547,23 +541,23 @@ program lb_openacc
                     !!*******************************chromodynamics***************************!
                         psi_x=(1.0_db/cssq)*(p1cg*(psi(i+1,j,k)-psi(i-1,j,k)) + &
                                             p2cg*(psi(i+1,j+1,k)+psi(i+1,j-1,k)+psi(i+1,j,k+1)+psi(i+1,j,k-1)) &
-                                        -p2cg*(psi(i-1,j+1,k)+psi(i-1,j-1,k)+psi(i-1,j,k+1)+psi(i-1,j,k-1)) &
-                                        + p3cg*(psi(i+1,j+1,k+1)+psi(i+1,j+1,k-1)+psi(i+1,j-1,k+1)+psi(i+1,j-1,k-1)) &
-                                        -p3cg*(psi(i-1,j+1,k+1)+psi(i-1,j+1,k-1)+psi(i-1,j-1,k+1)+psi(i-1,j-1,k-1))) 
+                                           -p2cg*(psi(i-1,j+1,k)+psi(i-1,j-1,k)+psi(i-1,j,k+1)+psi(i-1,j,k-1)) &
+                                          + p3cg*(psi(i+1,j+1,k+1)+psi(i+1,j+1,k-1)+psi(i+1,j-1,k+1)+psi(i+1,j-1,k-1)) &
+                                           -p3cg*(psi(i-1,j+1,k+1)+psi(i-1,j+1,k-1)+psi(i-1,j-1,k+1)+psi(i-1,j-1,k-1))) 
 
 
                         psi_y=(1.0_db/cssq)*(p1cg*(psi(i,j+1,k)-psi(i,j-1,k)) &
                                             +p2cg*(psi(i+1,j+1,k)+psi(i-1,j+1,k)+psi(i,j+1,k+1)+psi(i,j+1,k-1)) &
-                                        -p2cg*(psi(i+1,j-1,k)+psi(i-1,j-1,k)+psi(i,j-1,k+1)+psi(i,j-1,k-1)) &
-                                        +p3cg*(psi(i+1,j+1,k+1)+psi(i-1,j+1,k+1)+psi(i+1,j+1,k-1)+psi(i-1,j+1,k-1)) &
-                                        -p3cg*(psi(i+1,j-1,k+1)+psi(i-1,j-1,k+1)+psi(i+1,j-1,k-1)+psi(i-1,j-1,k-1)))
+                                            -p2cg*(psi(i+1,j-1,k)+psi(i-1,j-1,k)+psi(i,j-1,k+1)+psi(i,j-1,k-1)) &
+                                            +p3cg*(psi(i+1,j+1,k+1)+psi(i-1,j+1,k+1)+psi(i+1,j+1,k-1)+psi(i-1,j+1,k-1)) &
+                                            -p3cg*(psi(i+1,j-1,k+1)+psi(i-1,j-1,k+1)+psi(i+1,j-1,k-1)+psi(i-1,j-1,k-1)))
 
 
                         psi_z=(1.0_db/cssq)*(p1cg*(psi(i,j,k+1)-psi(i,j,k-1)) + &
                                             p2cg*(psi(i+1,j,k+1)+psi(i-1,j,k+1)+ psi(i,j+1,k+1)+psi(i,j-1,k+1)) &
-                                        -p2cg*(psi(i+1,j,k-1)+psi(i-1,j,k-1)+psi(i,j+1,k-1)+psi(i,j-1,k-1)) &
-                                        +p3cg*(psi(i+1,j+1,k+1)+psi(i-1,j+1,k+1)+psi(i+1,j-1,k+1)+psi(i-1,j-1,k+1)) &
-                                        -p3cg*(psi(i+1,j+1,k-1)+psi(i-1,j+1,k-1)+psi(i+1,j-1,k-1)+psi(i-1,j-1,k-1)))
+                                           -p2cg*(psi(i+1,j,k-1)+psi(i-1,j,k-1)+psi(i,j+1,k-1)+psi(i,j-1,k-1)) &
+                                           +p3cg*(psi(i+1,j+1,k+1)+psi(i-1,j+1,k+1)+psi(i+1,j-1,k+1)+psi(i-1,j-1,k+1)) &
+                                           -p3cg*(psi(i+1,j+1,k-1)+psi(i-1,j+1,k-1)+psi(i+1,j-1,k-1)+psi(i-1,j-1,k-1)))
                         
                         mod_psi=sqrt(psi_x**2+psi_y**2+psi_z**2)
 
@@ -610,7 +604,7 @@ program lb_openacc
                             udotc=ushifted/cssq
                             temp = -uu + 0.5_db*udotc*udotc
                             feq=p1*(rtot+(temp + udotc))
-                            fpc=feq + addendum0+(1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
+                            fpc=feq + addendum0 + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
                             f1(i+1,j,k)=fpc*rhoA(i,j,k)/rtot + gaddendum0
                             g1(i+1,j,k)=fpc*rhob(i,j,k)/rtot - gaddendum0
                             !2
