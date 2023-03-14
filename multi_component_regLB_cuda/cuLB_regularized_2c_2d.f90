@@ -164,6 +164,7 @@ module mysubs
          pxx_d(i,j)=pxx_d(i,j)+fneq1
          pyy_d(i,j)=pyy_d(i,j)+fneq1
          pxy_d(i,j)=pxy_d(i,j)-fneq1
+         
       end subroutine moments
 
       attributes(global) subroutine streamcoll()
