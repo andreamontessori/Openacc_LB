@@ -695,13 +695,13 @@ program lb_openacc
         !*******************************for geometry
         integer:: ddrop,lc,jjd,jju,k
 
-    !*********************************lattice pars  
+    !*********************************lattice pars**********************************  
         
         !$if _OPENACC
-        integer :: devNum
-        integer(acc_device_kind) :: devType
-        devType = acc_get_device_type()
-        devNum=acc_get_device_num(devType)
+          integer :: devNum
+          integer(acc_device_kind) :: devType
+          devType = acc_get_device_type()
+          devNum=acc_get_device_num(devType)
         !$endif
         
         nlinks=8 !pari!
@@ -715,11 +715,11 @@ program lb_openacc
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
-#ifdef _OPENACC
-        ngpus=acc_get_num_devices(acc_device_nvidia)
-#else
-        ngpus=0
-#endif
+        #ifdef _OPENACC
+                ngpus=acc_get_num_devices(acc_device_nvidia)
+        #else
+                ngpus=0
+        #endif
     !*******************************user parameters**************************
         nx=256!500!500
         ny=256 !500!600
@@ -813,7 +813,7 @@ program lb_openacc
             !         endif
             !     enddo
             ! enddo
-        !****************************print geo**************************!
+        !****************************print geo on ascii**************************!
             !isfluid(2:nx-1,2:800)=1 !rear z
             open(231, file = 'isfluid.out', status = 'replace')
                 do j=1,nx
@@ -938,49 +938,50 @@ program lb_openacc
         !$acc data copy(p,rhoA,rhoB,u,v,pxx,pxy,pyy,f0,f1,f2,f3,f4,f5,f6,f7,f8,isfluid, &
         !$acc& g0,g1,g2,g3,g4,g5,g6,g7,g8,psi,nci_loc,rhoprint,velprint)
     !*************************************time loop************************  
-    !$if _OPENACC        
-    call printDeviceProperties(ngpus,devNum,devType,6)
-    !$endif
-    iframe=0
-    write(6,'(a,i8,a,i8,3f16.4)')'start step : ',0,' frame ',iframe
-    
-    if(lprint)then  
-      call init_output(nx,ny,nz,1,lvtk)
-      call string_char(head1,nheadervtk(1),headervtk(1))
-      call string_char(head2,nheadervtk(2),headervtk(2))
-    endif
-    
-    !$acc wait(1)
-    if(lprint)then
-      !$acc kernels present(rhoprint,velprint,rhoa,u,v) async(1)
-      !$acc loop independent collapse(2)  private(i,j)
-      do j=1,ny
-        do i=1,nx
-          rhoprint(i,j,1)=real(rhoA(i,j),kind=4)
-          velprint(1,i,j,1)=real(u(i,j),kind=4)
-          velprint(2,i,j,1)=real(v(i,j),kind=4)
-        enddo
-      enddo
-      !$acc end kernels 
-      !$acc wait(1)
-      if(lasync)then
-        !$acc update host(rhoprint,velprint) async(2)
-        continue
-      else
-        !$acc update host(rhoprint,velprint) async(2)
-        !$acc wait(2)
-        if(lvtk)then
-          call print_vtk_sync
-        else
-          call print_raw_sync
-        endif
+    !*************************************preparation to print
+      !$if _OPENACC        
+      call printDeviceProperties(ngpus,devNum,devType,6)
+      !$endif
+      iframe=0
+      write(6,'(a,i8,a,i8,3f16.4)')'start step : ',0,' frame ',iframe
+      
+      if(lprint)then  
+          call init_output(nx,ny,nz,1,lvtk)
+          call string_char(head1,nheadervtk(1),headervtk(1))
+          call string_char(head2,nheadervtk(2),headervtk(2))
       endif
-    endif
+      
+      !$acc wait(1)
+      if(lprint)then
+          !$acc kernels present(rhoprint,velprint,rhoa,u,v) async(1)
+          !$acc loop independent collapse(2)  private(i,j)
+          do j=1,ny
+                do i=1,nx
+                  rhoprint(i,j,1)=real(rhoA(i,j),kind=4)
+                  velprint(1,i,j,1)=real(u(i,j),kind=4)
+                  velprint(2,i,j,1)=real(v(i,j),kind=4)
+                enddo
+            enddo
+            !$acc end kernels 
+            !$acc wait(1)
+            if(lasync)then
+                !$acc update host(rhoprint,velprint) async(2)
+                continue
+            else
+                !$acc update host(rhoprint,velprint) async(2)
+                !$acc wait(2)
+                if(lvtk)then
+                  call print_vtk_sync
+                else
+                  call print_raw_sync
+                endif
+          endif
+      endif
     call cpu_time(ts1)
     do step=1,nsteps 
         !***********************************moment + neq pressor*********
             !$acc kernels 
-            !$acc loop collapse(2) !private(uu,temp,udotc,fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8) 
+            !$acc loop collapse(2)
             do j=1,ny
                 do i=1,nx
                     if(isfluid(i,j).eq.1)then
@@ -991,9 +992,9 @@ program lb_openacc
                         rhoB(i,j)=  (g0(i,j)+g1(i,j)+g2(i,j)+g3(i,j)+g4(i,j)+g5(i,j)+g6(i,j)+g7(i,j)+g8(i,j))
                         
                         u(i,j) = (f1(i,j)+f5(i,j) +f8(i,j)-f3(i,j) -f6(i,j) -f7(i,j) + &
-                                g1(i,j)+g5(i,j) +g8(i,j)-g3(i,j) -g6(i,j) -g7(i,j))!/(rhoa(i,j)+rhoB(i,j))
+                                  g1(i,j)+g5(i,j) +g8(i,j)-g3(i,j) -g6(i,j) -g7(i,j))!/(rhoa(i,j)+rhoB(i,j))
                         v(i,j) = (f5(i,j) +f2(i,j) +f6(i,j)-f7(i,j) -f4(i,j) -f8(i,j) + &
-                                g5(i,j) +g2(i,j) +g6(i,j)-g7(i,j) -g4(i,j) -g8(i,j) )!/(rhoa(i,j)+rhoB(i,j))
+                                  g5(i,j) +g2(i,j) +g6(i,j)-g7(i,j) -g4(i,j) -g8(i,j) )!/(rhoa(i,j)+rhoB(i,j))
 
                         psi(i,j)= (rhoA(i,j)-rhoB(i,j))/(rhoA(i,j)+rhoB(i,j))  
                         nci_loc(i,j)=0    
@@ -1042,45 +1043,47 @@ program lb_openacc
             enddo
             !$acc end kernels 
             
-            if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
-            if(lprint)then
-              if(mod(step,stamp).eq.0)then
-                iframe=iframe+1
-                !$acc wait(1)
-                !$acc kernels present(rhoprint,velprint,rhoa,u,v) async(1)
-                !$acc loop independent collapse(2)  private(i,j)
-                  do j=1,ny
-                    do i=1,nx
-                      rhoprint(i,j,1)=real(rhoA(i,j),kind=4)
-                      velprint(1,i,j,1)=real(u(i,j),kind=4)
-                      velprint(2,i,j,1)=real(v(i,j),kind=4)
+        !*******************************print step**************************
+              if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
+              
+              if(lprint)then
+                if(mod(step,stamp).eq.0)then
+                  iframe=iframe+1
+                  !$acc wait(1)
+                  !$acc kernels present(rhoprint,velprint,rhoa,u,v) async(1)
+                  !$acc loop independent collapse(2)  private(i,j)
+                    do j=1,ny
+                      do i=1,nx
+                        rhoprint(i,j,1)=real(rhoA(i,j),kind=4)
+                        velprint(1,i,j,1)=real(u(i,j),kind=4)
+                        velprint(2,i,j,1)=real(v(i,j),kind=4)
+                      enddo
                     enddo
-                  enddo
-              !$acc end kernels 
-              !$acc wait(1)
-              if(lasync)then
-                  call close_print_async
-                  !$acc update host(rhoprint,velprint) async(2)
-              else
-                  !$acc update host(rhoprint,velprint) async(2)
-                  !$acc wait(2)
+                !$acc end kernels 
+                !$acc wait(1)
+                if(lasync)then
+                    call close_print_async
+                    !$acc update host(rhoprint,velprint) async(2)
+                else
+                    !$acc update host(rhoprint,velprint) async(2)
+                    !$acc wait(2)
+                    if(lvtk)then
+                      call print_vtk_sync
+                    else
+                      call print_raw_sync
+                    endif
+                  endif
+                endif
+                if(mod(step-stamp/4,stamp).eq.0 .and. lasync)then
+                  !write(6,*)'ciao 2',step,iframe
+                  !$acc wait(2)  
                   if(lvtk)then
-                    call print_vtk_sync
+                    call print_vtk_async
                   else
-                    call print_raw_sync
+                    call print_raw_async
                   endif
                 endif
               endif
-              if(mod(step-stamp/4,stamp).eq.0 .and. lasync)then
-                !write(6,*)'ciao 2',step,iframe
-                !$acc wait(2)  
-                if(lvtk)then
-                  call print_vtk_async
-                else
-                  call print_raw_async
-                endif
-              endif
-            endif
         !********************collision + no slip + forcing: fused implementation*********
             !$acc kernels 
             !$acc loop collapse(2)  
@@ -1308,7 +1311,6 @@ program lb_openacc
                     endif
                 enddo
             enddo
-        
         !******************************************call periodic bcs************************
                 !   !$acc loop independent 
                 !    do i=1,nx  
@@ -1347,48 +1349,6 @@ program lb_openacc
 
                 !   enddo
             !$acc end kernels 
-        !****************************************writeonfile***************************************************!
-!            if(mod(step,stamp).eq.0)then
-!            !$acc update self(psi(1:nx,1:ny),rhoB(1:nx,1:ny),rhoA(1:nx,1:ny),u(1:nx,1:ny),v(1:nx,1:ny))
-!           ! iframe=iframe+1
-!            open(101, file = 'psi'//write_fmtnumb(iframe)//'.out', status = 'replace')
-!            open(102, file = 'rhoA'//write_fmtnumb(iframe)//'.out', status = 'replace')
-!            open(103, file = 'rhoB'//write_fmtnumb(iframe)//'.out', status = 'replace')
-!            open(104, file = 'u'//write_fmtnumb(iframe)//'.out', status = 'replace')
-!            open(105, file = 'v'//write_fmtnumb(iframe)//'.out', status = 'replace')
-!            do i=1,nx
-!                do j=1,ny
-!                    write(101,*) psi(i,j)  
-!                enddo
-!            enddo
-!            close(101)
-!            do i=1,nx
-!                do j=1,ny
-!                    write(102,*) rhoA(i,j)  
-!                enddo
-!            enddo
-!            close(102)
-!            do i=1,nx
-!                do j=1,ny
-!                    write(103,*) rhoB(i,j)  
-!                enddo
-!            enddo
-!            close(103)
-!            do i=1,nx
-!                do j=1,ny
-!                    write(104,*) u(i,j)  
-!                enddo
-!            enddo
-!            close(104)
-!            do i=1,nx
-!                do j=1,ny
-!                    write(105,*) v(i,j)  
-!                enddo
-!            enddo
-!            close(105)
-!            write(6,*) "files updated at t=", step
-!            endif
-        !
     enddo 
     call cpu_time(ts2)
     if(lasync)then
@@ -1406,150 +1366,147 @@ program lb_openacc
 
   contains 
   !*****************************************************functions********************************************************!
-
-
-    
     !$if _OPENACC  
-  subroutine printDeviceProperties(ngpus,dev_Num,dev_Type,iu)
-  
-  
-  use openacc
-  
-  integer :: ngpus,dev_Num
-  integer(acc_device_kind) :: dev_Type
- 
-  integer,intent(in) :: iu 
-  integer :: tot_mem,shared_mem
-  character(len=255) :: myname,myvendor,mydriver
-  
-  call acc_get_property_string(dev_num,dev_type,acc_property_name,myname)
-  tot_mem = acc_get_property(dev_num,dev_type,acc_property_memory)
-  call acc_get_property_string(dev_num,dev_type,acc_property_vendor,myvendor)
-  call acc_get_property_string(dev_num,dev_type,acc_property_driver,mydriver)
-  
-  write(iu,907)"                                                                               "
-  write(iu,907)"*****************************GPU FEATURE MONITOR*******************************"
-  write(iu,907)"                                                                               "
-  
-  write (iu,900) "Device Number: "      ,ngpus
-  write (iu,901) "Device Name: "        ,trim(myname)
-  write (iu,903) "Total Global Memory: ",real(tot_mem)/1e9," Gbytes"
-  write (iu,901) "Vendor: "        ,trim(myvendor)
-  write (iu,901) "Driver: "        ,trim(mydriver)
-  
-  write(iu,907)"                                                                               "
-  write(iu,907)"*******************************************************************************"
-  write(iu,907)"                                                                               "
-  
-  900 format (a,i0)
-  901 format (a,a)
-  902 format (a,i0,a)
-  903 format (a,f16.8,a)
-  904 format (a,2(i0,1x,'x',1x),i0)
-  905 format (a,i0,'.',i0)
-  906 format (a,l0)
-  907 format (a)
-  
-  return
-  
-  end subroutine printDeviceProperties
- !$endif  
- 
-  
-  subroutine print_raw_sync
-  
-   implicit none
-   
-  
-   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.raw'
-   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.raw'
-   open(unit=345,file=trim(sevt1), &
-    status='replace',action='write',access='stream',form='unformatted')
-   write(345)rhoprint
-   close(345)
-   open(unit=346,file=trim(sevt2), &
-    status='replace',action='write',access='stream',form='unformatted')
-   write(346)velprint
-   close(346)
-   
-  end subroutine print_raw_sync
-  
-  subroutine print_vtk_sync
-   implicit none
-     
-   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.vti'
-   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.vti'
-   open(unit=345,file=trim(sevt1), &
-    status='replace',action='write',access='stream',form='unformatted')
-   write(345)head1,ndatavtk(1),rhoprint(1:nx,1:ny,1:nz),footervtk(1)
-   close(345)
-   open(unit=346,file=trim(sevt2), &
-    status='replace',action='write',access='stream',form='unformatted')
-   write(346)head2,ndatavtk(2),velprint(1:3,1:nx,1:ny,1:nz),footervtk(2)
-   close(346)
-   
-  end subroutine print_vtk_sync
-  
-  subroutine print_raw_async
-  
-   implicit none
-   
-  
-   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.raw'
-   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.raw'
-   open(unit=345,file=trim(sevt1), &
-    status='replace',action='write',access='stream',form='unformatted',&
-    asynchronous='yes')
-   write(345,asynchronous='yes')rhoprint
-   
-   open(unit=346,file=trim(sevt2), &
-    status='replace',action='write',access='stream',form='unformatted',&
-    asynchronous='yes')
-   write(346,asynchronous='yes')velprint
-   
-   
-  end subroutine print_raw_async
-  
-  subroutine print_vtk_async
-   implicit none
-     
-   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.vti'
-   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
-    '_'//trim(write_fmtnumb(iframe)) // '.vti'
+    subroutine printDeviceProperties(ngpus,dev_Num,dev_Type,iu)
     
-   open(unit=345,file=trim(sevt1), &
-    status='replace',action='write',access='stream',form='unformatted',&
-    asynchronous='yes')
-   write(345,asynchronous='yes')head1,ndatavtk(1),rhoprint
-   
-   
-   open(unit=780,file=trim(sevt2), &
-    status='replace',action='write',access='stream',form='unformatted',&
-    asynchronous='yes')
-   write(780,asynchronous='yes')head2,ndatavtk(2),velprint
-   
-  end subroutine print_vtk_async
+    
+        use openacc
+        
+        integer :: ngpus,dev_Num
+        integer(acc_device_kind) :: dev_Type
+      
+        integer,intent(in) :: iu 
+        integer :: tot_mem,shared_mem
+        character(len=255) :: myname,myvendor,mydriver
+        
+        call acc_get_property_string(dev_num,dev_type,acc_property_name,myname)
+        tot_mem = acc_get_property(dev_num,dev_type,acc_property_memory)
+        call acc_get_property_string(dev_num,dev_type,acc_property_vendor,myvendor)
+        call acc_get_property_string(dev_num,dev_type,acc_property_driver,mydriver)
+        
+        write(iu,907)"                                                                               "
+        write(iu,907)"*****************************GPU FEATURE MONITOR*******************************"
+        write(iu,907)"                                                                               "
+        
+        write (iu,900) "Device Number: "      ,ngpus
+        write (iu,901) "Device Name: "        ,trim(myname)
+        write (iu,903) "Total Global Memory: ",real(tot_mem)/1e9," Gbytes"
+        write (iu,901) "Vendor: "        ,trim(myvendor)
+        write (iu,901) "Driver: "        ,trim(mydriver)
+        
+        write(iu,907)"                                                                               "
+        write(iu,907)"*******************************************************************************"
+        write(iu,907)"                                                                               "
+        
+        900 format (a,i0)
+        901 format (a,a)
+        902 format (a,i0,a)
+        903 format (a,f16.8,a)
+        904 format (a,2(i0,1x,'x',1x),i0)
+        905 format (a,i0,'.',i0)
+        906 format (a,l0)
+        907 format (a)
+        
+        return
+    
+    end subroutine printDeviceProperties
+    !$endif  
+ 
   
-  subroutine close_print_async
+    subroutine print_raw_sync
+    
+      implicit none
+      
+      
+      sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.raw'
+      sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.raw'
+      open(unit=345,file=trim(sevt1), &
+        status='replace',action='write',access='stream',form='unformatted')
+      write(345)rhoprint
+      close(345)
+      open(unit=346,file=trim(sevt2), &
+        status='replace',action='write',access='stream',form='unformatted')
+      write(346)velprint
+      close(346)
+    
+    end subroutine print_raw_sync
   
-   implicit none
-   
-   wait(345)
-   if(lvtk)write(345)footervtk(1)
-   close(345)
-   
-   
-   wait(780)
-   if(lvtk)write(780)footervtk(2)
-   close(780) 
-   
+    subroutine print_vtk_sync
+      implicit none
+        
+      sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.vti'
+      sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.vti'
+      open(unit=345,file=trim(sevt1), &
+        status='replace',action='write',access='stream',form='unformatted')
+      write(345)head1,ndatavtk(1),rhoprint(1:nx,1:ny,1:nz),footervtk(1)
+      close(345)
+      open(unit=346,file=trim(sevt2), &
+        status='replace',action='write',access='stream',form='unformatted')
+      write(346)head2,ndatavtk(2),velprint(1:3,1:nx,1:ny,1:nz),footervtk(2)
+      close(346)
+    
+    end subroutine print_vtk_sync
+  
+    subroutine print_raw_async
+    
+      implicit none
+      
+      
+      sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.raw'
+      sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.raw'
+      open(unit=345,file=trim(sevt1), &
+        status='replace',action='write',access='stream',form='unformatted',&
+        asynchronous='yes')
+      write(345,asynchronous='yes')rhoprint
+      
+      open(unit=346,file=trim(sevt2), &
+        status='replace',action='write',access='stream',form='unformatted',&
+        asynchronous='yes')
+      write(346,asynchronous='yes')velprint
+    
+    
+    end subroutine print_raw_async
+  
+    subroutine print_vtk_async
+      implicit none
+        
+      sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.vti'
+      sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+        '_'//trim(write_fmtnumb(iframe)) // '.vti'
+        
+      open(unit=345,file=trim(sevt1), &
+        status='replace',action='write',access='stream',form='unformatted',&
+        asynchronous='yes')
+      write(345,asynchronous='yes')head1,ndatavtk(1),rhoprint
+      
+      
+      open(unit=780,file=trim(sevt2), &
+        status='replace',action='write',access='stream',form='unformatted',&
+        asynchronous='yes')
+      write(780,asynchronous='yes')head2,ndatavtk(2),velprint
+    
+    end subroutine print_vtk_async
+    
+    subroutine close_print_async
+    
+      implicit none
+      
+      wait(345)
+      if(lvtk)write(345)footervtk(1)
+      close(345)
+      
+      
+      wait(780)
+      if(lvtk)write(780)footervtk(2)
+      close(780) 
+    
   end subroutine close_print_async
   
 end program
