@@ -1,14 +1,677 @@
+ module prints
+  
+  implicit none
+  
+    integer, parameter, private :: db=4 !kind(1.0)
+    integer, parameter :: mxln=120
+    character(len=8), allocatable, dimension(:) :: namevarvtk
+    character(len=500), allocatable, dimension(:) :: headervtk
+    character(len=30), allocatable, dimension(:) :: footervtk
+    integer, allocatable, dimension(:) :: ndimvtk
+    integer, allocatable, dimension(:) :: vtkoffset
+    integer, allocatable, dimension(:) :: ndatavtk
+    integer, allocatable, dimension(:) :: nheadervtk
+    integer :: nfilevtk
+    integer, allocatable, dimension(:) :: varlistvtk
+    character :: delimiter
+    character(len=*), parameter :: filenamevtk='out'
+    
+    real(kind=4), allocatable, dimension(:,:,:) :: rhoprint
+    real(kind=4), allocatable, dimension(:,:,:,:) :: velprint
+    logical :: lelittle
+    character(len=mxln) :: dir_out
+    character(len=mxln) :: extentvtk
+    character(len=mxln) :: sevt1,sevt2
+    character(len=1), allocatable, dimension(:) :: head1,head2
+    
+  
+  contains
+  
+  subroutine header_vtk(nx,ny,nz,mystring500,namevar,extent,ncomps,iinisub,iend,myoffset, &
+   new_myoffset,indent)
+  
+  implicit none
+  
+  integer, intent(in) :: nx,ny,nz
+  character(len=8),intent(in) :: namevar
+  character(len=120),intent(in) :: extent
+  integer, intent(in) :: ncomps,iinisub,myoffset
+  integer, intent(out) :: iend,new_myoffset
+  integer, intent(inout) :: indent
+  
+  !namevar='density1'
+  
+  character(len=500), intent(out) :: mystring500
+  ! End-character for binary-record finalize.
+  character(1), parameter:: end_rec = char(10) 
+  character(1) :: string1
+  character(len=*),parameter :: topology='ImageData' 
+  integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
+  
+  allocate(rhoprint(1:nx,1:ny,1:nz))
+  allocate(velprint(1:3,1:nx,1:ny,1:nz))
+  rhoprint(1:nx,1:ny,1:nz)=0.0
+  velprint(1:3,1:nx,1:ny,1:nz)=0.0
+  
+  iini=iinisub
+  bytechar=kind(end_rec)
+  byteint=kind(iini)
+  byter4  = 4
+  byter8  = 8
+  
+  mystring500=repeat(' ',500)
+  
+  iend=iini
+  
+  iini=iend+1
+  nele=22
+  iend=iend+nele
+  mystring500(iini:iend)='<?xml version="1.0"?>'//end_rec
+  
+  new_myoffset=myoffset
+  new_myoffset = new_myoffset + nele * bytechar
+ 
+  
+  iini=iend+1
+  nele=67
+  iend=iend+nele
+  if(lelittle)then  
+    mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+     '" version="0.1" byte_order="LittleEndian">'//end_rec
+  else
+    mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+     '" version="0.1" byte_order="BigEndian">   '//end_rec
+  endif
+  
+  new_myoffset = new_myoffset + 67 * bytechar
+ 
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=70
+  iend=iend+nele
+  mystring500(iini:iend) = repeat(' ',indent)//'<'//trim(topology)//' WholeExtent="'//&
+                 trim(extent)//'">'//end_rec
+  
+
+  new_myoffset = new_myoffset + 70 * bytechar
+ 
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=63
+  iend=iend+nele
+  mystring500(iini:iend) = repeat(' ',indent)//'<Piece Extent="'//trim(extent)//'">'//end_rec
+  
+  new_myoffset = new_myoffset + 63 * bytechar
+ 
+  
+! initializing offset pointer
+  ioffset = 0 
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=18
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'<PointData>'//end_rec
+  
+  new_myoffset = new_myoffset + 18 * bytechar
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=115
+  iend=iend+nele
+  
+  if(ncomps/=1 .and. ncomps/=3)then
+    write(6,'(a)')'ERROR in header_vtk'
+    stop
+  endif
+  write(string1,'(i1)')ncomps
+  mystring500(iini:iend)=repeat(' ',indent)//'<DataArray type="Float32" Name="'// &
+   namevar//'" NumberOfComponents="'//string1// '" '//&
+   'format="appended" offset="'//space_fmtnumb12(ioffset)//'"/>'//end_rec
+  
+  new_myoffset = new_myoffset + 115 * bytechar
+ 
+  
+  indent = indent - 2
+  iini=iend+1
+  nele=19
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'</PointData>'//end_rec
+  
+  new_myoffset = new_myoffset + 19 * bytechar
+  
+  
+  indent = indent - 2
+  iini=iend+1
+  nele=13
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'</Piece>'//end_rec
+  
+  
+  new_myoffset = new_myoffset + 13 * bytechar
+ 
+  
+  indent = indent - 2
+  iini=iend+1
+  nele=15
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'</'//trim(topology)//'>'//end_rec
+
+  new_myoffset = new_myoffset + 15 * bytechar
+ 
+
+  iini=iend+1
+  nele=32
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'<AppendedData encoding="raw">'//end_rec
+  
+  new_myoffset = new_myoffset + 32 * bytechar
+  
+  iini=iend+1
+  nele=1
+  iend=iend+nele
+  mystring500(iini:iend)='_'
+  
+  new_myoffset = new_myoffset + 1 * bytechar
+  
+  return
+  
+ end subroutine header_vtk
+ 
+ subroutine footer_vtk(nx,ny,nz,mystring30,iinisub,iend,myoffset, &
+  new_myoffset,indent)
+ 
+  implicit none
+  
+  integer, intent(in) :: nx,ny,nz
+  integer, intent(in) :: iinisub,myoffset
+  integer, intent(out) :: iend,new_myoffset
+  integer, intent(inout) :: indent
+  
+  
+  character(len=30), intent(out) :: mystring30
+  ! End-character for binary-record finalize.
+  character(1), parameter:: end_rec = char(10) 
+  character(1) :: string1
+  character(len=*),parameter :: topology='ImageData' 
+  integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
+  
+  iini=iinisub
+  bytechar=kind(end_rec)
+  byteint=kind(iini)
+  byter4  = 4
+  byter8  = 8
+  
+  mystring30=repeat(' ',30)
+  
+  iend=iini
+  
+  iini=iend+1
+  nele=1
+  iend=iend+nele
+  mystring30(iini:iend)=end_rec
+  
+  new_myoffset = myoffset
+  new_myoffset = new_myoffset + 1 * bytechar
+ 
+  
+  
+  iini=iend+1
+  nele=18
+  iend=iend+nele
+  mystring30(iini:iend)=repeat(' ',indent)//'</AppendedData>'//end_rec
+  
+  new_myoffset = new_myoffset + 18 * bytechar
+  
+  iini=iend+1
+  nele=11
+  iend=iend+nele
+  mystring30(iini:iend)='</VTKFile>'//end_rec
+  
+  if(iend/=30)then
+     write(6,'(a)')'ERROR in footer_vtk'
+    stop
+  endif
+  
+  return
+  
+ end subroutine footer_vtk
+  
+ subroutine test_little_endian(ltest)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for checking if the computing architecture
+!     is working in little-endian or big-endian
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none 
+  integer, parameter :: ik1 = selected_int_kind(2) 
+  integer, parameter :: ik4 = selected_int_kind(9) 
+   
+  logical, intent(out) :: ltest
+   
+  if(btest(transfer(int((/1,0,0,0/),ik1),1_ik4),0)) then 
+    !it is little endian
+    ltest=.true.
+  else 
+    !it is big endian
+    ltest=.false.
+  end if 
+   
+  return
+   
+ end subroutine test_little_endian 
+ 
+ subroutine init_output(nx,ny,nz,ncomp,lvtk)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for creating the folders containing the files
+!     in image VTK legacy binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  
+  implicit none
+  
+  integer, intent(in) :: nx,ny,nz,ncomp
+  logical, intent(in) :: lvtk
+  character(len=255) :: path,makedirectory
+  logical :: lexist
+  
+  integer :: i,j,k,nn,indent,myoffset,new_myoffset,iend
+  integer, parameter :: byter4=4
+  integer, parameter :: byteint=4
+  integer, allocatable :: printlistvtk(:)
+  integer, parameter :: ioxyz=54
+  character(len=*), parameter :: filexyz='isfluid.xyz'
+  character(len=120) :: mystring120
+  
+  call test_little_endian(lelittle)
+  
+  sevt1=repeat(' ',mxln)
+  sevt2=repeat(' ',mxln)
+  
+  path = repeat(' ',255)
+  call getcwd(path)
+  
+  !call get_environment_variable('DELIMITER',delimiter)
+  path = trim(path)
+  delimiter = path(1:1)
+  if (delimiter==' ') delimiter='/'
+
+
+  
+  makedirectory=repeat(' ',255)
+  makedirectory = 'output'//delimiter
+  dir_out=trim(makedirectory)
+#ifdef _INTEL
+  inquire(directory=trim(makedirectory),exist=lexist)
+#else
+  inquire(file=trim(makedirectory),exist=lexist)
+#endif
+  
+  if(.not. lexist)then
+    makedirectory=repeat(' ',255)
+    makedirectory = 'mkdir output'
+    call system(makedirectory)
+  endif
+  mystring120=repeat(' ',120)
+  
+  
+  makedirectory=repeat(' ',255)
+  makedirectory=trim(path)//delimiter//'output'//delimiter
+  
+  extentvtk =  space_fmtnumb(1) // ' ' // space_fmtnumb(nx) // ' ' &
+        // space_fmtnumb(1) // ' ' // space_fmtnumb(ny) // ' ' &
+        // space_fmtnumb(1) // ' ' // space_fmtnumb(nz)
+  
+  if(ncomp==1)then
+    nfilevtk=2
+  elseif(ncomp==2)then
+    nfilevtk=3
+  endif
+  
+  allocate(printlistvtk(nfilevtk))
+  do i=1,nfilevtk
+    printlistvtk(i)=i
+  enddo
+  
+  allocate(varlistvtk(nfilevtk))
+  allocate(namevarvtk(nfilevtk))
+  allocate(ndimvtk(nfilevtk))
+  allocate(headervtk(nfilevtk))
+  allocate(footervtk(nfilevtk))
+  allocate(nheadervtk(nfilevtk))
+  allocate(vtkoffset(nfilevtk))
+  allocate(ndatavtk(nfilevtk))
+  varlistvtk(1:nfilevtk)=printlistvtk(1:nfilevtk)
+  
+  if(ncomp==1)then
+    do i=1,nfilevtk
+      select case(printlistvtk(i))
+      case(1)
+        namevarvtk(i)='rho     '
+        ndimvtk(i)=1
+      case(2)
+        namevarvtk(i)='vel     '
+        ndimvtk(i)=3
+      case default
+        write(6,'(a)')'ERROR in init_output'
+        stop
+      end select
+    enddo
+  elseif(ncomp==2)then
+    do i=1,nfilevtk
+      select case(printlistvtk(i))
+      case(1)
+        namevarvtk(i)='rho1    '
+        ndimvtk(i)=1
+      case(2)
+        namevarvtk(i)='rho2    '
+        ndimvtk(i)=1
+      case(3)
+        namevarvtk(i)='vel     '
+        ndimvtk(i)=3
+      case default
+        write(6,'(a)')'ERROR in init_output'
+        stop
+      end select
+    enddo
+  endif
+  nn=nx*ny*nz
+  
+  do i=1,nfilevtk
+    myoffset=0
+    indent=0
+    call header_vtk(nx,ny,nz,headervtk(i),namevarvtk(i),extentvtk,ndimvtk(i),0,iend,myoffset, &
+    new_myoffset,indent)
+    vtkoffset(i)=new_myoffset
+    myoffset=new_myoffset+byteint+ndimvtk(i)*nn*byter4
+    ndatavtk(i)=ndimvtk(i)*nn*byter4
+    nheadervtk(i)=iend
+    call footer_vtk(nx,ny,nz,footervtk(i),0,iend,myoffset, &
+     new_myoffset,indent)
+  enddo
+  
+  return
+
+ end subroutine init_output
+ 
+ subroutine string_char(mychar,nstring,mystring)
+ 
+  implicit none
+  
+  integer :: i
+  character(1), allocatable, dimension(:) :: mychar
+  integer, intent(in) :: nstring
+  character(len=*), intent(in) :: mystring
+  
+  allocate(mychar(nstring))
+  
+  do i=1,nstring
+    mychar(i)=mystring(i:i)
+  enddo
+  
+ end subroutine string_char
+ 
+  function space_fmtnumb(inum)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the string of six characters 
+!     with integer digits and leading spaces to the left
+!     originally written in JETSPIN by M. Lauricella et al.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+
+  integer,intent(in) :: inum
+  character(len=6) :: space_fmtnumb
+  integer :: numdigit,irest
+  real(kind=8) :: tmp
+  character(len=22) :: cnumberlabel
+
+  numdigit=dimenumb(inum)
+  irest=6-numdigit
+  if(irest>0)then
+    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+    write(space_fmtnumb,fmt=cnumberlabel)repeat(' ',irest),inum
+  else
+    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+    write(space_fmtnumb,fmt=cnumberlabel)inum
+  endif
+  
+  return
+
+ end function space_fmtnumb
+ 
+ function space_fmtnumb12(inum)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the string of six characters 
+!     with integer digits and leading TWELVE spaces to the left
+!     originally written in JETSPIN by M. Lauricella et al.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+
+  integer,intent(in) :: inum
+  character(len=12) :: space_fmtnumb12
+  integer :: numdigit,irest
+  real(kind=8) :: tmp
+  character(len=22) :: cnumberlabel
+
+  numdigit=dimenumb(inum)
+  irest=12-numdigit
+  if(irest>0)then
+    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+    write(space_fmtnumb12,fmt=cnumberlabel)repeat(' ',irest),inum
+  else
+    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+    write(space_fmtnumb12,fmt=cnumberlabel)inum
+  endif
+  
+  return
+
+ end function space_fmtnumb12
+ 
+  function dimenumb(inum)
+ 
+    !***********************************************************************
+    !    
+    !     LBsoft function for returning the number of digits
+    !     of an integer number
+    !     originally written in JETSPIN by M. Lauricella et al.
+    !    
+    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+    !     author: M. Lauricella
+    !     last modification July 2018
+    !    
+    !***********************************************************************
+
+      implicit none
+
+      integer,intent(in) :: inum
+      integer :: dimenumb
+      integer :: i
+      real(kind=db) :: tmp
+
+      i=1
+      tmp=real(inum,kind=db)
+      do
+      if(tmp< 10.0_db )exit
+        i=i+1
+        tmp=tmp/ 10.0_db
+      enddo
+
+      dimenumb=i
+
+      return
+
+     end function dimenumb
+
+    function write_fmtnumb(inum)
+ 
+    !***********************************************************************
+    !    
+    !     LBsoft function for returning the string of six characters
+    !     with integer digits and leading zeros to the left
+    !     originally written in JETSPIN by M. Lauricella et al.
+    !    
+    !     licensed under the 3-Clause BSD License (BSD-3-Clause)
+    !     author: M. Lauricella
+    !     last modification July 2018
+    !    
+    !***********************************************************************
+ 
+    implicit none
+
+    integer,intent(in) :: inum
+    character(len=6) :: write_fmtnumb
+    integer :: numdigit,irest
+    !real*8 :: tmp
+    character(len=22) :: cnumberlabel
+    
+    numdigit=dimenumb(inum)
+    irest=6-numdigit
+    if(irest>0)then
+        write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+        write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
+    else
+        write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+        write(write_fmtnumb,fmt=cnumberlabel)inum
+    endif
+ 
+    return
+    end function write_fmtnumb   
+    
+    subroutine get_memory_gpu(fout,fout2)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for register the memory usage
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     modified by: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************  
+#ifdef _OPENACC
+  use openacc
+  use accel_lib
+#elif defined _CUDA  
+  use cudafor
+#endif
+  
+  implicit none
+  
+  real(kind=db), intent(out) :: fout,fout2
+  real(kind=db) :: myd(2),myd2(2)
+  integer :: istat
+#ifdef _OPENACC  
+  integer :: myfree, total
+#elif defined _CUDA  
+  integer(kind=cuda_count_kind) :: myfree, total
+#else
+  integer :: myfree, total
+#endif  
+  
+#ifdef _OPENACC
+  myfree=acc_get_free_memory()
+  total=acc_get_memory() 
+#elif defined _CUDA
+  istat = cudaMemGetInfo( myfree, total )
+#else
+  myfree=0
+  total=0
+#endif  
+  fout = real(total-myfree,kind=4)/(1024.0**3.0)
+  fout2 = real(total,kind=4)/(1024.0**3.0)
+  
+  return
+  
+ end subroutine get_memory_gpu
+    
+ subroutine print_memory_registration_gpu(iu,mybanner,mybanner2,&
+  mymemory,totmem)
+ 
+!***********************************************************************
+!     
+!     LBcuda subroutine for printing the memory registration
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification April 2022
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: iu
+  character(len=*), intent(in) :: mybanner,mybanner2
+  real(kind=db), intent(in) :: mymemory,totmem
+  
+  character(len=12) :: r_char,r_char2
+  
+  character(len=*),parameter :: of='(a)'
+  
+  
+  
+ 
+  write (r_char,'(f12.4)')mymemory
+  write (r_char2,'(f12.4)')totmem
+  write(iu,of)"                                                                               "
+  write(iu,of)"******************************GPU MEMORY MONITOR*******************************"
+  write(iu,of)"                                                                               "
+  write(iu,'(4a)')trim(mybanner)," = ",trim(adjustl(r_char))," (GB)"
+  write(iu,'(4a)')trim(mybanner2)," = ",trim(adjustl(r_char2))," (GB)"
+  write(iu,of)"                                                                               "
+  write(iu,of)"*******************************************************************************"
+  write(iu,of)"                                                                               "
+  
+  return
+  
+ end subroutine print_memory_registration_gpu
+ 
+ end module
+
 program lb_openacc
     !$if _OPENACC
     use openacc
     !$endif
+    use prints
     
     implicit none
     !************************************block of vars*******************************************!
         integer, parameter :: db=4 !kind(1.0)
-        integer(kind=8) :: i,j,k,k_init,k_end,j_init,j_end,i_init,i_end
-        integer(kind=8) :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus
+        integer :: i,j,k,k_init,k_end,j_init,j_end,i_init,i_end
+        integer :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus
         integer,save :: iframe=0
+        logical :: lprint,lvtk,lasync
         
         real(kind=db),parameter :: pi_greek=3.14159265359793234626433
         
@@ -39,8 +702,13 @@ program lb_openacc
         integer(kind=4), allocatable, dimension(:,:,:) :: nci_loc
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!for custom geometry*********************************!
         integer:: ddrop,lc,jjd,jju
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!for custom geometry*********************************!
-       
+        !$if _OPENACC
+        integer :: devNum
+        integer(acc_device_kind) :: devType
+        devType = acc_get_device_type()
+        devNum=acc_get_device_num(devType)
+        !$endif
+        
    
     
     
@@ -56,11 +724,11 @@ program lb_openacc
         visc_LB=cssq*(tau-0.5_db)
         one_ov_nu2=1.0_db/visc_LB
         omega=1.0_db/tau
-        !#ifdef _OPENACC
-        !        ngpus=acc_get_num_devices(acc_device_nvidia)
-        !#else
-        !        ngpus=0
-        !#endif
+        #ifdef _OPENACC
+        ngpus=acc_get_num_devices(acc_device_nvidia)
+        #else
+        ngpus=0
+        #endif
 
     !**************************************user parameters**************************
         nx=416
@@ -326,6 +994,9 @@ program lb_openacc
         write(6,*) 'ny',ny
         write(6,*) 'ny',nz
         write(6,*) 'nsteps',nsteps
+        write(6,*) 'lprint',lprint
+        write(6,*) 'lvtk',lvtk
+        write(6,*) 'lasync',lasync
         write(6,*) 'stamp',stamp
         write(6,*) 'max fx',huge(fx)
         write(6,*) 'max fx',huge(fy)
@@ -334,14 +1005,55 @@ program lb_openacc
     !*****************************************copy data on gpu*********************************************!
         !$acc data copy(f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,isfluid,p0,p1,p2,&
              !$acc& pxx,pyy,pzz,pxy,pxz,pyz,rhoA,rhoB,u,v,w,psi, &
-             !$acc& g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15,g16,g17,g18,nci_loc)
+             !$acc& g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15,g16,g17,g18,nci_loc,rhoprint,velprint)
     
     
     !**********************************************************************!
-    call cpu_time(ts1)
+        !$if _OPENACC        
+        call printDeviceProperties(ngpus,devNum,devType,6)
+        !$endif
+        iframe=0
+        write(6,'(a,i8,a,i8,3f16.4)')'start step : ',0,' frame ',iframe
+        if(lprint)then  
+          call init_output(nx,ny,nz,1,lvtk)
+          call string_char(head1,nheadervtk(1),headervtk(1))
+          call string_char(head2,nheadervtk(2),headervtk(2))
+        endif
+        
+        !$acc wait(1)
+		if(lprint)then
+		  !$acc kernels present(rhoprint,velprint,rhoa,u,v,w) async(1)
+		  !$acc loop independent collapse(3)  private(i,j,k)
+		  do k=1,nz
+			do j=1,ny
+			  do i=1,nx
+				rhoprint(i,j,k)=real(rhoa(i,j,k),kind=4)
+				velprint(1,i,j,k)=real(u(i,j,k),kind=4)
+				velprint(2,i,j,k)=real(v(i,j,k),kind=4)
+				velprint(3,i,j,k)=real(w(i,j,k),kind=4)
+			  enddo
+			enddo
+		  enddo
+		  !$acc end kernels 
+		  !$acc wait(1)
+		  if(lasync)then
+			!$acc update host(rhoprint,velprint) async(2)
+			continue
+		  else
+			!$acc update host(rhoprint,velprint) async(2)
+			!$acc wait(2)
+			if(lvtk)then
+			  call print_vtk_sync(iframe)
+			else
+			  call print_raw_sync(iframe)
+			endif
+		  endif
+		endif
+        
+        call cpu_time(ts1)
     !*************************************main loop*************************!
     do step=1,nsteps 
-        !$acc kernels 
+        !$acc kernels async(1)
         !$acc loop collapse (3) 
         do k=1,nz
             do j=1,ny
@@ -481,6 +1193,54 @@ program lb_openacc
                 enddo
             enddo
         enddo
+        !$acc end kernels
+        
+        !****************************************writeonfile***************************************************!
+        if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
+        if(lprint)then
+          if(mod(step,stamp).eq.0)then
+            iframe=iframe+1
+            !$acc wait(1)
+            !$acc kernels present(rhoprint,velprint,rhoa,u,v,w) async(1)
+            !$acc loop independent collapse(3)  private(i,j,k)
+            do k=1,nz
+              do j=1,ny
+                do i=1,nx
+                  rhoprint(i,j,k)=real(rhoa(i,j,k),kind=4)
+                  velprint(1,i,j,k)=real(u(i,j,k),kind=4)
+                  velprint(2,i,j,k)=real(v(i,j,k),kind=4)
+                  velprint(3,i,j,k)=real(w(i,j,k),kind=4)
+                enddo
+              enddo
+            enddo
+           !$acc end kernels 
+           !$acc wait(1)
+           if(lasync)then
+              call close_print_async
+              !$acc update host(rhoprint,velprint) async(2)
+           else
+              !$acc update host(rhoprint,velprint) async(2)
+              !$acc wait(2)
+              if(lvtk)then
+                call print_vtk_sync(iframe)
+              else
+                call print_raw_sync(iframe)
+              endif
+            endif
+          endif
+          if(mod(step-stamp/4,stamp).eq.0 .and. lasync)then
+            !write(6,*)'ciao 2',step,iframe
+            !$acc wait(2)  
+            if(lvtk)then
+              call print_vtk_async(iframe)
+            else
+              call print_raw_async(iframe)
+            endif
+          endif
+        endif
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        
+        !$acc kernels 
         !$acc loop collapse (3) 
             do k=1,nz
                 do j=1,ny
@@ -973,133 +1733,8 @@ program lb_openacc
             !     enddo
             ! enddo
         !$acc end kernels 
-        !****************************************writeonfile***************************************************!
-            if(mod(step,stamp).eq.0)then
-                !$acc update self(psi(1:nx,ny/2,1:nz),rhoB(1:nx,ny/2,1:nz),rhoA(1:nx,ny/2,1:nz),u(1:nx,ny/2,1:nz),w(1:nx,ny/2,1:nz))
-                iframe=iframe+1
-                !xz
-                open(101, file = 'psi_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(102, file = 'rhoA_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(103, file = 'rhoB_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(104, file = 'u_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(105, file = 'w_xz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                do i=1,nx
-                    do j=1,nz
-                        write(101,*) psi(i,ny/2,j)  
-                    enddo
-                enddo
-                close(101)
-                do i=1,nx
-                    do j=1,nz
-                        write(102,*) rhoA(i,ny/2,j) 
-                    enddo
-                enddo
-                close(102)
-                do i=1,nx
-                    do j=1,nz
-                        write(103,*) rhoB(i,ny/2,j)   
-                    enddo
-                enddo
-                close(103)
-                do i=1,nx
-                    do j=1,nz
-                        write(104,*) u(i,ny/2,j)   
-                    enddo
-                enddo
-                close(104)
-                do i=1,nx
-                    do j=1,nz
-                        write(105,*) w(i,ny/2,j)   
-                    enddo
-                enddo
-                close(105)
-                ! xy
-                !$acc update self(psi(1:nx,1:ny,nz/2),rhoB(1:nx,1:ny,nz/2),rhoA(1:nx,1:ny,nz/2),u(1:nx,1:ny,nz/2),v(1:nx,1:ny,nz/2))
-                open(106, file = 'psi_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(107, file = 'rhoA_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(108, file = 'rhoB_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(109, file = 'u_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(110, file = 'v_xy'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                do i=1,nx
-                    do j=1,ny
-                        write(106,*) psi(i,j,nz/2)  
-                    enddo
-                enddo
-                close(106)
-                do i=1,nx
-                    do j=1,ny
-                        write(107,*) rhoA(i,j,nz/2)  
-                    enddo
-                enddo
-                close(107)
-                do i=1,nx
-                    do j=1,ny
-                        write(108,*) rhoB(i,j,nz/2)     
-                    enddo
-                enddo
-                close(108)
-                do i=1,nx
-                    do j=1,ny
-                        write(109,*) u(i,j,nz/2)     
-                    enddo
-                enddo
-                close(109)
-                do i=1,nx
-                    do j=1,ny
-                        write(110,*) v(i,j,nz/2)     
-                    enddo
-                enddo
-                close(110)
-                ! yz
-                !$acc update self(psi(nx/2,1:ny,1:nz),rhoB(nx/2,1:ny,1:nz),rhoA(nx/2,1:ny,1:nz),v(nx/2,1:ny,1:nz),w(nx/2,1:ny,1:nz))
-                open(111, file = 'psi_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(112, file = 'rhoA_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(113, file = 'rhoB_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(114, file = 'v_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                open(115, file = 'w_yz'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                do j=1,ny
-                    do k=1,nz
-                        write(111,*) psi(nx/2,j,k)  
-                    enddo
-                enddo
-                close(111)
-                do j=1,ny
-                    do k=1,nz
-                        write(112,*) rhoA(nx/2,j,k)   
-                    enddo
-                enddo
-                close(112)
-                do j=1,ny
-                    do k=1,nz
-                        write(113,*) rhoB(nx/2,j,k)    
-                    enddo
-                enddo
-                close(113)
-                do j=1,ny
-                    do k=1,nz
-                        write(114,*) v(nx/2,j,k)      
-                    enddo
-                enddo
-                close(114)
-                do j=1,ny
-                    do k=1,nz
-                        write(115,*) w(nx/2,j,k)     
-                    enddo
-                enddo
-                close(115)
-                write(6,*) "files updated at t=", step
-                !
-                ! open(117, file = 'psi3d'//write_fmtnumb(iframe)//'.out', status = 'replace')
-                ! !$acc update self(psi)
-                ! do i=1,nx,5
-                !     do j=1,ny,5
-                !         do k=1,nz,5
-                !             write(117,*) psi(i,j,k)     
-                !         enddo
-                !     enddo
-                ! enddo
-                ! close(117)
-            endif
+
+
         
     enddo 
     call cpu_time(ts2)
@@ -1107,74 +1742,152 @@ program lb_openacc
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
     write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)*real(1.d-9,kind=db)/(ts2-ts1)
    contains 
-    !*************************************************functions************************************************!
-        function dimenumb(inum)
-
-        !***********************************************************************
-        !    
-        !     LBsoft function for returning the number of digits
-        !     of an integer number
-        !     originally written in JETSPIN by M. Lauricella et al.
-        !    
-        !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-        !     author: M. Lauricella
-        !     last modification July 2018
-        !    
-        !***********************************************************************
-
-            implicit none
-
-            integer,intent(in) :: inum
-            integer :: dimenumb
-            integer :: i
-            real*8 :: tmp
-
-            i=1
-            tmp=real(inum,kind=8)
-            do
-            if(tmp< 10.d0 )exit
-            i=i+1
-            tmp=tmp/ 10.0d0
-            enddo
-
-            dimenumb=i
-
-            return
-
-            end function dimenumb
-
-        function write_fmtnumb(inum)
-
-        !***********************************************************************
-        !    
-        !     LBsoft function for returning the string of six characters
-        !     with integer digits and leading zeros to the left
-        !     originally written in JETSPIN by M. Lauricella et al.
-        !    
-        !     licensed under the 3-Clause BSD License (BSD-3-Clause)
-        !     author: M. Lauricella
-        !     last modification July 2018
-        !    
-        !***********************************************************************
-
-        implicit none
-
-        integer,intent(in) :: inum
-        character(len=6) :: write_fmtnumb
-        integer :: numdigit,irest
-        !real*8 :: tmp
-        character(len=22) :: cnumberlabel
-        numdigit=dimenumb(inum)
-        irest=6-numdigit
-        if(irest>0)then
-            write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
-            write(write_fmtnumb,fmt=cnumberlabel)repeat('0',irest),inum
-        else
-            write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
-            write(write_fmtnumb,fmt=cnumberlabel)inum
-        endif
-
-        return
-        end function write_fmtnumb   
+  !$if _OPENACC  
+  subroutine printDeviceProperties(ngpus,dev_Num,dev_Type,iu)
+  
+  
+  use openacc
+  
+  integer :: ngpus,dev_Num
+  integer(acc_device_kind) :: dev_Type
+ 
+  integer,intent(in) :: iu 
+  integer :: tot_mem,shared_mem
+  character(len=255) :: myname,myvendor,mydriver
+  
+  call acc_get_property_string(dev_num,dev_type,acc_property_name,myname)
+  tot_mem = acc_get_property(dev_num,dev_type,acc_property_memory)
+  call acc_get_property_string(dev_num,dev_type,acc_property_vendor,myvendor)
+  call acc_get_property_string(dev_num,dev_type,acc_property_driver,mydriver)
+  
+  write(iu,907)"                                                                               "
+  write(iu,907)"*****************************GPU FEATURE MONITOR*******************************"
+  write(iu,907)"                                                                               "
+  
+  write (iu,900) "Device Number: "      ,ngpus
+  write (iu,901) "Device Name: "        ,trim(myname)
+  write (iu,903) "Total Global Memory: ",real(tot_mem)/1e9," Gbytes"
+  write (iu,901) "Vendor: "        ,trim(myvendor)
+  write (iu,901) "Driver: "        ,trim(mydriver)
+  
+  write(iu,907)"                                                                               "
+  write(iu,907)"*******************************************************************************"
+  write(iu,907)"                                                                               "
+  
+  900 format (a,i0)
+  901 format (a,a)
+  902 format (a,i0,a)
+  903 format (a,f16.8,a)
+  904 format (a,2(i0,1x,'x',1x),i0)
+  905 format (a,i0,'.',i0)
+  906 format (a,l0)
+  907 format (a)
+  
+  return
+  
+  end subroutine printDeviceProperties
+ !$endif  
+  subroutine print_raw_sync(iframe)
+  
+   implicit none
+   
+   integer, intent(in) :: iframe
+  
+   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.raw'
+   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.raw'
+   open(unit=345,file=trim(sevt1), &
+    status='replace',action='write',access='stream',form='unformatted')
+   write(345)rhoprint
+   close(345)
+   open(unit=346,file=trim(sevt2), &
+    status='replace',action='write',access='stream',form='unformatted')
+   write(346)velprint
+   close(346)
+   
+  end subroutine print_raw_sync
+  
+  subroutine print_vtk_sync(iframe)
+   implicit none
+   
+   integer, intent(in) :: iframe
+   
+   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.vti'
+   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.vti'
+   open(unit=345,file=trim(sevt1), &
+    status='replace',action='write',access='stream',form='unformatted')
+   write(345)head1,ndatavtk(1),rhoprint,footervtk(1)
+   close(345)
+   open(unit=346,file=trim(sevt2), &
+    status='replace',action='write',access='stream',form='unformatted')
+   write(346)head2,ndatavtk(2),velprint,footervtk(2)
+   close(346)
+   
+  end subroutine print_vtk_sync
+  
+  subroutine print_raw_async(iframe)
+  
+   implicit none
+   
+   integer, intent(in) :: iframe
+  
+   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.raw'
+   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.raw'
+   open(unit=345,file=trim(sevt1), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes')
+   write(345,asynchronous='yes')rhoprint
+   
+   open(unit=346,file=trim(sevt2), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes')
+   write(346,asynchronous='yes')velprint
+   
+   
+  end subroutine print_raw_async
+  
+  subroutine print_vtk_async(iframe)
+   implicit none
+   
+   integer, intent(in) :: iframe
+   
+   sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.vti'
+   sevt2 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(2))// &
+    '_'//trim(write_fmtnumb(iframe)) // '.vti'
+    
+   open(unit=345,file=trim(sevt1), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes')
+   write(345,asynchronous='yes')head1,ndatavtk(1),rhoprint
+   
+   
+   open(unit=780,file=trim(sevt2), &
+    status='replace',action='write',access='stream',form='unformatted',&
+    asynchronous='yes')
+   write(780,asynchronous='yes')head2,ndatavtk(2),velprint
+   
+  end subroutine print_vtk_async
+  
+  subroutine close_print_async
+  
+   implicit none
+   
+   wait(345)
+   if(lvtk)write(345)footervtk(1)
+   close(345)
+   
+   
+   wait(780)
+   if(lvtk)write(780)footervtk(2)
+   close(780) 
+   
+  end subroutine close_print_async
+    
     
 end program
