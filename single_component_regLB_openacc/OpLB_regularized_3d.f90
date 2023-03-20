@@ -716,8 +716,8 @@ program lb_openacc
         fz=0.0_db*10.0**(-5)
         lpbc=.false.
         lprint=.false.
-        lvtk=.true.
-        lasync=.true.
+        lvtk=.false.
+        lasync=.false.
         
         allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))

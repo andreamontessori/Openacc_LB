@@ -1000,10 +1000,10 @@
 
     !*******************************user parameters**************************
 
-    nx=2048
-    ny=2048
-    TILE_DIMx=256
-    TILE_DIMy=4
+    nx=4096
+    ny=4096
+    TILE_DIMx=128
+    TILE_DIMy=8
     TILE_DIM=16
     
     if (mod(nx, TILE_DIMx)/= 0) then
