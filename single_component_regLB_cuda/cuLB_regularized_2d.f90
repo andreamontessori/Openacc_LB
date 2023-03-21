@@ -1002,8 +1002,8 @@
 
     nx=4096
     ny=4096
-    TILE_DIMx=128
-    TILE_DIMy=8
+    TILE_DIMx=256
+    TILE_DIMy=2
     TILE_DIM=16
     
     if (mod(nx, TILE_DIMx)/= 0) then
@@ -1020,12 +1020,12 @@
 
     
     
-    nsteps=1000
-    stamp=500000
-    lprint=.true.
-    lvtk=.true.
+    nsteps=10000
+    stamp=5000000
+    lprint=.false.
+    lvtk=.false.
     lpbc=.false.
-    lasync=.true.
+    lasync=.false.
     fx=0.0_db*10.0_db**(-5.0_db)
     fy=0.0_db*10.0_db**(-6.0_db)
     allocate(p(0:nlinks))
@@ -1278,7 +1278,7 @@
 !    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
     
     write(6,*) 'time elapsed as measured from cpu_time: ', ts2-ts1, ' s of your life time' 
-    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nsteps)*real(1.d-9,kind=db)/(ts2-ts1)
+    write(6,*) 'glups: ',  real(nx)*real(ny)*real(nsteps)*real(1.d-9,kind=db)/(time/1000.0)
     
     istat = cudaDeviceSynchronize
     call store_print<<<dimGrid,dimBlock>>>()

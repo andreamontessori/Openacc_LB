@@ -709,7 +709,7 @@ program lb_openacc
         nx=512
         ny=512
         nz=512
-        nsteps=100
+        nsteps=1000
         stamp=100000
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
@@ -1331,11 +1331,10 @@ program lb_openacc
         call print_raw_sync(iframe)
       endif
     endif
-    call cpu_time(ts2)
-    !$acc update host(rho,u,v,w)
-    !$acc end data
+    !!$acc update host(rho,u,v,w)
     
-
+    !$acc end data
+    call cpu_time(ts2)
     write(6,*) 'u=',u(nx/2,ny/2,nz/2),'v=',v(nx/2,ny/2,nz/2),'w=',w(nx/2,ny/2,nz/2),'rho=',rho(nx/2,ny/2,nz/2)
     write(6,*) 'u=',u(nx/2,ny/2,1),'v=',v(nx/2,ny/2,1),'w=',w(nx/2,ny/2,1),'rho=',rho(nx/2,ny/2,1)
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 

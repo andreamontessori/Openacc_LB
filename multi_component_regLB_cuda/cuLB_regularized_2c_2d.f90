@@ -1181,8 +1181,8 @@ program lb_openacc
 
    !*******************************user parameters**************************
 
-      nx = 4096
-      ny = 4096
+      nx = 2048
+      ny = 2048
       TILE_DIMx = 256
       TILE_DIMy = 2
       TILE_DIM = 16
@@ -1199,7 +1199,7 @@ program lb_openacc
       dimBlock = dim3(TILE_DIMx, TILE_DIMy, 1)
    
       radius=20
-      nsteps = 1000
+      nsteps = 10000
       stamp = 1000000
       lprint = .true.
       lvtk = .true.
@@ -1456,7 +1456,7 @@ program lb_openacc
       !    write(6,*) 'u=',u(1,ny/2) ,'v=',v(1,ny/2),'rho',rho(1,ny/2)
 
       write (6, *) 'time elapsed as measured from cpu_time: ', ts2 - ts1, ' s of your life time'
-      write (6, *) 'glups: ', real(nx)*real(ny)*real(nsteps)*real(1.d-9, kind=db)/(ts2 - ts1)
+      write (6, *) 'glups: ', real(nx)*real(ny)*real(nsteps)*real(1.d-9, kind=db)/(time/1000.0)
 
    ! istat = cudaDeviceSynchronize
    ! call store_print <<< dimGrid, dimBlock >>> ()

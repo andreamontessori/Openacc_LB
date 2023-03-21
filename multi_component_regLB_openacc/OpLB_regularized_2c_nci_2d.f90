@@ -667,8 +667,8 @@ program lb_openacc
         integer,save :: iframe=0
         integer, parameter :: nz=1
         
-        logical :: lprint=.true.
-        logical :: lvtk=.true.
+        logical :: lprint=.false.
+        logical :: lvtk=.false.
         logical :: lasync=.false.
         
         real(kind=db),parameter :: pi_greek=3.14159265359793234626433
@@ -721,10 +721,10 @@ program lb_openacc
                 ngpus=0
         #endif
     !*******************************user parameters**************************
-        nx=256!500!500
-        ny=256 !500!600
-        nsteps=100
-        stamp=100
+        nx=1024!500!500
+        ny=1024 !500!600
+        nsteps=5000
+        stamp=1000000
         fx=0.0_db*10.0**(-7)
         fy=-0.0_db*10.0**(-6)
     !**********************************allocation****************************

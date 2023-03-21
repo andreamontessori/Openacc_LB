@@ -734,11 +734,15 @@ program lb_openacc
         nx=416
         ny=416
         nz=416
-        nsteps=100
-        stamp=20000
+        nsteps=1000
+        stamp=200000
         fx=0.0_db*10.0**(-7)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
+
+        lprint=.false.
+        lvtk=.false.
+        lasync=.false.
     !*****************************************allocation*******************************************************
         allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))

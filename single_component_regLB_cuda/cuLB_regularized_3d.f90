@@ -1217,6 +1217,7 @@ program lb_openacc
     real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
     real(kind=db) :: visc_LB,omega
     real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz
+    real(kind=db) :: time
 
     real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
     real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0,myrho,myu,myv,myw
@@ -1262,9 +1263,9 @@ program lb_openacc
         fy=0.0_db*10.0**(-4.0_db)
         fz=0.0_db*10.0**(-5.0_db)
         TILE_DIMx=32
-        TILE_DIMy=8
+        TILE_DIMy=4
         TILE_DIMz=1
-        TILE_DIM=16
+        TILE_DIM=64
         if (mod(nx, TILE_DIMx)/= 0) then
           write(*,*) 'nx must be a multiple of TILE_DIM'
           stop
@@ -1379,9 +1380,10 @@ program lb_openacc
         
         call setup_pops<<<dimGrid,dimBlock>>>()
         
-    
-        allocate(rhoprint(1:nx,1:ny,1:nz),velprint(3,1:nx,1:ny,1:nz))
-        allocate(rhoprint_d(1:nx_d,1:ny_d,1:nz_d),velprint_d(3,1:nx_d,1:ny_d,1:nz_d))
+        if(lprint)then
+          allocate(rhoprint(1:nx,1:ny,1:nz),velprint(3,1:nx,1:ny,1:nz))
+          allocate(rhoprint_d(1:nx_d,1:ny_d,1:nz_d),velprint_d(3,1:nx_d,1:ny_d,1:nz_d))
+        endif
     !*************************************check data ************************ 
         write(6,*) '*******************LB data*****************'
         write(6,*) 'tau',tau
@@ -1460,10 +1462,11 @@ program lb_openacc
     
     !*************************************time loop************************  
     call cpu_time(ts1)
+    istat = cudaEventRecord(startEvent,0)
     do step=1,nsteps 
         !***********************************moments collision bbck + forcing************************ 
 
-        call moments<<<dimGrid,dimBlock,0,stream1>>>()
+        !call moments<<<dimGrid,dimBlock,0,stream1>>>()
         
         !***********************************PRINT************************
         if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
@@ -1521,13 +1524,21 @@ program lb_openacc
             call pbc_edge_x<<<dimGridx,dimBlock2,0,stream1>>>()
             call pbc_edge_y<<<dimGridy,dimBlock2,0,stream1>>>()
           endif
-        
-        istat = cudaEventRecord(dummyEvent, stream1)
-        istat = cudaEventSynchronize(dummyEvent)
+
+          if(lprint)then
+            istat = cudaEventRecord(dummyEvent, stream1)
+            istat = cudaEventSynchronize(dummyEvent)
+          endif
         
     enddo 
+
+    istat = cudaEventRecord(stopEvent, 0)
+    istat = cudaEventSynchronize(stopEvent)
+    istat = cudaEventElapsedTime(time, startEvent, stopEvent)
+
     call cpu_time(ts2)
-    if(lasync)then
+
+    if(lasync .and. lprint)then
       !write(6,*)'ciao 2',step,iframe
       istat = cudaEventRecord(dummyEvent2, stream2)
       istat = cudaEventSynchronize(dummyEvent2)
@@ -1537,20 +1548,25 @@ program lb_openacc
         call print_raw_sync
       endif
     endif
+
     istat = cudaDeviceSynchronize
-    
-    istat = cudaDeviceSynchronize
+
+    if(lprint)then
     call store_print<<<dimGrid,dimBlock>>>()
     istat = cudaDeviceSynchronize
-    istat = cudaMemcpy(rhoprint,rhoprint_d,nx*ny*nz )
-    istat = cudaMemcpy(velprint,velprint_d,3*nx*ny*nz )
-    istat = cudaDeviceSynchronize
     
+      istat = cudaMemcpy(rhoprint,rhoprint_d,nx*ny*nz )
+      istat = cudaMemcpy(velprint,velprint_d,3*nx*ny*nz )
+      istat = cudaDeviceSynchronize
+      write(6,*) 'u=',velprint(1,nx/2,ny/2,nz/2),'v=',velprint(2,nx/2,ny/2,nz/2),'w=',velprint(3,nx/2,ny/2,nz/2),'rho=',rhoprint(nx/2,ny/2,nz/2)
+      write(6,*) 'u=',velprint(1,nx/2,ny/2,1),'v=',velprint(2,nx/2,ny/2,1),'w=',velprint(3,nx/2,ny/2,1),'rho=',rhoprint(nx/2,ny/2,1)
 
-    write(6,*) 'u=',velprint(1,nx/2,ny/2,nz/2),'v=',velprint(2,nx/2,ny/2,nz/2),'w=',velprint(3,nx/2,ny/2,nz/2),'rho=',rhoprint(nx/2,ny/2,nz/2)
-    write(6,*) 'u=',velprint(1,nx/2,ny/2,1),'v=',velprint(2,nx/2,ny/2,1),'w=',velprint(3,nx/2,ny/2,1),'rho=',rhoprint(nx/2,ny/2,1)
-    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
+    endif
+    
+    write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time'
+    write(6,*) 'cuda time elapsed: ', time, ' s of your life time'
     write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)*real(1.d-9,kind=db)/(ts2-ts1)
+    write(6,*) 'glups cuda: ',  real(nx)*real(ny)*real(nz)*real(nsteps)*real(1.d-9,kind=db)*1000/time
     
     call get_memory_gpu(mymemory,totmemory)
     call print_memory_registration_gpu(6,'DEVICE memory occupied at the end', &
