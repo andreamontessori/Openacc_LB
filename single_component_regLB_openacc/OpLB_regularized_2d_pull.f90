@@ -664,7 +664,7 @@ program lb_openacc
     implicit none
     
     
-    integer :: i,j,ll,l,dumm
+    integer :: i,j,ll,l,dumm,ii,jj
     integer :: nx,ny,step,stamp,nlinks,nsteps,ngpus
     integer :: istat,iframe
     integer, parameter :: nz=1
@@ -674,10 +674,15 @@ program lb_openacc
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     
     real(kind=4)  :: ts1,ts2 
-    real(kind=db) :: visc_LB,uu,udotc,omega,feq
-    real(kind=db) :: fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8
+    real(kind=db) :: visc_LB,uu,udotc,omega,feq,uu0
+    real(kind=db) :: fneq
     real(kind=db) :: qxx,qyy,qxy5_7,qxy6_8,pi2cssq1,pi2cssq2,pi2cssq0
     real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,temp,dummy
+    integer, parameter :: npops=8
+                                                  !0 1 2  3  4 5  6  7  8
+    integer, parameter, dimension(0:npops) :: ex=(/0,1,0,-1, 0,1,-1,-1, 1/)
+    integer, parameter, dimension(0:npops) :: ey=(/0,0,1, 0,-1,1, 1,-1,-1/)
+    integer, parameter, dimension(0:npops) ::opp=(/0,3,4, 1, 2,7, 8, 5, 6/)
     
     integer(kind=4), allocatable,  dimension(:,:)   :: isfluid
     
@@ -747,20 +752,43 @@ program lb_openacc
     isfluid(nx,:)=0 !WEST
     isfluid(:,1)=0 !SOUTH 
     isfluid(:,ny)=0 !NORTH
+    if(lpbc)then
+      isfluid=1
+      isfluid(:,1)=0 !SOUTH 
+      isfluid(:,ny)=0 !NORTH
+    endif
+	do j=1,ny
+      do i=1,nx
+	    if(isfluid(i,j).eq.1)then
+		  do ll=1,npops
+		    ii=i+ex(ll)
+			jj=j+ey(ll)
+		    if(ii.gt.0 .and. ii.lt.nx+1 .and. jj.gt.0 .and. jj.lt.ny+1)then
+		      if(isfluid(ii,jj).eq.0)then
+			    isfluid(i,j)=-1
+			  endif
+			endif
+		  enddo
+		endif
+	  enddo
+	enddo
     !*************************************initial conditions ************************    
     u=0.0_db
     v=0.0_db
     rho=1.0_db     !rho!
+    pxx=0.0_db
+    pxy=0.0_db
+    pyy=0.0_db
     !do ll=0,nlinks
-    f0(1:nx,1:ny)=p(0)*rho(:,:)!0.0_db
-    f1(1:nx,1:ny)=p(1)*rho(:,:)
-    f2(1:nx,1:ny)=p(2)*rho(:,:)
-    f3(1:nx,1:ny)=p(3)*rho(:,:)
-    f4(1:nx,1:ny)=p(4)*rho(:,:)
-    f5(1:nx,1:ny)=p(5)*rho(:,:)
-    f6(1:nx,1:ny)=p(6)*rho(:,:)
-    f7(1:nx,1:ny)=p(7)*rho(:,:)
-    f8(1:nx,1:ny)=p(8)*rho(:,:)
+!    f0(1:nx,1:ny)=p(0)*rho(:,:)!0.0_db
+!    f1(1:nx,1:ny)=p(1)*rho(:,:)
+!    f2(1:nx,1:ny)=p(2)*rho(:,:)
+!    f3(1:nx,1:ny)=p(3)*rho(:,:)
+!    f4(1:nx,1:ny)=p(4)*rho(:,:)
+!    f5(1:nx,1:ny)=p(5)*rho(:,:)
+!    f6(1:nx,1:ny)=p(6)*rho(:,:)
+!    f7(1:nx,1:ny)=p(7)*rho(:,:)
+!    f8(1:nx,1:ny)=p(8)*rho(:,:)
     !enddo
     !*************************************check data ************************ 
     write(6,*) '*******************LB data*****************'
@@ -781,7 +809,7 @@ program lb_openacc
     write(6,*) 'max fx',huge(fx)
     write(6,*) 'available gpus',ngpus
     write(6,*) '*******************************************'
-
+    step = 0
 
     !$acc data copy(p,rho,u,v,pxx,pxy,pyy,f0,f1,f2,f3,f4,f5,f6,f7,f8,isfluid,rhoprint,velprint) async(1)
     !$if _OPENACC        
@@ -825,47 +853,30 @@ program lb_openacc
     !*************************************time loop************************  
     call cpu_time(ts1)
     do step=1,nsteps 
-        !***********************************moment + neq pressor*********
-        !$acc kernels async(1)
-        !$acc loop collapse(2) private(uu,temp,udotc,fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8) 
-        do j=1,ny
-            do i=1,nx
-                if(isfluid(i,j).eq.1)then
-                    rho(i,j) = f0(i,j)+f1(i,j)+f2(i,j)+f3(i,j)+f4(i,j)+f5(i,j)+f6(i,j)+f7(i,j)+f8(i,j)
-                    u(i,j) = (f1(i,j) +f5(i,j) +f8(i,j)-f3(i,j) -f6(i,j) -f7(i,j)) !/rho(i,j)
-                    v(i,j) = (f5(i,j) +f2(i,j) +f6(i,j)-f7(i,j) -f4(i,j) -f8(i,j))
-                    ! non equilibrium pressor components
-                    uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
-                    !1-3
-                    udotc=u(i,j)/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    fneq1=f1(i,j)-p(1)*(rho(i,j)+(temp + udotc))
-                    fneq3=f3(i,j)-p(3)*(rho(i,j)+(temp - udotc))
-                    !2-4
-                    udotc=v(i,j)/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    fneq2=f2(i,j)-p(2)*(rho(i,j)+(temp + udotc))
-                    fneq4=f4(i,j)-p(4)*(rho(i,j)+(temp - udotc))
-                    !5-7
-                    udotc=(u(i,j)+v(i,j))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    fneq5=f5(i,j)-p(5)*(rho(i,j)+(temp + udotc))
-                    fneq7=f7(i,j)-p(7)*(rho(i,j)+(temp - udotc))
-                    !6-8
-                    udotc=(-u(i,j)+v(i,j))/cssq
-                    temp = -uu + 0.5_db*udotc*udotc
-                    fneq6=f6(i,j)-p(6)*(rho(i,j)+(temp + udotc))
-                    fneq8=f8(i,j)-p(8)*(rho(i,j)+(temp - udotc))
-
-                    pxx(i,j)= fneq1 + fneq3 + fneq5 + fneq6 + fneq7 + fneq8
-                    pyy(i,j)= fneq2 + fneq4 + fneq5 + fneq6 + fneq7 + fneq8
-                    pxy(i,j)= fneq5 - fneq6 + fneq7 - fneq8
-                endif
-            enddo 
-        enddo
-        !$acc end kernels
-        
-      !***********************************PRINT************************
+        !******************************************call other bcs************************
+        if(lpbc)then      
+		  !periodic along x 
+		  !$acc kernels async(1)
+	      !$acc loop independent 
+	       do j=2,ny-1
+		     rho(1,j)=rho(nx-1,j)
+		     u(1,j)=u(nx-1,j)
+		     v(1,j)=v(nx-1,j)
+		     pxx(1,j)=pxx(nx-1,j)
+		     pyy(1,j)=pyy(nx-1,j)
+		     pxy(1,j)=pxy(nx-1,j)
+		     
+		     rho(nx,j)=rho(2,j)
+		     u(nx,j)=u(2,j)
+		     v(nx,j)=v(2,j)
+	         pxx(nx,j)=pxx(2,j)
+	         pyy(nx,j)=pyy(2,j)
+             pxy(nx,j)=pxy(2,j)
+		  enddo
+		!$acc end kernels
+		endif
+		
+		!***********************************PRINT************************
         if(mod(step,stamp).eq.0) write(6,'(a,i8)')'step : ',step
         if(lprint)then
             if(mod(step,stamp).eq.0)then
@@ -905,108 +916,447 @@ program lb_openacc
                 endif
             endif
         endif
+		
         
-      !***********collision + no slip + forcing: fused implementation*********
+        !***********collision + no slip + forcing: fused implementation*********
+#define MYTEST
+#ifdef MYTEST
         !$acc kernels async(1)
-            !$acc loop collapse(2) private(uu,temp,udotc,feq,fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8) 
-            do j=1,ny
-                do i=1,nx 
-                    if(isfluid(i,j).eq.1)then   
-                        uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
-                        !oneminusuu= -uu !1.0_db - uu
-                        !0
-                        feq=p(0)*(rho(i,j)-uu)
-                        f0(i,j)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j))
-                        !1
-                        udotc=u(i,j)/cssq
-                        temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(1)*(rho(i,j)+(temp + udotc))
-                        f1(i+1,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j)) + fx*p(1)/cssq !f1(i-1,j,nsp) + omega*(feq - f1(i-1,j,nsp)) + fx*p(1)/cssq
-                        !3
-                        feq=p(3)*(rho(i,j)+(temp - udotc))
-                        f3(i-1,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j))  - fx*p(3)/cssq !f3(i+1,j,nsp) + omega*(feq - f3(i+1,j,nsp)) - fx*p(3)/cssq
-                        !2
-                        udotc=v(i,j)/cssq
-                        temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(2)*(rho(i,j)+(temp + udotc))
-                        f2(i,j+1)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  + fy*p(2)/cssq !f2(i,j-1,nsp) + omega*(feq - f2(i,j-1,nsp)) + fy*p(2)/cssq
-                        !4
-                        feq=p(4)*(rho(i,j)+(temp - udotc))
-                        f4(i,j-1)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  - fy*p(4)/cssq !f4(i,j+1,nsp) + omega*(feq - f4(i,j+1,nsp)) - fy*p(4)/cssq
-                        !5
-                        udotc=(u(i,j)+v(i,j))/cssq
-                        temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(5)*(rho(i,j)+(temp + udotc))
-                        f5(i+1,j+1)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + fx*p(5)/cssq + fy*p(5)/cssq!f5(i-1,j-1,nsp) + omega*(feq - f5(i-1,j-1,nsp)) + fx*p(5)/cssq + fy*p(5)/cssq 
-                        !7
-                        feq=p(7)*(rho(i,j)+(temp - udotc))
-                        f7(i-1,j-1)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) - fx*p(7)/cssq - fy*p(7)/cssq !f7(i+1,j+1,nsp) + omega*(feq - f7(i+1,j+1,nsp)) - fx*p(7)/cssq - fy*p(7)/cssq
-                        !6
-                        udotc=(-u(i,j)+v(i,j))/cssq
-                        temp = -uu + 0.5_db*udotc*udotc
-                        feq=p(6)*(rho(i,j)+(temp + udotc))
-                        f6(i-1,j+1)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) - fx*p(6)/cssq + fy*p(6)/cssq !f6(i+1,j-1,nsp) + omega*(feq - f6(i+1,j-1,nsp)) - fx*p(6)/cssq + fy*p(6)/cssq
-                        !8
-                        feq=p(8)*(rho(i,j)+(temp - udotc))
-                        f8(i+1,j-1)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + fx*p(8)/cssq - fy*p(8)/cssq !f8(i-1,j+1,nsp) + omega*(feq - f8(i-1,j+1,nsp)) + fx*p(8)/cssq - fy*p(8)/cssq
-                    endif
-                enddo
-            enddo
-        !********************************************bcs no slip*****************************************!
-            !$acc loop independent 
-            do j=1,ny
-                !$acc loop independent 
-                do i=1,nx
-                    if(isfluid(i,j).eq.0)then
+		!$acc loop collapse(2) private(uu,temp,udotc,feq,fneq,uu0) 
+		do j=2,ny-1
+		  do i=2,nx-1  
+			  uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
+			  !oneminusuu= -uu !1.0_db - uu
+			  !0
+			  feq=p(0)*(rho(i,j)-uu)
+			  f0(i,j)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j))
+			  !1   -1  0
+			  uu=0.5_db*(u(i-1,j)*u(i-1,j) + v(i-1,j)*v(i-1,j))/cssq
+			  udotc=u(i-1,j)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(1)*(rho(i-1,j)+(temp + udotc))
+			  f1(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i-1,j)-cssq*pyy(i-1,j)) + fx*p(1)/cssq 
+			  !3   +1  0
+			  uu=0.5_db*(u(i+1,j)*u(i+1,j) + v(i+1,j)*v(i+1,j))/cssq
+			  udotc=u(i+1,j)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+		  	  feq=p(3)*(rho(i+1,j)+(temp - udotc))
+		  	  f3(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i+1,j)-cssq*pyy(i+1,j))  - fx*p(3)/cssq 
+			  !2    0  -1
+			  uu=0.5_db*(u(i,j-1)*u(i,j-1) + v(i,j-1)*v(i,j-1))/cssq
+			  udotc=v(i,j-1)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(2)*(rho(i,j-1)+(temp + udotc))
+			  f2(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j-1)-cssq*pxx(i,j-1))  + fy*p(2)/cssq 
+			  !4    0   +1
+			  uu=0.5_db*(u(i,j+1)*u(i,j+1) + v(i,j+1)*v(i,j+1))/cssq
+			  udotc=v(i,j+1)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(4)*(rho(i,j+1)+(temp - udotc))
+			  f4(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j+1)-cssq*pxx(i,j+1))  - fy*p(4)/cssq    
+			  !5   -1   -1
+			  uu=0.5_db*(u(i-1,j-1)*u(i-1,j-1) + v(i-1,j-1)*v(i-1,j-1))/cssq
+			  udotc=(u(i-1,j-1)+v(i-1,j-1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(5)*(rho(i-1,j-1)+(temp + udotc))
+			  f5(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j-1)+qyy*pyy(i-1,j-1)+2.0_db*qxy5_7*pxy(i-1,j-1)) + &
+			   fx*p(5)/cssq + fy*p(5)/cssq
+			  !7   +1   +1
+			  uu=0.5_db*(u(i+1,j+1)*u(i+1,j+1) + v(i+1,j+1)*v(i+1,j+1))/cssq
+			  udotc=(u(i+1,j+1)+v(i+1,j+1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(7)*(rho(i+1,j+1)+(temp - udotc))
+			  f7(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j+1)+qyy*pyy(i+1,j+1)+2.0_db*qxy5_7*pxy(i+1,j+1)) - &
+			   fx*p(7)/cssq - fy*p(7)/cssq 
+			  !6   +1   -1
+			  uu=0.5_db*(u(i+1,j-1)*u(i+1,j-1) + v(i+1,j-1)*v(i+1,j-1))/cssq
+			  udotc=(-u(i+1,j-1)+v(i+1,j-1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(6)*(rho(i+1,j-1)+(temp + udotc))
+			  f6(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j-1)+qyy*pyy(i+1,j-1)+2.0_db*qxy6_8*pxy(i+1,j-1)) - &
+			   fx*p(6)/cssq + fy*p(6)/cssq 
+			  !8   -1   +1
+			  uu=0.5_db*(u(i-1,j+1)*u(i-1,j+1) + v(i-1,j+1)*v(i-1,j+1))/cssq
+			  udotc=(-u(i-1,j+1)+v(i-1,j+1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(8)*(rho(i-1,j+1)+(temp - udotc))
+			  f8(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j+1)+qyy*pyy(i-1,j+1)+2.0_db*qxy6_8*pxy(i-1,j+1)) + &
+			   fx*p(8)/cssq - fy*p(8)/cssq
+	     enddo
+	   enddo
+	  !$acc end kernels
+      !$acc wait(1)
+      
+      !$acc kernels async(1)
+	  !$acc loop collapse(2) private(uu,temp,udotc,feq,fneq,uu0) 
+	   do j=2,ny-1
+		  do i=2,nx-1  
+			if(isfluid(i,j).eq.-1)then
+			  uu0=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
+			  !0
+			  feq=p(0)*(rho(i,j)-uu0)
+			  f0(i,j)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j))
+			  !1   -1  0
+			  if(isfluid(i-1,j).eq.0)then
+			    udotc=u(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(1)*(rho(i,j)+(temp - udotc))
+			    f1(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j)) - fx*p(1)/cssq 
+			  else
+			    uu=0.5_db*(u(i-1,j)*u(i-1,j) + v(i-1,j)*v(i-1,j))/cssq
+			    udotc=u(i-1,j)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(1)*(rho(i-1,j)+(temp + udotc))
+			    f1(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i-1,j)-cssq*pyy(i-1,j)) + fx*p(1)/cssq 
+			  endif
+			  !3   +1  0
+			  if(isfluid(i+1,j).eq.0)then
+			    udotc=u(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+		  	    feq=p(3)*(rho(i,j)+(temp + udotc))
+		  	    f3(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j))  + fx*p(3)/cssq 
+			  else
+			    uu=0.5_db*(u(i+1,j)*u(i+1,j) + v(i+1,j)*v(i+1,j))/cssq
+			    udotc=u(i+1,j)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+		  	    feq=p(3)*(rho(i+1,j)+(temp - udotc))
+		  	    f3(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i+1,j)-cssq*pyy(i+1,j))  - fx*p(3)/cssq 
+		  	  endif
+			  !2    0  -1
+			  if(isfluid(i,j-1).eq.0)then
+			    udotc=v(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(2)*(rho(i,j)+(temp - udotc))
+			    f2(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  - fy*p(2)/cssq
+			  else
+			    uu=0.5_db*(u(i,j-1)*u(i,j-1) + v(i,j-1)*v(i,j-1))/cssq
+			    udotc=v(i,j-1)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(2)*(rho(i,j-1)+(temp + udotc))
+			    f2(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j-1)-cssq*pxx(i,j-1))  + fy*p(2)/cssq 
+			  endif
+			  !4    0   +1
+			  if(isfluid(i,j+1).eq.0)then
+			    udotc=v(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(4)*(rho(i,j)+(temp + udotc))
+			    f4(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  + fy*p(4)/cssq 
+			  else
+			    uu=0.5_db*(u(i,j+1)*u(i,j+1) + v(i,j+1)*v(i,j+1))/cssq
+			    udotc=v(i,j+1)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(4)*(rho(i,j+1)+(temp - udotc))
+			    f4(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j+1)-cssq*pxx(i,j+1))  - fy*p(4)/cssq 
+			  endif
+			  !5   -1   -1
+			  if(isfluid(i-1,j-1).eq.0)then
+			    udotc=(u(i,j)+v(i,j))/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(5)*(rho(i,j)+(temp - udotc))
+			    f5(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) - &
+			     fx*p(5)/cssq - fy*p(5)/cssq
+			  else
+			    uu=0.5_db*(u(i-1,j-1)*u(i-1,j-1) + v(i-1,j-1)*v(i-1,j-1))/cssq
+			    udotc=(u(i-1,j-1)+v(i-1,j-1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(5)*(rho(i-1,j-1)+(temp + udotc))
+			    f5(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j-1)+qyy*pyy(i-1,j-1)+2.0_db*qxy5_7*pxy(i-1,j-1)) + &
+			     fx*p(5)/cssq + fy*p(5)/cssq
+			  endif
+			  !7   +1   +1
+			  if(isfluid(i+1,j+1).eq.0)then
+			    udotc=(u(i,j)+v(i,j))/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(7)*(rho(i,j)+(temp + udotc))
+			    f7(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + &
+			     fx*p(7)/cssq + fy*p(7)/cssq 
+			  else
+			    uu=0.5_db*(u(i+1,j+1)*u(i+1,j+1) + v(i+1,j+1)*v(i+1,j+1))/cssq
+			    udotc=(u(i+1,j+1)+v(i+1,j+1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(7)*(rho(i+1,j+1)+(temp - udotc))
+			    f7(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j+1)+qyy*pyy(i+1,j+1)+2.0_db*qxy5_7*pxy(i+1,j+1)) - &
+			     fx*p(7)/cssq - fy*p(7)/cssq 
+			  endif
+			  !6   +1   -1
+			  if(isfluid(i+1,j-1).eq.0)then
+			    udotc=(-u(i,j)+v(i,j))/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(6)*(rho(i,j)+(temp - udotc))
+			    f6(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + &
+			     fx*p(6)/cssq - fy*p(6)/cssq 
+			  else
+			    uu=0.5_db*(u(i+1,j-1)*u(i+1,j-1) + v(i+1,j-1)*v(i+1,j-1))/cssq
+			    udotc=(-u(i+1,j-1)+v(i+1,j-1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(6)*(rho(i+1,j-1)+(temp + udotc))
+			    f6(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j-1)+qyy*pyy(i+1,j-1)+2.0_db*qxy6_8*pxy(i+1,j-1)) - &
+			     fx*p(6)/cssq + fy*p(6)/cssq 
+			  endif
+			  !8   -1   +1
+			  if(isfluid(i-1,j+1).eq.0)then
+			    udotc=(-u(i,j)+v(i,j))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(8)*(rho(i,j)+(temp + udotc))
+			    f8(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) - &
+			     fx*p(8)/cssq + fy*p(8)/cssq
+			  else
+			    uu=0.5_db*(u(i-1,j+1)*u(i-1,j+1) + v(i-1,j+1)*v(i-1,j+1))/cssq
+			    udotc=(-u(i-1,j+1)+v(i-1,j+1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(8)*(rho(i-1,j+1)+(temp - udotc))
+			    f8(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j+1)+qyy*pyy(i-1,j+1)+2.0_db*qxy6_8*pxy(i-1,j+1)) + &
+			     fx*p(8)/cssq - fy*p(8)/cssq
+			  endif
+	        endif
+		  enddo
+		enddo
+		!$acc end kernels
+        !$acc wait(1)
+#else
+        !$acc kernels async(1)
+		!$acc loop collapse(2) private(uu,temp,udotc,feq,fneq,uu0) 
+		do j=1,ny
+		  do i=1,nx 
+			if(isfluid(i,j).eq.1)then   
+			  uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
+			  !oneminusuu= -uu !1.0_db - uu
+			  !0
+			  feq=p(0)*(rho(i,j)-uu)
+			  f0(i,j)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j))
+			  !1   -1  0
+			  uu=0.5_db*(u(i-1,j)*u(i-1,j) + v(i-1,j)*v(i-1,j))/cssq
+			  udotc=u(i-1,j)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(1)*(rho(i-1,j)+(temp + udotc))
+			  f1(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i-1,j)-cssq*pyy(i-1,j)) + fx*p(1)/cssq 
+			  !3   +1  0
+			  uu=0.5_db*(u(i+1,j)*u(i+1,j) + v(i+1,j)*v(i+1,j))/cssq
+			  udotc=u(i+1,j)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+		  	  feq=p(3)*(rho(i+1,j)+(temp - udotc))
+		  	  f3(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i+1,j)-cssq*pyy(i+1,j))  - fx*p(3)/cssq 
+			  !2    0  -1
+			  uu=0.5_db*(u(i,j-1)*u(i,j-1) + v(i,j-1)*v(i,j-1))/cssq
+			  udotc=v(i,j-1)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(2)*(rho(i,j-1)+(temp + udotc))
+			  f2(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j-1)-cssq*pxx(i,j-1))  + fy*p(2)/cssq 
+			  !4    0   +1
+			  uu=0.5_db*(u(i,j+1)*u(i,j+1) + v(i,j+1)*v(i,j+1))/cssq
+			  udotc=v(i,j+1)/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(4)*(rho(i,j+1)+(temp - udotc))
+			  f4(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j+1)-cssq*pxx(i,j+1))  - fy*p(4)/cssq 
+			  !5   -1   -1
+			  uu=0.5_db*(u(i-1,j-1)*u(i-1,j-1) + v(i-1,j-1)*v(i-1,j-1))/cssq
+			  udotc=(u(i-1,j-1)+v(i-1,j-1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(5)*(rho(i-1,j-1)+(temp + udotc))
+			  f5(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j-1)+qyy*pyy(i-1,j-1)+2.0_db*qxy5_7*pxy(i-1,j-1)) + &
+			   fx*p(5)/cssq + fy*p(5)/cssq
+			  !7   +1   +1
+			  uu=0.5_db*(u(i+1,j+1)*u(i+1,j+1) + v(i+1,j+1)*v(i+1,j+1))/cssq
+			  udotc=(u(i+1,j+1)+v(i+1,j+1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(7)*(rho(i+1,j+1)+(temp - udotc))
+			  f7(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j+1)+qyy*pyy(i+1,j+1)+2.0_db*qxy5_7*pxy(i+1,j+1)) - &
+			   fx*p(7)/cssq - fy*p(7)/cssq 
+			  !6   +1   -1
+			  uu=0.5_db*(u(i+1,j-1)*u(i+1,j-1) + v(i+1,j-1)*v(i+1,j-1))/cssq
+			  udotc=(-u(i+1,j-1)+v(i+1,j-1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(6)*(rho(i+1,j-1)+(temp + udotc))
+			  f6(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j-1)+qyy*pyy(i+1,j-1)+2.0_db*qxy6_8*pxy(i+1,j-1)) - &
+			   fx*p(6)/cssq + fy*p(6)/cssq 
+			  !8   -1   +1
+			  uu=0.5_db*(u(i-1,j+1)*u(i-1,j+1) + v(i-1,j+1)*v(i-1,j+1))/cssq
+			  udotc=(-u(i-1,j+1)+v(i-1,j+1))/cssq
+			  temp = -uu + 0.5_db*udotc*udotc
+			  feq=p(8)*(rho(i-1,j+1)+(temp - udotc))
+			  f8(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j+1)+qyy*pyy(i-1,j+1)+2.0_db*qxy6_8*pxy(i-1,j+1)) + &
+			   fx*p(8)/cssq - fy*p(8)/cssq
+			elseif(isfluid(i,j).eq.-1)then
+			  uu0=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
+			  !0
+			  feq=p(0)*(rho(i,j)-uu0)
+			  f0(i,j)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*pxx(i,j)-cssq*pyy(i,j))
+			  !1   -1  0
+			  if(isfluid(i-1,j).eq.0)then
+			    udotc=u(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(1)*(rho(i,j)+(temp - udotc))
+			    f1(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j)) - fx*p(1)/cssq 
+			  else
+			    uu=0.5_db*(u(i-1,j)*u(i-1,j) + v(i-1,j)*v(i-1,j))/cssq
+			    udotc=u(i-1,j)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(1)*(rho(i-1,j)+(temp + udotc))
+			    f1(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i-1,j)-cssq*pyy(i-1,j)) + fx*p(1)/cssq 
+			  endif
+			  !3   +1  0
+			  if(isfluid(i+1,j).eq.0)then
+			    udotc=u(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+		  	    feq=p(3)*(rho(i,j)+(temp + udotc))
+		  	    f3(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i,j)-cssq*pyy(i,j))  + fx*p(3)/cssq 
+			  else
+			    uu=0.5_db*(u(i+1,j)*u(i+1,j) + v(i+1,j)*v(i+1,j))/cssq
+			    udotc=u(i+1,j)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+		  	    feq=p(3)*(rho(i+1,j)+(temp - udotc))
+		  	    f3(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pxx(i+1,j)-cssq*pyy(i+1,j))  - fx*p(3)/cssq 
+		  	  endif
+			  !2    0  -1
+			  if(isfluid(i,j-1).eq.0)then
+			    udotc=v(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(2)*(rho(i,j)+(temp - udotc))
+			    f2(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  - fy*p(2)/cssq
+			  else
+			    uu=0.5_db*(u(i,j-1)*u(i,j-1) + v(i,j-1)*v(i,j-1))/cssq
+			    udotc=v(i,j-1)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(2)*(rho(i,j-1)+(temp + udotc))
+			    f2(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j-1)-cssq*pxx(i,j-1))  + fy*p(2)/cssq 
+			  endif
+			  !4    0   +1
+			  if(isfluid(i,j+1).eq.0)then
+			    udotc=v(i,j)/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(4)*(rho(i,j)+(temp + udotc))
+			    f4(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j)-cssq*pxx(i,j))  + fy*p(4)/cssq 
+			  else
+			    uu=0.5_db*(u(i,j+1)*u(i,j+1) + v(i,j+1)*v(i,j+1))/cssq
+			    udotc=v(i,j+1)/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(4)*(rho(i,j+1)+(temp - udotc))
+			    f4(i,j)= feq + (1.0_db-omega)*pi2cssq1*((1.0_db-cssq)*pyy(i,j+1)-cssq*pxx(i,j+1))  - fy*p(4)/cssq 
+			  endif
+			  !5   -1   -1
+			  if(isfluid(i-1,j-1).eq.0)then
+			    udotc=(u(i,j)+v(i,j))/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(5)*(rho(i,j)+(temp - udotc))
+			    f5(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) - &
+			     fx*p(5)/cssq - fy*p(5)/cssq
+			  else
+			    uu=0.5_db*(u(i-1,j-1)*u(i-1,j-1) + v(i-1,j-1)*v(i-1,j-1))/cssq
+			    udotc=(u(i-1,j-1)+v(i-1,j-1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(5)*(rho(i-1,j-1)+(temp + udotc))
+			    f5(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j-1)+qyy*pyy(i-1,j-1)+2.0_db*qxy5_7*pxy(i-1,j-1)) + &
+			     fx*p(5)/cssq + fy*p(5)/cssq
+			  endif
+			  !7   +1   +1
+			  if(isfluid(i+1,j+1).eq.0)then
+			    udotc=(u(i,j)+v(i,j))/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(7)*(rho(i,j)+(temp + udotc))
+			    f7(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy5_7*pxy(i,j)) + &
+			     fx*p(7)/cssq + fy*p(7)/cssq 
+			  else
+			    uu=0.5_db*(u(i+1,j+1)*u(i+1,j+1) + v(i+1,j+1)*v(i+1,j+1))/cssq
+			    udotc=(u(i+1,j+1)+v(i+1,j+1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(7)*(rho(i+1,j+1)+(temp - udotc))
+			    f7(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j+1)+qyy*pyy(i+1,j+1)+2.0_db*qxy5_7*pxy(i+1,j+1)) - &
+			     fx*p(7)/cssq - fy*p(7)/cssq 
+			  endif
+			  !6   +1   -1
+			  if(isfluid(i+1,j-1).eq.0)then
+			    udotc=(-u(i,j)+v(i,j))/cssq
+			    temp = -uu0 + 0.5_db*udotc*udotc
+			    feq=p(6)*(rho(i,j)+(temp - udotc))
+			    f6(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) + &
+			     fx*p(6)/cssq - fy*p(6)/cssq 
+			  else
+			    uu=0.5_db*(u(i+1,j-1)*u(i+1,j-1) + v(i+1,j-1)*v(i+1,j-1))/cssq
+			    udotc=(-u(i+1,j-1)+v(i+1,j-1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(6)*(rho(i+1,j-1)+(temp + udotc))
+			    f6(i,j)= feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i+1,j-1)+qyy*pyy(i+1,j-1)+2.0_db*qxy6_8*pxy(i+1,j-1)) - &
+			     fx*p(6)/cssq + fy*p(6)/cssq 
+			  endif
+			  !8   -1   +1
+			  if(isfluid(i-1,j+1).eq.0)then
+			    udotc=(-u(i,j)+v(i,j))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(8)*(rho(i,j)+(temp + udotc))
+			    f8(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j)+qyy*pyy(i,j)+2.0_db*qxy6_8*pxy(i,j)) - &
+			     fx*p(8)/cssq + fy*p(8)/cssq
+			  else
+			    uu=0.5_db*(u(i-1,j+1)*u(i-1,j+1) + v(i-1,j+1)*v(i-1,j+1))/cssq
+			    udotc=(-u(i-1,j+1)+v(i-1,j+1))/cssq
+			    temp = -uu + 0.5_db*udotc*udotc
+			    feq=p(8)*(rho(i-1,j+1)+(temp - udotc))
+			    f8(i,j)=feq + (1.0_db-omega)*pi2cssq2*(qxx*pxx(i-1,j+1)+qyy*pyy(i-1,j+1)+2.0_db*qxy6_8*pxy(i-1,j+1)) + &
+			     fx*p(8)/cssq - fy*p(8)/cssq
+			  endif
+	        endif
+		  enddo
+		enddo
+		!$acc end kernels
+        !$acc wait(1)
+#endif
+        
+        !***********************************moment + neq pressor*********
+        !$acc kernels async(1)
+        !$acc loop collapse(2) private(uu,temp,udotc,fneq) 
+        do j=1,ny
+            do i=1,nx
+                if(abs(isfluid(i,j)).eq.1)then
+                    pxx(i,j)=0.0_db
+                    pyy(i,j)=0.0_db
+                    pxy(i,j)=0.0_db
+                    rho(i,j) = f0(i,j)+f1(i,j)+f2(i,j)+f3(i,j)+f4(i,j)+f5(i,j)+f6(i,j)+f7(i,j)+f8(i,j)
+                    u(i,j) = (f1(i,j) +f5(i,j) +f8(i,j)-f3(i,j) -f6(i,j) -f7(i,j)) !/rho(i,j)
+                    v(i,j) = (f5(i,j) +f2(i,j) +f6(i,j)-f7(i,j) -f4(i,j) -f8(i,j))
+                    ! non equilibrium pressor components
+                    uu=0.5_db*(u(i,j)*u(i,j) + v(i,j)*v(i,j))/cssq
+                    !1-3
+                    udotc=u(i,j)/cssq
+                    temp = -uu + 0.5_db*udotc*udotc
+                    fneq=f1(i,j)-p(1)*(rho(i,j)+(temp + udotc))
+                    pxx(i,j)=pxx(i,j)+fneq
+                    fneq=f3(i,j)-p(3)*(rho(i,j)+(temp - udotc))
+                    pxx(i,j)=pxx(i,j)+fneq
+                    !2-4
+                    udotc=v(i,j)/cssq
+                    temp = -uu + 0.5_db*udotc*udotc
+                    fneq=f2(i,j)-p(2)*(rho(i,j)+(temp + udotc))
+                    pyy(i,j)=pyy(i,j)+fneq
+                    fneq=f4(i,j)-p(4)*(rho(i,j)+(temp - udotc))
+                    pyy(i,j)=pyy(i,j)+fneq
+                    !5-7
+                    udotc=(u(i,j)+v(i,j))/cssq
+                    temp = -uu + 0.5_db*udotc*udotc
+                    fneq=f5(i,j)-p(5)*(rho(i,j)+(temp + udotc))
+                    pxx(i,j)=pxx(i,j)+fneq
+                    pyy(i,j)=pyy(i,j)+fneq
+                    pxy(i,j)=pxy(i,j)+fneq
+                    fneq=f7(i,j)-p(7)*(rho(i,j)+(temp - udotc))
+                    pxx(i,j)=pxx(i,j)+fneq
+                    pyy(i,j)=pyy(i,j)+fneq
+                    pxy(i,j)=pxy(i,j)+fneq
+                    !6-8
+                    udotc=(-u(i,j)+v(i,j))/cssq
+                    temp = -uu + 0.5_db*udotc*udotc
+                    fneq=f6(i,j)-p(6)*(rho(i,j)+(temp + udotc))
+                    pxx(i,j)=pxx(i,j)+fneq
+                    pyy(i,j)=pyy(i,j)+fneq
+                    pxy(i,j)=pxy(i,j)+fneq
+                    fneq=f8(i,j)-p(8)*(rho(i,j)+(temp - udotc))
+                    pxx(i,j)=pxx(i,j)+fneq
+                    pyy(i,j)=pyy(i,j)+fneq
+                    pxy(i,j)=pxy(i,j)+fneq
 
-                        f8(i+1,j-1)=f6(i,j)!gpc 
-                        f7(i-1,j-1)=f5(i,j)!hpc
-
-                        f6(i-1,j+1)=f8(i,j)!gpc 
-                        f5(i+1,j+1)=f7(i,j)!hpc 
-
-
-                        f4(i,j-1)=f2(i,j)!gpc 
-                        f3(i-1,j)=f1(i,j)!hpc 
-
-                        f2(i,j+1)=f4(i,j)!gpc 
-                        f1(i+1,j)=f3(i,j)!hpc 
-                    endif
-                enddo
-            enddo
+                endif
+            enddo 
+        enddo
         !$acc end kernels
         
-      !******************************************call periodic bcs: always after fused************************
         
-          if(lpbc)then    
-              !periodic along x  
-              !$acc kernels async(1)
-              !$acc loop independent 
-              do j=2,ny-1
-                  if(j>2 .and. j<ny-1)then
-                      f1(2,j)=f1(nx,j)
-                      f5(2,j)=f5(nx,j)
-                      f8(2,j)=f8(nx,j)	
-                      f3(nx-1,j)=f3(1,j)
-                      f6(nx-1,j)=f6(1,j)
-                      f7(nx-1,j)=f7(1,j)
-                  else
-                      if(j==2)then
-                          f1(2,j)=f1(nx,j)
-                          f8(2,j)=f8(nx,j)
-                          f3(nx-1,j)=f3(1,j)
-                          f7(nx-1,j)=f7(1,j)
-                      endif
-                      if(j==ny-1)then
-                          f1(2,j)=f1(nx,j)
-                          f5(2,j)=f5(nx,j)
-                          f3(nx-1,j)=f3(1,j)
-                          f6(nx-1,j)=f6(1,j)
-                      endif
-                  endif
-              enddo
-              !$acc end kernels
-          endif
     enddo 
     
     !$acc wait

@@ -680,7 +680,7 @@ program lb_openacc
     real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
     real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0
     integer, parameter :: npops=18
-                                                 !0  1   2  3   4   5   6   7    8   9   10  11   12  13   14  15   16   17   18
+                                                  !0  1   2  3   4   5   6   7    8   9   10  11   12  13   14  15   16   17   18
     integer, parameter, dimension(0:npops) :: ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
     integer, parameter, dimension(0:npops) :: ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
     integer, parameter, dimension(0:npops) :: ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
@@ -1320,7 +1320,7 @@ program lb_openacc
                         if(isfluid(i,j,k+1).eq.0)then
                           udotc=w(i,j,k)/cssq
                           temp = -uu0 + 0.5_db*udotc*udotc
-                          feq=p1*(rho(i,j,k)+(temp - udotc))
+                          feq=p1*(rho(i,j,k)+(temp + udotc))
                           fneq=(1.0_db-omega)*pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
                           f6(i,j,k)=feq+fneq - fz*p1dcssq
                         else
@@ -1465,7 +1465,7 @@ program lb_openacc
         enddo
         !$acc end kernels
         !$acc wait(1)
-        
+        !***********************************moment + neq pressor*********
         !$acc kernels async(1) 
         !$acc loop collapse (3) private(fneq,uu,temp,udotc)
         do k=1,nz
