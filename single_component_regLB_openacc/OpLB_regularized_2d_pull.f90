@@ -1345,11 +1345,11 @@ program lb_openacc
                     fneq=f6(i,j)-p(6)*(rho(i,j)+(temp + udotc))
                     pxx(i,j)=pxx(i,j)+fneq
                     pyy(i,j)=pyy(i,j)+fneq
-                    pxy(i,j)=pxy(i,j)+fneq
+                    pxy(i,j)=pxy(i,j)-fneq
                     fneq=f8(i,j)-p(8)*(rho(i,j)+(temp - udotc))
                     pxx(i,j)=pxx(i,j)+fneq
                     pyy(i,j)=pyy(i,j)+fneq
-                    pxy(i,j)=pxy(i,j)+fneq
+                    pxy(i,j)=pxy(i,j)-fneq
 
                 endif
             enddo 

@@ -678,9 +678,9 @@ program lb_openacc
     real(kind=db),parameter :: p1dcssq=p1/cssq
     real(kind=db),parameter :: p2dcssq=p2/cssq
     
-    real(kind=db),parameter :: pi2cssq0=p0/(2.0_db*cssq**2)
-    real(kind=db),parameter :: pi2cssq1=p1/(2.0_db*cssq**2)
-    real(kind=db),parameter :: pi2cssq2=p2/(2.0_db*cssq**2)
+    real(kind=db),parameter :: pi2cssq0=p0/(2.0_db*cssq**2.0_db)
+    real(kind=db),parameter :: pi2cssq1=p1/(2.0_db*cssq**2.0_db)
+    real(kind=db),parameter :: pi2cssq2=p2/(2.0_db*cssq**2.0_db)
 
     real(kind=db),parameter :: qxx=1.0_db-cssq
     real(kind=db),parameter :: qyy=1.0_db-cssq
