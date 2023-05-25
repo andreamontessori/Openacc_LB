@@ -728,17 +728,17 @@ program lb_openacc
 #endif
 
     !*******************************user parameters and allocations**************************m
-        nx=32
-        ny=32
-        nz=32
-        nsteps=10000
-        stamp=100
+        nx=256
+        ny=256
+        nz=256
+        nsteps=10
+        stamp=1
         fx=1.0_db*10.0**(-5)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
         lpbc=.true.
-        lprint=.true.
-        lvtk=.true.
+        lprint=.false.
+        lvtk=.false.
         lasync=.false.
         
         allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
@@ -2819,8 +2819,8 @@ program lb_openacc
   write(iu,907)"                                                                               "
   write(iu,907)"*****************************GPU FEATURE MONITOR*******************************"
   write(iu,907)"                                                                               "
-  
-  write (iu,900) "Device Number: "      ,ngpus
+  write (iu,900) "Number of GPUs: "     ,ngpus  
+  write (iu,900) "Device Number: "      ,dev_num
   write (iu,901) "Device Name: "        ,trim(myname)
   write (iu,903) "Total Global Memory: ",real(tot_mem)/1e9," Gbytes"
   write (iu,901) "Vendor: "        ,trim(myvendor)

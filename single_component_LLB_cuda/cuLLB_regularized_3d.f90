@@ -3002,20 +3002,20 @@ program lb_openacc
 
 
     !*******************************user parameters and allocations**************************m
-        nx=32
-        ny=32
-        nz=32
-        nsteps=10000
+        nx=256
+        ny=256
+        nz=256
+        nsteps=10
         stamp=100
         h_fx=1.0_db*10.0**(-5)
         h_fy=0.0_db*10.0**(-5)
         h_fz=0.0_db*10.0**(-5)
         lpbc=.true.
-        lprint=.true.
-        lvtk=.true.
+        lprint=.false.
+        lvtk=.false.
         lasync=.false.
         
-        TILE_DIMx=32
+        TILE_DIMx=256
         TILE_DIMy=4
         TILE_DIMz=1
         TILE_DIM=16
