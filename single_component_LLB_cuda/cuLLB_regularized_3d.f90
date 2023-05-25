@@ -2292,7 +2292,28 @@
 	return
     
   end subroutine correct_pressure_flop
+  
+  subroutine abortOnLastErrorAndSync(msg, step)
+    implicit none
+    integer, intent(in) :: step
+    character(len=*), intent(in) :: msg
+    integer :: ierr,istat0,istat
     
+    istat0 = cudaGetLastError()
+    
+    istat = cudaDeviceSynchronize()
+    if (istat0/=0) then
+      write(*,*) 'status after ',msg,':', cudaGetErrorString(istat0)
+      write(*,*) 'Exiting ....'
+      stop
+    endif
+    if (istat/=0) then
+      write(*,*) 'status after ',msg,' Sync:', cudaGetErrorString(istat)
+      write(*,*) 'Exiting ....'
+      stop
+    endif
+  end subroutine  abortOnLastErrorAndSync
+
  end module mycuda
  
  module prints
@@ -3260,6 +3281,8 @@ program lb_openacc
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         
+        call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
+
         !********************************close to boundary conditions no slip everywhere********************************!
         
         call streamcoll_bc<<<dimGrid,dimBlock,0,stream1>>>()
@@ -3523,6 +3546,5 @@ program lb_openacc
    
   end subroutine close_print_async
   
-
     
 end program
