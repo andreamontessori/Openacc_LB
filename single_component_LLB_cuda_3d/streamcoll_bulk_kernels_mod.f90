@@ -105,7 +105,9 @@
 	!temp_pop=feq + (1.0_db-omega)*pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k)))
 	!temp_rho=temp_pop
 	temp_rho=feq + (1.0_db-omega)*pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k)))
-	
+	temp_u=0.0_db
+        temp_v=0.0_db
+        temp_w=0.0_db
 	!1
 	uu=0.5_db*(u(i-1,j,k)**2.0_db + v(i-1,j,k)**2.0_db + w(i-1,j,k)**2.0_db)/cssq
 	udotc=u(i-1,j,k)/cssq
@@ -562,7 +564,12 @@
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_pop
 	temp_pxx=temp_pop
-	
+	temp_pyy=0.0_db
+        temp_pzz=0.0_db
+        temp_pxy=0.0_db
+        temp_pxz=0.0_db
+        temp_pyz=0.0_db
+#if 0
 	!2
 	uu=0.5_db*(uh(i+1,j,k)**2.0_db + vh(i+1,j,k)**2.0_db + wh(i+1,j,k)**2.0_db)/cssq
 	udotc=uh(i+1,j,k)/cssq
@@ -871,7 +878,7 @@
 	temp_pyy=temp_pyy+temp_pop
 	temp_pzz=temp_pzz+temp_pop
 	temp_pyz=temp_pyz-temp_pop
-	
+#endif	
 	rho(i,j,k)=temp_rho
 	
 	u(i,j,k)=temp_u
