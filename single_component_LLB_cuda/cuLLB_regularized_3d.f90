@@ -2297,21 +2297,18 @@
     implicit none
     integer, intent(in) :: step
     character(len=*), intent(in) :: msg
-    integer :: ierr,istat0,istat
+    integer :: istat0
     
     istat0 = cudaGetLastError()
     
-    istat = cudaDeviceSynchronize()
     if (istat0/=0) then
       write(*,*) 'status after ',msg,':', cudaGetErrorString(istat0)
-      write(*,*) 'Exiting ....'
+      write(*,*) 'Exiting at step:', step
       stop
     endif
-    if (istat/=0) then
-      write(*,*) 'status after ',msg,' Sync:', cudaGetErrorString(istat)
-      write(*,*) 'Exiting ....'
-      stop
-    endif
+    
+    return
+    
   end subroutine  abortOnLastErrorAndSync
 
  end module mycuda
