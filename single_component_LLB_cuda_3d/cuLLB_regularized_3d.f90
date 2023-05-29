@@ -310,8 +310,11 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-        
         call streamcoll_bulk<<<dimGrid,dimBlock,mshared,stream1>>>()
+        !call streamcoll_bulk01<<<dimGrid,dimBlock,mshared,stream1>>>()
+        !call streamcoll_bulk012xy<<<dimGrid,dimBlock,mshared,stream1>>>()
+        !call streamcoll_bulk012xz<<<dimGrid,dimBlock,mshared,stream1>>>()
+        !call streamcoll_bulk012yz<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk', istep)

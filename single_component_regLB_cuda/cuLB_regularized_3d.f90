@@ -1276,17 +1276,17 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters and allocations**************************
-        nx=32
-        ny=32
-        nz=32
+        nx=256
+        ny=256
+        nz=256
         
         myu=zero
         myv=zero
         myw=zero
         myrho=one  !tot dens
-        nsteps=10000
-        stamp=100
-        lprint=.true.
+        nsteps=10
+        stamp=10
+        lprint=.false.
         lvtk=.true.
         lpbc=.true.
         lasync=.false.
@@ -1294,8 +1294,8 @@ program lb_openacc
         fy=zero*10.0**(-5)
         fz=zero*10.0**(-5)
         
-        TILE_DIMx=32
-        TILE_DIMy=4
+        TILE_DIMx=256
+        TILE_DIMy=1
         TILE_DIMz=1
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
