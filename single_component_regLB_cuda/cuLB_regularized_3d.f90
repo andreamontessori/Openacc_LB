@@ -5,15 +5,47 @@
     
     implicit none 
     
-    integer, parameter :: db=4 !kind(1.0)
+    integer, parameter :: db=kind(1.e0)
+    
+    real(kind=db),parameter :: zero=real(0.d0,kind=db)
+    real(kind=db),parameter :: one=real(1.d0,kind=db)
+    real(kind=db),parameter :: half=real(0.5d0,kind=db)
+    real(kind=db),parameter :: halfthree=real(1.5d0,kind=db)
+    real(kind=db),parameter :: two=real(2.d0,kind=db)
+    real(kind=db),parameter :: three=real(3.d0,kind=db)
+    real(kind=db),parameter :: five=real(5.d0,kind=db)
+    real(kind=db),parameter :: ten=real(10.d0,kind=db)
+    real(kind=db),parameter :: eighteen=real(18.d0,kind=db)
+    real(kind=db),parameter :: thirtysix=real(36.d0,kind=db)
+    
+    real(kind=db),parameter :: pi_greek=real(3.141592653589793238462643383279502884d0,kind=db)
+    real(kind=db),parameter :: p0 = (one/three)
+    real(kind=db),parameter :: p1 = (one/eighteen)
+    real(kind=db),parameter :: p2 = (one/thirtysix)
+    real(kind=db),parameter :: cssq = one/three
+    real(kind=db),parameter :: onecssq = three
+    real(kind=db),parameter :: halfonecssq = halfthree
+    real(kind=db),parameter :: p1dcssq=p1/cssq
+    real(kind=db),parameter :: p2dcssq=p2/cssq
+    
+    real(kind=db),parameter :: pi2cssq0=p0/(two*cssq**two)
+    real(kind=db),parameter :: pi2cssq1=p1/(two*cssq**two)
+    real(kind=db),parameter :: pi2cssq2=p2/(two*cssq**two)
+
+    real(kind=db),parameter :: qxx=one-cssq
+    real(kind=db),parameter :: qyy=one-cssq
+    real(kind=db),parameter :: qzz=one-cssq
+    real(kind=db),parameter :: qxy_7_8=one
+    real(kind=db),parameter :: qxy_9_10=-one
+    real(kind=db),parameter :: qxz_15_16=one
+    real(kind=db),parameter :: qxz_17_18=-one
+    real(kind=db),parameter :: qyz_11_12=one
+    real(kind=db),parameter :: qyz_13_14=-one
     ! device arrays
       integer(kind=4), allocatable,  dimension(:,:,:), device   :: isfluid_d
       integer, constant :: nx_d,ny_d,nz_d,TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
       
-      real(kind=db), constant :: p0_d,p1_d,p2_d
-      real(kind=db), constant :: fx_d,fy_d,fz_d,omega_d,myrho_d,myu_d,myv_d,myw_d,cssq_d, &
-      p1dcssq_d,p2dcssq_d,pi2cssq0_d,pi2cssq1_d,pi2cssq2_d,qxx_d,qyy_d,qzz_d, &
-      qxy_7_8_d,qxy_9_10_d,qxz_15_16_d,qxz_17_18_d,qyz_11_12_d,qyz_13_14_d
+      real(kind=db), constant :: fx_d,fy_d,fz_d,omega_d,myrho_d,myu_d,myv_d,myw_d,oneminusomega_d
       real(kind=db), allocatable, dimension(:,:,:), device  :: rho_d,u_d,v_d,w_d,pxx_d,pyy_d,pzz_d,pxy_d,pxz_d,pyz_d
       real(kind=db), allocatable, dimension(:,:,:), device :: f0_d,f1_d,f2_d,f3_d,f4_d,f5_d,f6_d,f7_d,f8_d,f9_d
       real(kind=db), allocatable, dimension(:,:,:), device :: f10_d,f11_d,f12_d,f13_d,f14_d,f15_d,f16_d,f17_d,f18_d
@@ -34,25 +66,25 @@
             
             !write(*,*)i,j,p_d(0)*myrho_d
             
-            f0_d(i,j,k)=p0_d*myrho_d
-            f1_d(i,j,k)=p1_d*myrho_d
-            f2_d(i,j,k)=p1_d*myrho_d
-            f3_d(i,j,k)=p1_d*myrho_d
-            f4_d(i,j,k)=p1_d*myrho_d
-            f5_d(i,j,k)=p1_d*myrho_d
-            f6_d(i,j,k)=p1_d*myrho_d
-            f7_d(i,j,k)=p2_d*myrho_d
-            f8_d(i,j,k)=p2_d*myrho_d
-            f9_d(i,j,k)=p2_d*myrho_d
-            f10_d(i,j,k)=p2_d*myrho_d
-            f11_d(i,j,k)=p2_d*myrho_d
-            f12_d(i,j,k)=p2_d*myrho_d
-            f13_d(i,j,k)=p2_d*myrho_d
-            f14_d(i,j,k)=p2_d*myrho_d
-            f15_d(i,j,k)=p2_d*myrho_d
-            f16_d(i,j,k)=p2_d*myrho_d
-            f17_d(i,j,k)=p2_d*myrho_d
-            f18_d(i,j,k)=p2_d*myrho_d
+            f0_d(i,j,k)=p0*myrho_d
+            f1_d(i,j,k)=p1*myrho_d
+            f2_d(i,j,k)=p1*myrho_d
+            f3_d(i,j,k)=p1*myrho_d
+            f4_d(i,j,k)=p1*myrho_d
+            f5_d(i,j,k)=p1*myrho_d
+            f6_d(i,j,k)=p1*myrho_d
+            f7_d(i,j,k)=p2*myrho_d
+            f8_d(i,j,k)=p2*myrho_d
+            f9_d(i,j,k)=p2*myrho_d
+            f10_d(i,j,k)=p2*myrho_d
+            f11_d(i,j,k)=p2*myrho_d
+            f12_d(i,j,k)=p2*myrho_d
+            f13_d(i,j,k)=p2*myrho_d
+            f14_d(i,j,k)=p2*myrho_d
+            f15_d(i,j,k)=p2*myrho_d
+            f16_d(i,j,k)=p2*myrho_d
+            f17_d(i,j,k)=p2*myrho_d
+            f18_d(i,j,k)=p2*myrho_d
      
 
       end subroutine setup_pops
@@ -69,12 +101,12 @@
               
             if(isfluid_d(i,j,k).ne.1)return
 
-            pxx_d(i,j,k)=0.0_db
-            pyy_d(i,j,k)=0.0_db
-            pzz_d(i,j,k)=0.0_db
-            pxy_d(i,j,k)=0.0_db
-            pxz_d(i,j,k)=0.0_db
-            pyz_d(i,j,k)=0.0_db  
+            pxx_d(i,j,k)=zero
+            pyy_d(i,j,k)=zero
+            pzz_d(i,j,k)=zero
+            pxy_d(i,j,k)=zero
+            pxz_d(i,j,k)=zero
+            pyz_d(i,j,k)=zero  
 
             rho_d(i,j,k) = f0_d(i,j,k)+f1_d(i,j,k)+f2_d(i,j,k)+f3_d(i,j,k)+f4_d(i,j,k)+f5_d(i,j,k) &
             +f6_d(i,j,k)+f7_d(i,j,k)+f8_d(i,j,k)+f9_d(i,j,k)+f10_d(i,j,k)+f11_d(i,j,k) &
@@ -90,94 +122,94 @@
             w_d(i,j,k) = (f5_d(i,j,k)+f11_d(i,j,k)+f14_d(i,j,k)+f15_d(i,j,k)+f17_d(i,j,k)) &
               -(f6_d(i,j,k)+f12_d(i,j,k)+f13_d(i,j,k)+f16_d(i,j,k)+f18_d(i,j,k))
           
-            uu=0.5_db*(u_d(i,j,k)*u_d(i,j,k) + v_d(i,j,k)*v_d(i,j,k) + w_d(i,j,k)*w_d(i,j,k))/cssq_d
+            uu=halfonecssq*(u_d(i,j,k)*u_d(i,j,k) + v_d(i,j,k)*v_d(i,j,k) + w_d(i,j,k)*w_d(i,j,k))
             !1-2
-            udotc=u_d(i,j,k)/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=u_d(i,j,k)*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f1_d(i,j,k)-p1_d*(rho_d(i,j,k)+(temp + udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f1_d(i,j,k)-p1*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f2_d(i,j,k)-p1_d*(rho_d(i,j,k)+(temp - udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f2_d(i,j,k)-p1*(rho_d(i,j,k)+(temp - udotc))
             !3-4
-            udotc=v_d(i,j,k)/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=v_d(i,j,k)*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f3_d(i,j,k)-p1_d*(rho_d(i,j,k)+(temp + udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f3_d(i,j,k)-p1*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f4_d(i,j,k)-p1_d*(rho_d(i,j,k)+(temp - udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f4_d(i,j,k)-p1*(rho_d(i,j,k)+(temp - udotc))
             !5-6
-            udotc=w_d(i,j,k)/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=w_d(i,j,k)*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f5_d(i,j,k)-p1_d*(rho_d(i,j,k)+(temp + udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f5_d(i,j,k)-p1*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f6_d(i,j,k)-p1_d*(rho_d(i,j,k)+(temp - udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f6_d(i,j,k)-p1*(rho_d(i,j,k)+(temp - udotc))
             !7-8
-            udotc=(u_d(i,j,k)+v_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=(u_d(i,j,k)+v_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f7_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f7_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pxy_d(i,j,k)=pxy_d(i,j,k)+f7_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f7_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f7_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pxy_d(i,j,k)=pxy_d(i,j,k)+f7_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f8_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f8_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pxy_d(i,j,k)=pxy_d(i,j,k)+f8_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f8_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f8_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pxy_d(i,j,k)=pxy_d(i,j,k)+f8_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
             !10-9
-            udotc=(-u_d(i,j,k)+v_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=(-u_d(i,j,k)+v_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f10_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f10_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pxy_d(i,j,k)=pxy_d(i,j,k)-f10_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f10_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f10_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pxy_d(i,j,k)=pxy_d(i,j,k)-f10_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f9_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f9_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pxy_d(i,j,k)=pxy_d(i,j,k)-f9_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f9_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f9_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pxy_d(i,j,k)=pxy_d(i,j,k)-f9_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
             !11-12
-            udotc=(v_d(i,j,k)+w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=(v_d(i,j,k)+w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f11_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f11_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pyz_d(i,j,k)=pyz_d(i,j,k)+f11_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f11_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f11_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pyz_d(i,j,k)=pyz_d(i,j,k)+f11_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f12_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f12_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pyz_d(i,j,k)=pyz_d(i,j,k)+f12_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f12_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f12_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pyz_d(i,j,k)=pyz_d(i,j,k)+f12_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
             !13-14
-            udotc=(v_d(i,j,k)-w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=(v_d(i,j,k)-w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f13_d(i,j,k) - p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f13_d(i,j,k) - p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pyz_d(i,j,k)=pyz_d(i,j,k)-f13_d(i,j,k) - p2_d*(rho_d(i,j,k)+(temp + udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f13_d(i,j,k) - p2*(rho_d(i,j,k)+(temp + udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f13_d(i,j,k) - p2*(rho_d(i,j,k)+(temp + udotc))
+            pyz_d(i,j,k)=pyz_d(i,j,k)-f13_d(i,j,k) - p2*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f14_d(i,j,k) - p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pyy_d(i,j,k)=pyy_d(i,j,k)+f14_d(i,j,k) - p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pyz_d(i,j,k)=pyz_d(i,j,k)-f14_d(i,j,k) - p2_d*(rho_d(i,j,k)+(temp - udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f14_d(i,j,k) - p2*(rho_d(i,j,k)+(temp - udotc))
+            pyy_d(i,j,k)=pyy_d(i,j,k)+f14_d(i,j,k) - p2*(rho_d(i,j,k)+(temp - udotc))
+            pyz_d(i,j,k)=pyz_d(i,j,k)-f14_d(i,j,k) - p2*(rho_d(i,j,k)+(temp - udotc))
             !15-16
-            udotc=(u_d(i,j,k)+w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=(u_d(i,j,k)+w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f15_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f15_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pxz_d(i,j,k)=pxz_d(i,j,k)+f15_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f15_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f15_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pxz_d(i,j,k)=pxz_d(i,j,k)+f15_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f16_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f16_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pxz_d(i,j,k)=pxz_d(i,j,k)+f16_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f16_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f16_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pxz_d(i,j,k)=pxz_d(i,j,k)+f16_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
             !17-18
-            udotc=(-u_d(i,j,k)+w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
+            udotc=(-u_d(i,j,k)+w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f17_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f17_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
-            pxz_d(i,j,k)=pxz_d(i,j,k)-f17_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp + udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f17_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f17_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
+            pxz_d(i,j,k)=pxz_d(i,j,k)-f17_d(i,j,k)-p2*(rho_d(i,j,k)+(temp + udotc))
             !fneq1=
-            pzz_d(i,j,k)=pzz_d(i,j,k)+f18_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pxx_d(i,j,k)=pxx_d(i,j,k)+f18_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
-            pxz_d(i,j,k)=pxz_d(i,j,k)-f18_d(i,j,k)-p2_d*(rho_d(i,j,k)+(temp - udotc))
+            pzz_d(i,j,k)=pzz_d(i,j,k)+f18_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pxx_d(i,j,k)=pxx_d(i,j,k)+f18_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
+            pxz_d(i,j,k)=pxz_d(i,j,k)-f18_d(i,j,k)-p2*(rho_d(i,j,k)+(temp - udotc))
 
       end subroutine moments
   
@@ -194,100 +226,100 @@
             if(isfluid_d(i,j,k).ne.1)return
               
               
-            uu=0.5_db*(u_d(i,j,k)*u_d(i,j,k) + v_d(i,j,k)*v_d(i,j,k) + w_d(i,j,k)*w_d(i,j,k))/cssq_d
+            uu=halfonecssq*(u_d(i,j,k)*u_d(i,j,k) + v_d(i,j,k)*v_d(i,j,k) + w_d(i,j,k)*w_d(i,j,k))
             !0
-            feq=p0_d*(rho_d(i,j,k)-uu)
-            f0_d(i,j,k)=feq + (1.0_db-omega_d)*pi2cssq0_d*(-cssq_d*(pyy_d(i,j,k)+pxx_d(i,j,k)+pzz_d(i,j,k)))
+            feq=p0*(rho_d(i,j,k)-uu)
+            f0_d(i,j,k)=feq + oneminusomega_d*pi2cssq0*(-cssq*(pyy_d(i,j,k)+pxx_d(i,j,k)+pzz_d(i,j,k)))
             
             !1
-            udotc=u_d(i,j,k)/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p1_d*(rho_d(i,j,k)+(temp + udotc))
-            f1_d(i+1,j,k)=feq + (1.0_db-omega_d)*pi2cssq1_d*(qxx_d*pxx_d(i,j,k)-cssq_d*(pyy_d(i,j,k)+pzz_d(i,j,k))) + fx_d*p1dcssq_d
+            udotc=u_d(i,j,k)*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p1*(rho_d(i,j,k)+(temp + udotc))
+            f1_d(i+1,j,k)=feq + oneminusomega_d*pi2cssq1*(qxx*pxx_d(i,j,k)-cssq*(pyy_d(i,j,k)+pzz_d(i,j,k))) + fx_d*p1dcssq
             
             !2
-            feq=p1_d*(rho_d(i,j,k)+(temp - udotc))
-            f2_d(i-1,j,k)=feq + (1.0_db-omega_d)*pi2cssq1_d*(qxx_d*pxx_d(i,j,k)-cssq_d*(pyy_d(i,j,k)+pzz_d(i,j,k))) - fx_d*p1dcssq_d
+            feq=p1*(rho_d(i,j,k)+(temp - udotc))
+            f2_d(i-1,j,k)=feq + oneminusomega_d*pi2cssq1*(qxx*pxx_d(i,j,k)-cssq*(pyy_d(i,j,k)+pzz_d(i,j,k))) - fx_d*p1dcssq
             
             !3
-            udotc=v_d(i,j,k)/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p1_d*(rho_d(i,j,k)+(temp + udotc))
-            f3_d(i,j+1,k)=feq+(1.0_db-omega_d)*pi2cssq1_d*(qyy_d*pyy_d(i,j,k)-cssq_d*(pxx_d(i,j,k)+pzz_d(i,j,k))) + fy_d*p1dcssq_d
+            udotc=v_d(i,j,k)*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p1*(rho_d(i,j,k)+(temp + udotc))
+            f3_d(i,j+1,k)=feq+oneminusomega_d*pi2cssq1*(qyy*pyy_d(i,j,k)-cssq*(pxx_d(i,j,k)+pzz_d(i,j,k))) + fy_d*p1dcssq
             
             !4
-            feq=p1_d*(rho_d(i,j,k)+(temp - udotc))
-            f4_d(i,j-1,k)=feq+(1.0_db-omega_d)*pi2cssq1_d*(qyy_d*pyy_d(i,j,k)-cssq_d*(pxx_d(i,j,k)+pzz_d(i,j,k))) - fy_d*p1dcssq_d
+            feq=p1*(rho_d(i,j,k)+(temp - udotc))
+            f4_d(i,j-1,k)=feq+oneminusomega_d*pi2cssq1*(qyy*pyy_d(i,j,k)-cssq*(pxx_d(i,j,k)+pzz_d(i,j,k))) - fy_d*p1dcssq
             
             !7
-            udotc=(u_d(i,j,k)+v_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p2_d*(rho_d(i,j,k)+(temp + udotc))
-            f7_d(i+1,j+1,k)=feq + (1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qyy_d*pyy_d(i,j,k)-cssq_d*pzz_d(i,j,k)+2.0_db*qxy_7_8_d*pxy_d(i,j,k)) + (fx_d+fy_d)*p2dcssq_d 
+            udotc=(u_d(i,j,k)+v_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p2*(rho_d(i,j,k)+(temp + udotc))
+            f7_d(i+1,j+1,k)=feq + oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qyy*pyy_d(i,j,k)-cssq*pzz_d(i,j,k)+two*qxy_7_8*pxy_d(i,j,k)) + (fx_d+fy_d)*p2dcssq 
             
             !8
-            feq=p2_d*(rho_d(i,j,k)+(temp - udotc))
-            f8_d(i-1,j-1,k)=feq + (1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qyy_d*pyy_d(i,j,k)-cssq_d*pzz_d(i,j,k)+2.0_db*qxy_7_8_d*pxy_d(i,j,k)) - (fx_d+fy_d)*p2dcssq_d
+            feq=p2*(rho_d(i,j,k)+(temp - udotc))
+            f8_d(i-1,j-1,k)=feq + oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qyy*pyy_d(i,j,k)-cssq*pzz_d(i,j,k)+two*qxy_7_8*pxy_d(i,j,k)) - (fx_d+fy_d)*p2dcssq
             
             !10
-            udotc=(-u_d(i,j,k)+v_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p2_d*(rho_d(i,j,k)+(temp + udotc))
-            f10_d(i-1,j+1,k)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qyy_d*pyy_d(i,j,k)-cssq_d*pzz_d(i,j,k)+2.0_db*qxy_9_10_d*pxy_d(i,j,k)) +(fy_d-fx_d)*p2dcssq_d
+            udotc=(-u_d(i,j,k)+v_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p2*(rho_d(i,j,k)+(temp + udotc))
+            f10_d(i-1,j+1,k)=feq+oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qyy*pyy_d(i,j,k)-cssq*pzz_d(i,j,k)+two*qxy_9_10*pxy_d(i,j,k)) +(fy_d-fx_d)*p2dcssq
             
             !9
-            feq=p2_d*(rho_d(i,j,k)+(temp - udotc))
-            f9_d(i+1,j-1,k)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qyy_d*pyy_d(i,j,k)-cssq_d*pzz_d(i,j,k)+2.0_db*qxy_9_10_d*pxy_d(i,j,k)) + (fx_d-fy_d)*p2dcssq_d
+            feq=p2*(rho_d(i,j,k)+(temp - udotc))
+            f9_d(i+1,j-1,k)=feq+oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qyy*pyy_d(i,j,k)-cssq*pzz_d(i,j,k)+two*qxy_9_10*pxy_d(i,j,k)) + (fx_d-fy_d)*p2dcssq
 
             !5
-            udotc=w_d(i,j,k)/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p1_d*(rho_d(i,j,k)+(temp + udotc))
-            f5_d(i,j,k+1)=feq+(1.0_db-omega_d)*pi2cssq1_d*(qzz_d*pzz_d(i,j,k)-cssq_d*(pxx_d(i,j,k)+pyy_d(i,j,k))) + fz_d*p1dcssq_d
+            udotc=w_d(i,j,k)*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p1*(rho_d(i,j,k)+(temp + udotc))
+            f5_d(i,j,k+1)=feq+oneminusomega_d*pi2cssq1*(qzz*pzz_d(i,j,k)-cssq*(pxx_d(i,j,k)+pyy_d(i,j,k))) + fz_d*p1dcssq
             
             !6
-            feq=p1_d*(rho_d(i,j,k)+(temp - udotc))
-            f6_d(i,j,k-1)=feq+(1.0_db-omega_d)*pi2cssq1_d*(qzz_d*pzz_d(i,j,k)-cssq_d*(pxx_d(i,j,k)+pyy_d(i,j,k))) - fz_d*p1dcssq_d
+            feq=p1*(rho_d(i,j,k)+(temp - udotc))
+            f6_d(i,j,k-1)=feq+oneminusomega_d*pi2cssq1*(qzz*pzz_d(i,j,k)-cssq*(pxx_d(i,j,k)+pyy_d(i,j,k))) - fz_d*p1dcssq
 
             !15
-            udotc=(u_d(i,j,k)+w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p2_d*(rho_d(i,j,k)+(temp + udotc))
-            f15_d(i+1,j,k+1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pyy_d(i,j,k)+2.0_db*qxz_15_16_d*pxz_d(i,j,k)) + (fx_d+fz_d)*p2dcssq_d 
+            udotc=(u_d(i,j,k)+w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p2*(rho_d(i,j,k)+(temp + udotc))
+            f15_d(i+1,j,k+1)=feq+oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pyy_d(i,j,k)+two*qxz_15_16*pxz_d(i,j,k)) + (fx_d+fz_d)*p2dcssq 
             
             !16
-            feq=p2_d*(rho_d(i,j,k)+(temp - udotc))
-            f16_d(i-1,j,k-1)=feq+ (1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pyy_d(i,j,k)+2.0_db*qxz_15_16_d*pxz_d(i,j,k)) - (fx_d+fz_d)*p2dcssq_d
+            feq=p2*(rho_d(i,j,k)+(temp - udotc))
+            f16_d(i-1,j,k-1)=feq+ oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pyy_d(i,j,k)+two*qxz_15_16*pxz_d(i,j,k)) - (fx_d+fz_d)*p2dcssq
 
             !17
-            udotc=(-u_d(i,j,k)+w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p2_d*(rho_d(i,j,k)+(temp + udotc))
-            f17_d(i-1,j,k+1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pyy_d(i,j,k)+2.0_db*qxz_17_18_d*pxz_d(i,j,k)) +(fz_d-fx_d)*p2dcssq_d
+            udotc=(-u_d(i,j,k)+w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p2*(rho_d(i,j,k)+(temp + udotc))
+            f17_d(i-1,j,k+1)=feq+oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pyy_d(i,j,k)+two*qxz_17_18*pxz_d(i,j,k)) +(fz_d-fx_d)*p2dcssq
             
             !18
-            feq=p2_d*(rho_d(i,j,k)+(temp - udotc))
-            f18_d(i+1,j,k-1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qxx_d*pxx_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pyy_d(i,j,k)+2.0_db*qxz_17_18_d*pxz_d(i,j,k)) + (fx_d-fz_d)*p2dcssq_d
+            feq=p2*(rho_d(i,j,k)+(temp - udotc))
+            f18_d(i+1,j,k-1)=feq+oneminusomega_d*pi2cssq2*(qxx*pxx_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pyy_d(i,j,k)+two*qxz_17_18*pxz_d(i,j,k)) + (fx_d-fz_d)*p2dcssq
 
             !11
-            udotc=(v_d(i,j,k)+w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p2_d*(rho_d(i,j,k)+(temp + udotc))
-            f11_d(i,j+1,k+1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qyy_d*pyy_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pxx_d(i,j,k)+2.0_db*qyz_11_12_d*pyz_d(i,j,k))+(fy_d+fz_d)*p2dcssq_d
+            udotc=(v_d(i,j,k)+w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p2*(rho_d(i,j,k)+(temp + udotc))
+            f11_d(i,j+1,k+1)=feq+oneminusomega_d*pi2cssq2*(qyy*pyy_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pxx_d(i,j,k)+two*qyz_11_12*pyz_d(i,j,k))+(fy_d+fz_d)*p2dcssq
             
             !12
-            feq=p2_d*(rho_d(i,j,k)+(temp - udotc))
-            f12_d(i,j-1,k-1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qyy_d*pyy_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pxx_d(i,j,k)+2.0_db*qyz_11_12_d*pyz_d(i,j,k)) - (fy_d+fz_d)*p2dcssq_d
+            feq=p2*(rho_d(i,j,k)+(temp - udotc))
+            f12_d(i,j-1,k-1)=feq+oneminusomega_d*pi2cssq2*(qyy*pyy_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pxx_d(i,j,k)+two*qyz_11_12*pyz_d(i,j,k)) - (fy_d+fz_d)*p2dcssq
 
             !13
-            udotc=(v_d(i,j,k)-w_d(i,j,k))/cssq_d
-            temp = -uu + 0.5_db*udotc*udotc
-            feq=p2_d*(rho_d(i,j,k)+(temp + udotc))
-            f13_d(i,j+1,k-1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qyy_d*pyy_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pxx_d(i,j,k)+2.0_db*qyz_13_14_d*pyz_d(i,j,k)) + (fy_d-fz_d)*p2dcssq_d
+            udotc=(v_d(i,j,k)-w_d(i,j,k))*halfonecssq
+            temp = -uu + half*udotc*udotc
+            feq=p2*(rho_d(i,j,k)+(temp + udotc))
+            f13_d(i,j+1,k-1)=feq+oneminusomega_d*pi2cssq2*(qyy*pyy_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pxx_d(i,j,k)+two*qyz_13_14*pyz_d(i,j,k)) + (fy_d-fz_d)*p2dcssq
             
             !14
-            feq=p2_d*(rho_d(i,j,k)+(temp - udotc))
-            f14_d(i,j-1,k+1)=feq+(1.0_db-omega_d)*pi2cssq2_d*(qyy_d*pyy_d(i,j,k)+qzz_d*pzz_d(i,j,k)-cssq_d*pxx_d(i,j,k)+2.0_db*qyz_13_14_d*pyz_d(i,j,k)) + (fz_d-fy_d)*p2dcssq_d
+            feq=p2*(rho_d(i,j,k)+(temp - udotc))
+            f14_d(i,j-1,k+1)=feq+oneminusomega_d*pi2cssq2*(qyy*pyy_d(i,j,k)+qzz*pzz_d(i,j,k)-cssq*pxx_d(i,j,k)+two*qyz_13_14*pyz_d(i,j,k)) + (fz_d-fy_d)*p2dcssq
 
       end subroutine streamcoll
   
@@ -530,10 +562,10 @@
             
           else
           
-            rhoprint_d(i,j,k)=0.0_db
-            velprint_d(1,i,j,k)=0.0_db
-            velprint_d(2,i,j,k)=0.0_db
-            velprint_d(3,i,j,k)=0.0_db
+            rhoprint_d(i,j,k)=zero
+            velprint_d(1,i,j,k)=zero
+            velprint_d(2,i,j,k)=zero
+            velprint_d(3,i,j,k)=zero
           
           endif
           
@@ -1064,9 +1096,9 @@
   i=1
   tmp=real(inum,kind=db)
   do
-  if(tmp< 10.0_db )exit
+  if(tmp< ten )exit
 	i=i+1
-	tmp=tmp/ 10.0_db
+	tmp=tmp/ ten
   enddo
 
   dimenumb=i
@@ -1213,15 +1245,13 @@ program lb_openacc
     integer :: i,j,k
     integer :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus
     
-    real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     
-    real(kind=4)  :: ts1,ts2,p0,p1,p2,p1dcssq,p2dcssq
-    real(kind=db) :: visc_LB,omega
-    real(kind=db) :: tau,one_ov_nu,cssq,fx,fy,fz
+    real(kind=4)  :: ts1,ts2
+    real(kind=db) :: visc_LB,omega,oneminusomega
+    real(kind=db) :: tau,one_ov_nu,fx,fy,fz
     real(kind=db) :: time
 
-    real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
-    real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0,myrho,myu,myv,myw
+    real(kind=db) :: myrho,myu,myv,myw
     
     integer(kind=4), allocatable,dimension(:,:,:)   :: isfluid
     real(kind=db), allocatable, dimension(:,:,:) :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
@@ -1234,10 +1264,9 @@ program lb_openacc
     
        
     nlinks=18 !pari!
-    tau=1.0_db
-    cssq=1.0_db/3.0_db
-    visc_LB=cssq*(tau-0.5_db)
-    one_ov_nu=1.0_db/visc_LB
+    tau=one
+    visc_LB=cssq*(tau-half)
+    one_ov_nu=one/visc_LB
     
     istat = cudaGetDeviceCount(ngpus)
 !#ifdef _OPENACC
@@ -1251,19 +1280,19 @@ program lb_openacc
         ny=32
         nz=32
         
-        myu=0.0_db
-        myv=0.0_db
-        myw=0.0_db
-        myrho=1.0_db  !tot dens
+        myu=zero
+        myv=zero
+        myw=zero
+        myrho=one  !tot dens
         nsteps=10000
         stamp=100
         lprint=.true.
         lvtk=.true.
         lpbc=.true.
         lasync=.false.
-        fx=1.0_db*10.0**(-5)
-        fy=0.0_db*10.0**(-5)
-        fz=0.0_db*10.0**(-5)
+        fx=one*10.0**(-5)
+        fy=zero*10.0**(-5)
+        fz=zero*10.0**(-5)
         
         TILE_DIMx=32
         TILE_DIMy=4
@@ -1301,13 +1330,9 @@ program lb_openacc
         !ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
         !ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
         !ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
-
-        p0=(1.0_db/3.0_db)
-        p1=(1.0_db/18.0_db)
-        p2=(1.0_db/36.0_db)
-        p1dcssq=p1/cssq
-        p2dcssq=p2/cssq
-        omega=1.0_db/tau
+        
+        omega=one/tau
+        oneminusomega=one-omega
     !*****************************************geometry************************
         isfluid=1
         isfluid(1,:,:)=0 !left
@@ -1316,20 +1341,7 @@ program lb_openacc
         isfluid(:,ny,:)=0 !rear
         isfluid(:,:,1)=0 !bottom
         isfluid(:,:,nz)=0 !top
-    !****************************************hermite projection vars**********
-        pi2cssq0=p0/(2.0_db*cssq**2)
-        pi2cssq1=p1/(2.0_db*cssq**2)
-        pi2cssq2=p2/(2.0_db*cssq**2)
 
-        qxx=1.0_db-cssq
-        qyy=1.0_db-cssq
-        qzz=1.0_db-cssq
-        qxy_7_8=1.0_db
-        qxy_9_10=-1.0_db
-        qxz_15_16=1.0_db
-        qxz_17_18=-1.0_db
-        qyz_11_12=1.0_db
-        qyz_13_14=-1.0_db
         
     !********************************copies to device*****************!
         nx_d=nx
@@ -1346,25 +1358,8 @@ program lb_openacc
         fx_d=fx
         fy_d=fy
         fz_d=fz
-        p0_d=p0
-        p1_d=p1
-        p2_d=p2
         omega_d=omega
-        cssq_d=cssq
-        p1dcssq_d=p1dcssq
-        p2dcssq_d=p2dcssq
-        pi2cssq0_d=pi2cssq0
-        pi2cssq1_d=pi2cssq1
-        pi2cssq2_d=pi2cssq2
-        qxx_d=qxx
-        qyy_d=qyy
-        qzz_d=qzz
-        qxy_7_8_d=qxy_7_8
-        qxy_9_10_d=qxy_9_10
-        qxz_15_16_d=qxz_15_16
-        qxz_17_18_d=qxz_17_18
-        qyz_11_12_d=qyz_11_12
-        qyz_13_14_d=qyz_13_14
+        oneminusomega_d=oneminusomega
         
         allocate(isfluid_d(1:nx_d,1:ny_d,1:nz_d))
         istat = cudaDeviceSynchronize
