@@ -49,8 +49,10 @@
     type (cudaDeviceProp) :: prop
     type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
     type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2
+    type (dim3) :: dimGrid_k,dimBlock_k
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
+    integer, constant :: TILE_DIMx_k_d,TILE_DIMy_k_d
     
     real(kind=db), allocatable, dimension(:,:,:), device :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
     real(kind=db), allocatable, dimension(:,:,:), device :: rhoh,uh,vh,wh,pxxh,pxyh,pxzh,pyyh,pyzh,pzzh

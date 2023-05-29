@@ -15,6 +15,7 @@ program lb_openacc
     integer :: i,j,k,ii,jj,kk,ll
     integer :: nx,ny,nz,step,istep,stamp,nlinks,nsteps,ngpus,devNum
     integer :: TILE_DIMx,TILE_DIMy,TILE_DIMz,TILE_DIM,istat,iframe
+    integer :: TILE_DIMx_k,TILE_DIMy_k
     
     logical :: lpbc
     
@@ -54,8 +55,8 @@ program lb_openacc
         nx=256
         ny=256
         nz=256
-        nsteps=10
-        stamp=100
+        nsteps=500
+        stamp=1000
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
@@ -64,10 +65,14 @@ program lb_openacc
         lvtk=.false.
         lasync=.false.
         
-        TILE_DIMx=256
+        TILE_DIMx=128
         TILE_DIMy=1
         TILE_DIMz=1
         TILE_DIM=16
+
+        TILE_DIMx_k=32
+        TILE_DIMy_k=4
+
         if (mod(nx, TILE_DIMx)/= 0) then
           write(*,*) 'nx must be a multiple of TILE_DIM'
           stop
@@ -86,6 +91,10 @@ program lb_openacc
         dimGridx  = dim3((ny+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimGridy  = dim3((nx+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimBlock2 = dim3(TILE_DIM, TILE_DIM, 1)
+
+        ! FABIO: un k peruno
+        dimGrid_k  = dim3(nx/TILE_DIMx_k, ny/TILE_DIMy_k, 1)
+        dimBlock_k = dim3(TILE_DIMx_k, TILE_DIMy_k, 1)
         
         allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
         allocate(pxx(0:nx+1,0:ny+1,0:nz+1),pxy(0:nx+1,0:ny+1,0:nz+1),pxz(0:nx+1,0:ny+1,0:nz+1),pyy(0:nx+1,0:ny+1,0:nz+1))
@@ -122,6 +131,9 @@ program lb_openacc
         TILE_DIMy_d=TILE_DIMy
         TILE_DIMz_d=TILE_DIMz
         TILE_DIM_d=TILE_DIM
+
+        TILE_DIMx_k_d=TILE_DIMx_k
+        TILE_DIMy_k_d=TILE_DIMy_k
     !*****************************************geometry************************
         h_isfluid=0
         h_isfluid(1:nx,1:ny,1:nz)=1
@@ -182,7 +194,7 @@ program lb_openacc
 	write(6,*) '*******************INPUT data*****************'
 	write(6,*) 'nx',nx
 	write(6,*) 'ny',ny
-	write(6,*) 'ny',nz
+	write(6,*) 'nz',nz
 	write(6,*) 'lpbc',lpbc
 	write(6,*) 'lprint',lprint
 	write(6,*) 'lvtk',lvtk
@@ -199,6 +211,8 @@ program lb_openacc
     write(6,*) 'TILE_DIMy',TILE_DIMy
     write(6,*) 'TILE_DIMz',TILE_DIMz
     write(6,*) 'TILE_DIM ',TILE_DIM
+    write(6,*) 'TILE_DIMx_k',TILE_DIMx_k
+    write(6,*) 'TILE_DIMy_k',TILE_DIMy_k
 	write(6,*) '*******************************************'
 	
 	
@@ -310,7 +324,13 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-        call streamcoll_bulk<<<dimGrid,dimBlock,mshared,stream1>>>()
+        !call streamcoll_bulk<<<dimGrid,dimBlock,mshared,stream1>>>()
+
+        ! FABIO: famo un k peruno
+        do k=1,nz
+                call streamcoll_bulk_k<<<dimGrid_k,dimBlock_k,mshared,stream1>>>(k)
+        enddo
+
         !call streamcoll_bulk01<<<dimGrid,dimBlock,mshared,stream1>>>()
         !call streamcoll_bulk012xy<<<dimGrid,dimBlock,mshared,stream1>>>()
         !call streamcoll_bulk012xz<<<dimGrid,dimBlock,mshared,stream1>>>()
@@ -383,7 +403,12 @@ program lb_openacc
         
         !***********************************collision + no slip + forcing: fused implementation*********
         
-        call streamcoll_bulk_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+        !call streamcoll_bulk_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+
+        ! FABIO: famo un k peruno
+        do k=1,nz
+                call streamcoll_bulk_flop<<<dimGrid_k,dimBlock_k,mshared,stream1>>>()
+        enddo
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
