@@ -5,13 +5,15 @@
     
     implicit none
     
-    integer, parameter :: db=4 !kind(1.0)
+    integer, parameter :: db=kind(1.e0)
     
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
     real(kind=db),parameter :: p0 = (1.0_db/3.0_db)
     real(kind=db),parameter :: p1 = (1.0_db/18.0_db)
     real(kind=db),parameter :: p2 = (1.0_db/36.0_db)
     real(kind=db),parameter :: cssq = 1.0_db/3.0_db
+    real(kind=db),parameter :: onecssq = 3.0_db
+    real(kind=db),parameter :: halfonecssq = 1.5_db
     real(kind=db),parameter :: p1dcssq=p1/cssq
     real(kind=db),parameter :: p2dcssq=p2/cssq
     
@@ -31,7 +33,7 @@
     
     integer, constant :: nx_d,ny_d,nz_d
     
-    real(kind=db), constant :: omega,fx,fy,fz
+    real(kind=db), constant :: omega,fx,fy,fz,oneminusomega
     integer(kind=cuda_Stream_Kind) :: stream1,stream2
     type (cudaDeviceProp) :: prop
     type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2

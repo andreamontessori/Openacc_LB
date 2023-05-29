@@ -21,7 +21,7 @@ program lb_openacc
     
     
     real(kind=4)  :: ts1,ts2
-    real(kind=db) :: visc_LB,tau,one_ov_nu,h_fx,h_fy,h_fz,h_omega
+    real(kind=db) :: visc_LB,tau,one_ov_nu,h_fx,h_fy,h_fz,h_omega,h_oneminusomega
     
 
     integer, parameter :: npops=18
@@ -109,10 +109,12 @@ program lb_openacc
         
        
         h_omega=1.0_db/tau
+        h_oneminusomega=1.0_db-h_omega
         fx=h_fx
         fy=h_fy
         fz=h_fz
         omega=h_omega
+        oneminusomega=h_oneminusomega
         nx_d=nx
         ny_d=ny
         nz_d=nz
