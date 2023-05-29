@@ -45,9 +45,9 @@ program lb_openacc
     
        
     nlinks=18 !pari!
-    tau=1.5_db
-    visc_LB=cssq*(tau-0.5_db)
-    one_ov_nu=1.0_db/visc_LB
+    tau=real(1.5d0,kind=db)
+    visc_LB=cssq*(tau-half)
+    one_ov_nu=one/visc_LB
 
 
     !*******************************user parameters and allocations**************************m
@@ -56,9 +56,9 @@ program lb_openacc
         nz=256
         nsteps=10
         stamp=100
-        h_fx=1.0_db*10.0**(-5)
-        h_fy=0.0_db*10.0**(-5)
-        h_fz=0.0_db*10.0**(-5)
+        h_fx=one*ten**(-real(5.d0,kind=db))
+        h_fy=zero*ten**(-real(5.d0,kind=db))
+        h_fz=zero*ten**(-real(5.d0,kind=db))
         lpbc=.true.
         lprint=.false.
         lvtk=.false.
@@ -108,8 +108,8 @@ program lb_openacc
         endif
         
        
-        h_omega=1.0_db/tau
-        h_oneminusomega=1.0_db-h_omega
+        h_omega=one/tau
+        h_oneminusomega=one-h_omega
         fx=h_fx
         fy=h_fy
         fz=h_fz
@@ -164,7 +164,7 @@ program lb_openacc
 
     !*************************************initial conditions ************************    
     
-    call setup_system<<<dimGrid,dimBlock>>>(1.0_db,0.0_db,0.0_db,0.0_db)
+    call setup_system<<<dimGrid,dimBlock>>>(one,zero,zero,zero)
         
         
     !*************************************check data ************************ 

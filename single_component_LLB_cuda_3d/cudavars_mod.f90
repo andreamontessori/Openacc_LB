@@ -7,29 +7,40 @@
     
     integer, parameter :: db=kind(1.e0)
     
-    real(kind=db),parameter :: pi_greek=3.14159265359793234626433
-    real(kind=db),parameter :: p0 = (1.0_db/3.0_db)
-    real(kind=db),parameter :: p1 = (1.0_db/18.0_db)
-    real(kind=db),parameter :: p2 = (1.0_db/36.0_db)
-    real(kind=db),parameter :: cssq = 1.0_db/3.0_db
-    real(kind=db),parameter :: onecssq = 3.0_db
-    real(kind=db),parameter :: halfonecssq = 1.5_db
+    real(kind=db),parameter :: zero=real(0.d0,kind=db)
+    real(kind=db),parameter :: one=real(1.d0,kind=db)
+    real(kind=db),parameter :: half=real(0.5d0,kind=db)
+    real(kind=db),parameter :: halfthree=real(1.5d0,kind=db)
+    real(kind=db),parameter :: two=real(2.d0,kind=db)
+    real(kind=db),parameter :: three=real(3.d0,kind=db)
+    real(kind=db),parameter :: five=real(5.d0,kind=db)
+    real(kind=db),parameter :: ten=real(10.d0,kind=db)
+    real(kind=db),parameter :: eighteen=real(18.d0,kind=db)
+    real(kind=db),parameter :: thirtysix=real(36.d0,kind=db)
+    
+    real(kind=db),parameter :: pi_greek=real(3.141592653589793238462643383279502884d0,kind=db)
+    real(kind=db),parameter :: p0 = (one/three)
+    real(kind=db),parameter :: p1 = (one/eighteen)
+    real(kind=db),parameter :: p2 = (one/thirtysix)
+    real(kind=db),parameter :: cssq = one/three
+    real(kind=db),parameter :: onecssq = three
+    real(kind=db),parameter :: halfonecssq = halfthree
     real(kind=db),parameter :: p1dcssq=p1/cssq
     real(kind=db),parameter :: p2dcssq=p2/cssq
     
-    real(kind=db),parameter :: pi2cssq0=p0/(2.0_db*cssq**2.0_db)
-    real(kind=db),parameter :: pi2cssq1=p1/(2.0_db*cssq**2.0_db)
-    real(kind=db),parameter :: pi2cssq2=p2/(2.0_db*cssq**2.0_db)
+    real(kind=db),parameter :: pi2cssq0=p0/(two*cssq**two)
+    real(kind=db),parameter :: pi2cssq1=p1/(two*cssq**two)
+    real(kind=db),parameter :: pi2cssq2=p2/(two*cssq**two)
 
-    real(kind=db),parameter :: qxx=1.0_db-cssq
-    real(kind=db),parameter :: qyy=1.0_db-cssq
-    real(kind=db),parameter :: qzz=1.0_db-cssq
-    real(kind=db),parameter :: qxy_7_8=1.0_db
-    real(kind=db),parameter :: qxy_9_10=-1.0_db
-    real(kind=db),parameter :: qxz_15_16=1.0_db
-    real(kind=db),parameter :: qxz_17_18=-1.0_db
-    real(kind=db),parameter :: qyz_11_12=1.0_db
-    real(kind=db),parameter :: qyz_13_14=-1.0_db
+    real(kind=db),parameter :: qxx=one-cssq
+    real(kind=db),parameter :: qyy=one-cssq
+    real(kind=db),parameter :: qzz=one-cssq
+    real(kind=db),parameter :: qxy_7_8=one
+    real(kind=db),parameter :: qxy_9_10=-one
+    real(kind=db),parameter :: qxz_15_16=one
+    real(kind=db),parameter :: qxz_17_18=-one
+    real(kind=db),parameter :: qyz_11_12=one
+    real(kind=db),parameter :: qyz_13_14=-one
     
     integer, constant :: nx_d,ny_d,nz_d
     
@@ -65,23 +76,23 @@
 	v(i,j,k)=vys
 	w(i,j,k)=vzs
 	rho(i,j,k)=rhos
-	pxx(i,j,k)=0.0_db
-	pxy(i,j,k)=0.0_db
-	pxz(i,j,k)=0.0_db
-	pyy(i,j,k)=0.0_db
-	pyz(i,j,k)=0.0_db
-	pzz(i,j,k)=0.0_db
+	pxx(i,j,k)=zero
+	pxy(i,j,k)=zero
+	pxz(i,j,k)=zero
+	pyy(i,j,k)=zero
+	pyz(i,j,k)=zero
+	pzz(i,j,k)=zero
 	
 	uh(i,j,k)=vxs
 	vh(i,j,k)=vys
 	wh(i,j,k)=vzs
 	rhoh(i,j,k)=rhos
-	pxxh(i,j,k)=0.0_db
-	pxyh(i,j,k)=0.0_db
-	pxzh(i,j,k)=0.0_db
-	pyyh(i,j,k)=0.0_db
-	pyzh(i,j,k)=0.0_db
-	pzzh(i,j,k)=0.0_db
+	pxxh(i,j,k)=zero
+	pxyh(i,j,k)=zero
+	pxzh(i,j,k)=zero
+	pyyh(i,j,k)=zero
+	pyzh(i,j,k)=zero
+	pzzh(i,j,k)=zero
     
     return
 
@@ -106,10 +117,10 @@
 		
 	else
 	  
-	  rhoprint_d(i,j,k)=0.0_db
-	  velprint_d(1,i,j,k)=0.0_db
-	  velprint_d(2,i,j,k)=0.0_db
-	  velprint_d(3,i,j,k)=0.0_db
+	  rhoprint_d(i,j,k)=zero
+	  velprint_d(1,i,j,k)=zero
+	  velprint_d(2,i,j,k)=zero
+	  velprint_d(3,i,j,k)=zero
 	  
 	endif
 	  
@@ -136,10 +147,10 @@
 		
 	else
 	  
-	  rhoprint_d(i,j,k)=0.0_db
-	  velprint_d(1,i,j,k)=0.0_db
-	  velprint_d(2,i,j,k)=0.0_db
-	  velprint_d(3,i,j,k)=0.0_db
+	  rhoprint_d(i,j,k)=zero
+	  velprint_d(1,i,j,k)=zero
+	  velprint_d(2,i,j,k)=zero
+	  velprint_d(3,i,j,k)=zero
 	  
 	endif
 	  

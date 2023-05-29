@@ -107,7 +107,7 @@
 	!1
 	uu=halfonecssq*(u(i-1,j,k)*u(i-1,j,k) + v(i-1,j,k)*v(i-1,j,k) + w(i-1,j,k)*w(i-1,j,k))
 	udotc=u(i-1,j,k)*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	temp_u=temp_pop
 	temp_v=temp_pop
 	temp_w=temp_pop
@@ -133,7 +133,7 @@
 	!2
 	uu=halfonecssq*(u(i+1,j,k)*u(i+1,j,k) + v(i+1,j,k)*v(i+1,j,k) + w(i+1,j,k)*w(i+1,j,k))
 	udotc=u(i+1,j,k)*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p1*(loc_rho(li+1,lj,lk)+(temp - udotc))
 #else
@@ -149,7 +149,7 @@
 	!3
 	uu=halfonecssq*(u(i,j-1,k)*u(i,j-1,k) + v(i,j-1,k)*v(i,j-1,k) + w(i,j-1,k)*w(i,j-1,k))
 	udotc=v(i,j-1,k)*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p1*(loc_rho(li,lj-1,lk)+(temp + udotc))
 #else
@@ -165,7 +165,7 @@
 	!4
 	uu=halfonecssq*(u(i,j+1,k)*u(i,j+1,k) + v(i,j+1,k)*v(i,j+1,k) + w(i,j+1,k)*w(i,j+1,k))
 	udotc=v(i,j+1,k)*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p1*(loc_rho(li,lj+1,lk)+(temp - udotc))
 #else
@@ -181,7 +181,7 @@
 	!5 -1
 	uu=halfonecssq*(u(i,j,k-1)*u(i,j,k-1) + v(i,j,k-1)*v(i,j,k-1) + w(i,j,k-1)*w(i,j,k-1))
 	udotc=w(i,j,k-1)*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p1*(loc_rho(li,lj,lk-1)+(temp + udotc))
 #else
@@ -197,7 +197,7 @@
 	!6 +1
 	uu=halfonecssq*(u(i,j,k+1)*u(i,j,k+1) + v(i,j,k+1)*v(i,j,k+1) + w(i,j,k+1)*w(i,j,k+1))
 	udotc=w(i,j,k+1)*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p1*(loc_rho(li,lj,lk+1)+(temp - udotc))
 #else
@@ -213,13 +213,13 @@
 	!7
 	uu=halfonecssq*(u(i-1,j-1,k)*u(i-1,j-1,k) + v(i-1,j-1,k)*v(i-1,j-1,k) + w(i-1,j-1,k)*w(i-1,j-1,k))
 	udotc=(u(i-1,j-1,k)+v(i-1,j-1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li-1,lj-1,lk)+(temp + udotc))
 #else
 	temp_pop=p2*(rho(i-1,j-1,k)+(temp + udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j-1,k)+qyy*pyy(i-1,j-1,k)-cssq*pzz(i-1,j-1,k)+2.0_db*qxy_7_8*pxy(i-1,j-1,k))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j-1,k)+qyy*pyy(i-1,j-1,k)-cssq*pzz(i-1,j-1,k)+two*qxy_7_8*pxy(i-1,j-1,k))
 	temp_pop=temp_pop + (fx+fy)*p2dcssq 
 	!+1 +1  0
 	temp_rho=temp_rho+temp_pop
@@ -232,13 +232,13 @@
 	!8
 	uu=halfonecssq*(u(i+1,j+1,k)*u(i+1,j+1,k) + v(i+1,j+1,k)*v(i+1,j+1,k) + w(i+1,j+1,k)*w(i+1,j+1,k))
 	udotc=(u(i+1,j+1,k)+v(i+1,j+1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li+1,lj+1,lk)+(temp - udotc))
 #else
 	temp_pop=p2*(rho(i+1,j+1,k)+(temp - udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j+1,k)+qyy*pyy(i+1,j+1,k)-cssq*pzz(i+1,j+1,k)+2.0_db*qxy_7_8*pxy(i+1,j+1,k))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j+1,k)+qyy*pyy(i+1,j+1,k)-cssq*pzz(i+1,j+1,k)+two*qxy_7_8*pxy(i+1,j+1,k))
 	temp_pop=temp_pop - (fx+fy)*p2dcssq
 	!-1 -1  0
 	temp_rho=temp_rho+temp_pop
@@ -251,13 +251,13 @@
 	!10   +1 -1
 	uu=halfonecssq*(u(i+1,j-1,k)*u(i+1,j-1,k) + v(i+1,j-1,k)*v(i+1,j-1,k) + w(i+1,j-1,k)*w(i+1,j-1,k))
 	udotc=(-u(i+1,j-1,k)+v(i+1,j-1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li+1,lj-1,lk)+(temp + udotc))
 #else
 	temp_pop=p2*(rho(i+1,j-1,k)+(temp + udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j-1,k)+qyy*pyy(i+1,j-1,k)-cssq*pzz(i+1,j-1,k)+2.0_db*qxy_9_10*pxy(i+1,j-1,k))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j-1,k)+qyy*pyy(i+1,j-1,k)-cssq*pzz(i+1,j-1,k)+two*qxy_9_10*pxy(i+1,j-1,k))
 	temp_pop=temp_pop +(fy-fx)*p2dcssq
 	!-1 +1  0
 	temp_rho=temp_rho+temp_pop
@@ -270,13 +270,13 @@
 	!9  -1 +1
 	uu=halfonecssq*(u(i-1,j+1,k)*u(i-1,j+1,k) + v(i-1,j+1,k)*v(i-1,j+1,k) + w(i-1,j+1,k)*w(i-1,j+1,k))
 	udotc=(-u(i-1,j+1,k)+v(i-1,j+1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li-1,lj+1,lk)+(temp - udotc))
 #else
 	temp_pop=p2*(rho(i-1,j+1,k)+(temp - udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j+1,k)+qyy*pyy(i-1,j+1,k)-cssq*pzz(i-1,j+1,k)+2.0_db*qxy_9_10*pxy(i-1,j+1,k))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j+1,k)+qyy*pyy(i-1,j+1,k)-cssq*pzz(i-1,j+1,k)+two*qxy_9_10*pxy(i-1,j+1,k))
 	temp_pop=temp_pop + (fx-fy)*p2dcssq
 	!+1 -1  0
 	temp_rho=temp_rho+temp_pop
@@ -290,13 +290,13 @@
 	!15  -1  -1
 	uu=halfonecssq*(u(i-1,j,k-1)*u(i-1,j,k-1) + v(i-1,j,k-1)*v(i-1,j,k-1) + w(i-1,j,k-1)*w(i-1,j,k-1))
 	udotc=(u(i-1,j,k-1)+w(i-1,j,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li-1,lj,lk-1)+(temp + udotc))
 #else
 	temp_pop=p2*(rho(i-1,j,k-1)+(temp + udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k-1)+qzz*pzz(i-1,j,k-1)-cssq*pyy(i-1,j,k-1)+2.0_db*qxz_15_16*pxz(i-1,j,k-1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k-1)+qzz*pzz(i-1,j,k-1)-cssq*pyy(i-1,j,k-1)+two*qxz_15_16*pxz(i-1,j,k-1))
 	temp_pop=temp_pop + (fx+fz)*p2dcssq 
 
 	!+1  0  +1
@@ -311,13 +311,13 @@
 	!16  +1  +1
 	uu=halfonecssq*(u(i+1,j,k+1)*u(i+1,j,k+1) + v(i+1,j,k+1)*v(i+1,j,k+1) + w(i+1,j,k+1)*w(i+1,j,k+1))
 	udotc=(u(i+1,j,k+1)+w(i+1,j,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li+1,lj,lk+1)+(temp - udotc))
 #else
 	temp_pop=p2*(rho(i+1,j,k+1)+(temp - udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k+1)+qzz*pzz(i+1,j,k+1)-cssq*pyy(i+1,j,k+1)+2.0_db*qxz_15_16*pxz(i+1,j,k+1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k+1)+qzz*pzz(i+1,j,k+1)-cssq*pyy(i+1,j,k+1)+two*qxz_15_16*pxz(i+1,j,k+1))
 	temp_pop=temp_pop - (fx+fz)*p2dcssq
 	!-1  0  -1
 	temp_rho=temp_rho+temp_pop
@@ -330,13 +330,13 @@
 	!17  +1   -1
 	uu=halfonecssq*(u(i+1,j,k-1)*u(i+1,j,k-1) + v(i+1,j,k-1)*v(i+1,j,k-1) + w(i+1,j,k-1)*w(i+1,j,k-1))
 	udotc=(-u(i+1,j,k-1)+w(i+1,j,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li+1,lj,lk-1)+(temp + udotc))
 #else
 	temp_pop=p2*(rho(i+1,j,k-1)+(temp + udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k-1)+qzz*pzz(i+1,j,k-1)-cssq*pyy(i+1,j,k-1)+2.0_db*qxz_17_18*pxz(i+1,j,k-1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k-1)+qzz*pzz(i+1,j,k-1)-cssq*pyy(i+1,j,k-1)+two*qxz_17_18*pxz(i+1,j,k-1))
 	temp_pop=temp_pop +(fz-fx)*p2dcssq
 	!-1  0  +1
 	temp_rho=temp_rho+temp_pop
@@ -349,13 +349,13 @@
 	!18   -1   +1
 	uu=halfonecssq*(u(i-1,j,k+1)*u(i-1,j,k+1) + v(i-1,j,k+1)*v(i-1,j,k+1) + w(i-1,j,k+1)*w(i-1,j,k+1))
 	udotc=(-u(i-1,j,k+1)+w(i-1,j,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li-1,lj,lk+1)+(temp - udotc))
 #else
 	temp_pop=p2*(rho(i-1,j,k+1)+(temp - udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k+1)+qzz*pzz(i-1,j,k+1)-cssq*pyy(i-1,j,k+1)+2.0_db*qxz_17_18*pxz(i-1,j,k+1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k+1)+qzz*pzz(i-1,j,k+1)-cssq*pyy(i-1,j,k+1)+two*qxz_17_18*pxz(i-1,j,k+1))
 	temp_pop=temp_pop + (fx-fz)*p2dcssq
 	!+1  0  -1
 	temp_rho=temp_rho+temp_pop
@@ -368,13 +368,13 @@
 	!11  -1  -1
 	uu=halfonecssq*(u(i,j-1,k-1)*u(i,j-1,k-1) + v(i,j-1,k-1)*v(i,j-1,k-1) + w(i,j-1,k-1)*w(i,j-1,k-1))
 	udotc=(v(i,j-1,k-1)+w(i,j-1,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li,lj-1,lk-1)+(temp + udotc))
 #else
 	temp_pop=p2*(rho(i,j-1,k-1)+(temp + udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k-1)+qzz*pzz(i,j-1,k-1)-cssq*pxx(i,j-1,k-1)+2.0_db*qyz_11_12*pyz(i,j-1,k-1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k-1)+qzz*pzz(i,j-1,k-1)-cssq*pxx(i,j-1,k-1)+two*qyz_11_12*pyz(i,j-1,k-1))
 	temp_pop=temp_pop + (fy+fz)*p2dcssq
 	! 0 +1 +1
 	temp_rho=temp_rho+temp_pop
@@ -387,13 +387,13 @@
 	!12   +1  +1
 	uu=halfonecssq*(u(i,j+1,k+1)*u(i,j+1,k+1) + v(i,j+1,k+1)*v(i,j+1,k+1) + w(i,j+1,k+1)*w(i,j+1,k+1))
 	udotc=(v(i,j+1,k+1)+w(i,j+1,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li,lj+1,lk+1)+(temp - udotc))
 #else
 	temp_pop=p2*(rho(i,j+1,k+1)+(temp - udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k+1)+qzz*pzz(i,j+1,k+1)-cssq*pxx(i,j+1,k+1)+2.0_db*qyz_11_12*pyz(i,j+1,k+1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k+1)+qzz*pzz(i,j+1,k+1)-cssq*pxx(i,j+1,k+1)+two*qyz_11_12*pyz(i,j+1,k+1))
 	temp_pop=temp_pop - (fy+fz)*p2dcssq
 	! 0 -1 -1
 	temp_rho=temp_rho+temp_pop
@@ -406,13 +406,13 @@
 	!13   -1   +1
 	uu=halfonecssq*(u(i,j-1,k+1)*u(i,j-1,k+1) + v(i,j-1,k+1)*v(i,j-1,k+1) + w(i,j-1,k+1)*w(i,j-1,k+1))
 	udotc=(v(i,j-1,k+1)-w(i,j-1,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li,lj-1,lk+1)+(temp + udotc))
 #else
 	temp_pop=p2*(rho(i,j-1,k+1)+(temp + udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k+1)+qzz*pzz(i,j-1,k+1)-cssq*pxx(i,j-1,k+1)+2.0_db*qyz_13_14*pyz(i,j-1,k+1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k+1)+qzz*pzz(i,j-1,k+1)-cssq*pxx(i,j-1,k+1)+two*qyz_13_14*pyz(i,j-1,k+1))
 	temp_pop=temp_pop + (fy-fz)*p2dcssq
 	! 0 +1 -1
 	temp_rho=temp_rho+temp_pop
@@ -425,13 +425,13 @@
 	!14  +1 -1
 	uu=halfonecssq*(u(i,j+1,k-1)*u(i,j+1,k-1) + v(i,j+1,k-1)*v(i,j+1,k-1) + w(i,j+1,k-1)*w(i,j+1,k-1))
 	udotc=(v(i,j+1,k-1)-w(i,j+1,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
     temp_pop=p2*(loc_rho(li,lj+1,lk-1)+(temp - udotc))
 #else
 	temp_pop=p2*(rho(i,j+1,k-1)+(temp - udotc))
 #endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k-1)+qzz*pzz(i,j+1,k-1)-cssq*pxx(i,j+1,k-1)+2.0_db*qyz_13_14*pyz(i,j+1,k-1))
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k-1)+qzz*pzz(i,j+1,k-1)-cssq*pxx(i,j+1,k-1)+two*qyz_13_14*pyz(i,j+1,k-1))
 	temp_pop=temp_pop + (fz-fy)*p2dcssq
 	! 0 -1 +1
 	temp_rho=temp_rho+temp_pop
@@ -463,7 +463,7 @@
 	implicit none  
 	  
     integer :: i,j,k
-	real(kind=db) :: uu,udotc,temp,feq,fneq
+	real(kind=db) :: uu,udotc,temp
 	real(kind=db) :: temp_pop,temp_rho,temp_u,temp_v,temp_w
 	real(kind=db) :: temp_pxx,temp_pyy,temp_pzz,temp_pxy,temp_pxz,temp_pyz
 #ifdef USESHARE 
@@ -545,123 +545,133 @@
 
     call syncthreads
 #endif
-        
-    uu=0.5_db*(uh(i,j,k)**2.0_db + vh(i,j,k)**2.0_db + wh(i,j,k)**2.0_db)/cssq
+    
+    uu=halfonecssq*(uh(i,j,k)*uh(i,j,k) + vh(i,j,k)*vh(i,j,k) + wh(i,j,k)*wh(i,j,k))
 	!0
 #ifdef USESHARE 
-    feq=p0*(loc_rhoh(li,lj,lk)-uu)
+    temp_pop=p0*(loc_rhoh(li,lj,lk)-uu)
 #else
-	feq=p0*(rhoh(i,j,k)-uu)
+	temp_pop=p0*(rhoh(i,j,k)-uu)
 #endif
-	temp_rho=feq + oneminusomega*pi2cssq0*(-cssq*(pyyh(i,j,k)+pxxh(i,j,k)+pzzh(i,j,k)))
-	
+	temp_rho=temp_pop + oneminusomega*pi2cssq0*(-cssq*(pyyh(i,j,k)+pxxh(i,j,k)+pzzh(i,j,k)))
+    
 	!1
-	uu=0.5_db*(uh(i-1,j,k)**2.0_db + vh(i-1,j,k)**2.0_db + wh(i-1,j,k)**2.0_db)/cssq
-	udotc=uh(i-1,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	uu=halfonecssq*(uh(i-1,j,k)*uh(i-1,j,k) + vh(i-1,j,k)*vh(i-1,j,k) + wh(i-1,j,k)*wh(i-1,j,k))
+	udotc=uh(i-1,j,k)*onecssq
+	temp = -uu + half*udotc*udotc
+	temp_u=temp_pop
+	temp_v=temp_pop
+	temp_w=temp_pop
+	temp_pxx=temp_pop
+	temp_pyy=temp_pop
+	temp_pzz=temp_pop
+	temp_pxy=temp_pop
+	temp_pxz=temp_pop
+	temp_pyz=temp_pop
+
 #ifdef USESHARE 
-    feq=p1*(loc_rhoh(li-1,lj,lk)+(temp + udotc))
+    temp_pop=p1*(loc_rhoh(li-1,lj,lk)+(temp + udotc))
 #else
-	feq=p1*(rhoh(i-1,j,k)+(temp + udotc))
+	temp_pop=p1*(rhoh(i-1,j,k)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq1*(qxx*pxxh(i-1,j,k)-cssq*(pyyh(i-1,j,k)+pzzh(i-1,j,k)))
-	temp_pop=feq + fneq + fx*p1dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qxx*pxxh(i-1,j,k)-cssq*(pyyh(i-1,j,k)+pzzh(i-1,j,k)))
+	temp_pop=temp_pop + fx*p1dcssq
 	!+1  0  0
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_pop
 	temp_pxx=temp_pop
-    
+
 	!2
-	uu=0.5_db*(uh(i+1,j,k)**2.0_db + vh(i+1,j,k)**2.0_db + wh(i+1,j,k)**2.0_db)/cssq
-	udotc=uh(i+1,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	uu=halfonecssq*(uh(i+1,j,k)*uh(i+1,j,k) + vh(i+1,j,k)*vh(i+1,j,k) + wh(i+1,j,k)*wh(i+1,j,k))
+	udotc=uh(i+1,j,k)*onecssq
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p1*(loc_rhoh(li+1,lj,lk)+(temp - udotc))
+    temp_pop=p1*(loc_rhoh(li+1,lj,lk)+(temp - udotc))
 #else
-	feq=p1*(rhoh(i+1,j,k)+(temp - udotc))
+	temp_pop=p1*(rhoh(i+1,j,k)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq1*(qxx*pxxh(i+1,j,k)-cssq*(pyyh(i+1,j,k)+pzzh(i+1,j,k)))
-	temp_pop=feq + fneq - fx*p1dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qxx*pxxh(i+1,j,k)-cssq*(pyyh(i+1,j,k)+pzzh(i+1,j,k)))
+	temp_pop=temp_pop - fx*p1dcssq
 	!-1  0  0
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u-temp_pop
 	temp_pxx=temp_pxx+temp_pop
-	
+    		
 	!3
-	uu=0.5_db*(uh(i,j-1,k)**2.0_db + vh(i,j-1,k)**2.0_db + wh(i,j-1,k)**2.0_db)/cssq
-	udotc=vh(i,j-1,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	uu=halfonecssq*(uh(i,j-1,k)*uh(i,j-1,k) + vh(i,j-1,k)*vh(i,j-1,k) + wh(i,j-1,k)*wh(i,j-1,k))
+	udotc=vh(i,j-1,k)*onecssq
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p1*(loc_rhoh(li,lj-1,lk)+(temp + udotc))
+    temp_pop=p1*(loc_rhoh(li,lj-1,lk)+(temp + udotc))
 #else
-	feq=p1*(rhoh(i,j-1,k)+(temp + udotc))
+	temp_pop=p1*(rhoh(i,j-1,k)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq1*(qyy*pyyh(i,j-1,k)-cssq*(pxxh(i,j-1,k)+pzzh(i,j-1,k)))
-	temp_pop=feq+fneq + fy*p1dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qyy*pyyh(i,j-1,k)-cssq*(pxxh(i,j-1,k)+pzzh(i,j-1,k)))
+	temp_pop=temp_pop + fy*p1dcssq
 	! 0 +1  0
 	temp_rho=temp_rho+temp_pop
 	temp_v=temp_pop
 	temp_pyy=temp_pop
 	
 	!4
-	uu=0.5_db*(uh(i,j+1,k)**2.0_db + vh(i,j+1,k)**2.0_db + wh(i,j+1,k)**2.0_db)/cssq
-	udotc=vh(i,j+1,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	uu=halfonecssq*(uh(i,j+1,k)*uh(i,j+1,k) + vh(i,j+1,k)*vh(i,j+1,k) + wh(i,j+1,k)*wh(i,j+1,k))
+	udotc=vh(i,j+1,k)*onecssq
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p1*(loc_rhoh(li,lj+1,lk)+(temp - udotc))
+    temp_pop=p1*(loc_rhoh(li,lj+1,lk)+(temp - udotc))
 #else
-	feq=p1*(rhoh(i,j+1,k)+(temp - udotc))
+	temp_pop=p1*(rhoh(i,j+1,k)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq1*(qyy*pyyh(i,j+1,k)-cssq*(pxxh(i,j+1,k)+pzzh(i,j+1,k)))
-	temp_pop=feq+fneq - fy*p1dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qyy*pyyh(i,j+1,k)-cssq*(pxxh(i,j+1,k)+pzzh(i,j+1,k)))
+	temp_pop=temp_pop - fy*p1dcssq
 	! 0 -1  0
 	temp_rho=temp_rho+temp_pop
 	temp_v=temp_v-temp_pop
 	temp_pyy=temp_pyy+temp_pop
 	
 	!5 -1
-	uu=0.5_db*(uh(i,j,k-1)**2.0_db + vh(i,j,k-1)**2.0_db + wh(i,j,k-1)**2.0_db)/cssq
-	udotc=wh(i,j,k-1)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	uu=halfonecssq*(uh(i,j,k-1)*uh(i,j,k-1) + vh(i,j,k-1)*vh(i,j,k-1) + wh(i,j,k-1)*wh(i,j,k-1))
+	udotc=wh(i,j,k-1)*onecssq
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p1*(loc_rhoh(li,lj,lk-1)+(temp + udotc))
+    temp_pop=p1*(loc_rhoh(li,lj,lk-1)+(temp + udotc))
 #else
-	feq=p1*(rhoh(i,j,k-1)+(temp + udotc))
+	temp_pop=p1*(rhoh(i,j,k-1)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k-1)-cssq*(pxxh(i,j,k-1)+pyyh(i,j,k-1)))
-	temp_pop=feq+fneq + fz*p1dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k-1)-cssq*(pxxh(i,j,k-1)+pyyh(i,j,k-1)))
+	temp_pop=temp_pop + fz*p1dcssq
 	! 0  0 +1
 	temp_rho=temp_rho+temp_pop
 	temp_w=temp_pop
 	temp_pzz=temp_pop
 	
 	!6 +1
-	uu=0.5_db*(uh(i,j,k+1)**2.0_db + vh(i,j,k+1)**2.0_db + wh(i,j,k+1)**2.0_db)/cssq
-	udotc=wh(i,j,k+1)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	uu=halfonecssq*(uh(i,j,k+1)*uh(i,j,k+1) + vh(i,j,k+1)*vh(i,j,k+1) + wh(i,j,k+1)*wh(i,j,k+1))
+	udotc=wh(i,j,k+1)*onecssq
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p1*(loc_rhoh(li,lj,lk+1)+(temp - udotc))
+    temp_pop=p1*(loc_rhoh(li,lj,lk+1)+(temp - udotc))
 #else
-	feq=p1*(rhoh(i,j,k+1)+(temp - udotc))
+	temp_pop=p1*(rhoh(i,j,k+1)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k+1)-cssq*(pxxh(i,j,k+1)+pyyh(i,j,k+1)))
-	temp_pop=feq+fneq - fz*p1dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k+1)-cssq*(pxxh(i,j,k+1)+pyyh(i,j,k+1)))
+	temp_pop=temp_pop - fz*p1dcssq
 	! 0  0 -1
 	temp_rho=temp_rho+temp_pop
 	temp_w=temp_w-temp_pop
 	temp_pzz=temp_pzz+temp_pop
 	
 	!7
-	uu=0.5_db*(uh(i-1,j-1,k)**2.0_db + vh(i-1,j-1,k)**2.0_db + wh(i-1,j-1,k)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i-1,j-1,k)*uh(i-1,j-1,k) + vh(i-1,j-1,k)*vh(i-1,j-1,k) + wh(i-1,j-1,k)*wh(i-1,j-1,k))
 	udotc=(uh(i-1,j-1,k)+vh(i-1,j-1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li-1,lj-1,lk)+(temp + udotc))
+    temp_pop=p2*(loc_rhoh(li-1,lj-1,lk)+(temp + udotc))
 #else
-	feq=p2*(rhoh(i-1,j-1,k)+(temp + udotc))
+	temp_pop=p2*(rhoh(i-1,j-1,k)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j-1,k)+qyy*pyyh(i-1,j-1,k)-cssq*pzzh(i-1,j-1,k)+2.0_db*qxy_7_8*pxyh(i-1,j-1,k))
-	temp_pop=feq + fneq + (fx+fy)*p2dcssq 
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j-1,k)+qyy*pyyh(i-1,j-1,k)-cssq*pzzh(i-1,j-1,k)+two*qxy_7_8*pxyh(i-1,j-1,k))
+	temp_pop=temp_pop + (fx+fy)*p2dcssq 
 	!+1 +1  0
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u+temp_pop
@@ -671,16 +681,16 @@
 	temp_pxy=temp_pop
 	
 	!8
-	uu=0.5_db*(uh(i+1,j+1,k)**2.0_db + vh(i+1,j+1,k)**2.0_db + wh(i+1,j+1,k)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i+1,j+1,k)*uh(i+1,j+1,k) + vh(i+1,j+1,k)*vh(i+1,j+1,k) + wh(i+1,j+1,k)*wh(i+1,j+1,k))
 	udotc=(uh(i+1,j+1,k)+vh(i+1,j+1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li+1,lj+1,lk)+(temp - udotc))
+    temp_pop=p2*(loc_rhoh(li+1,lj+1,lk)+(temp - udotc))
 #else
-	feq=p2*(rhoh(i+1,j+1,k)+(temp - udotc))
+	temp_pop=p2*(rhoh(i+1,j+1,k)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j+1,k)+qyy*pyyh(i+1,j+1,k)-cssq*pzzh(i+1,j+1,k)+2.0_db*qxy_7_8*pxyh(i+1,j+1,k))
-	temp_pop=feq + fneq - (fx+fy)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j+1,k)+qyy*pyyh(i+1,j+1,k)-cssq*pzzh(i+1,j+1,k)+two*qxy_7_8*pxyh(i+1,j+1,k))
+	temp_pop=temp_pop - (fx+fy)*p2dcssq
 	!-1 -1  0
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u-temp_pop
@@ -690,16 +700,16 @@
 	temp_pxy=temp_pxy+temp_pop
 	
 	!10   +1 -1
-	uu=0.5_db*(uh(i+1,j-1,k)**2.0_db + vh(i+1,j-1,k)**2.0_db + wh(i+1,j-1,k)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i+1,j-1,k)*uh(i+1,j-1,k) + vh(i+1,j-1,k)*vh(i+1,j-1,k) + wh(i+1,j-1,k)*wh(i+1,j-1,k))
 	udotc=(-uh(i+1,j-1,k)+vh(i+1,j-1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li+1,lj-1,lk)+(temp + udotc))
+    temp_pop=p2*(loc_rhoh(li+1,lj-1,lk)+(temp + udotc))
 #else
-	feq=p2*(rhoh(i+1,j-1,k)+(temp + udotc))
+	temp_pop=p2*(rhoh(i+1,j-1,k)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j-1,k)+qyy*pyyh(i+1,j-1,k)-cssq*pzzh(i+1,j-1,k)+2.0_db*qxy_9_10*pxyh(i+1,j-1,k))
-	temp_pop=feq+fneq +(fy-fx)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j-1,k)+qyy*pyyh(i+1,j-1,k)-cssq*pzzh(i+1,j-1,k)+two*qxy_9_10*pxyh(i+1,j-1,k))
+	temp_pop=temp_pop +(fy-fx)*p2dcssq
 	!-1 +1  0
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u-temp_pop
@@ -709,16 +719,16 @@
 	temp_pxy=temp_pxy-temp_pop
 	
 	!9  -1 +1
-	uu=0.5_db*(uh(i-1,j+1,k)**2.0_db + vh(i-1,j+1,k)**2.0_db + wh(i-1,j+1,k)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i-1,j+1,k)*uh(i-1,j+1,k) + vh(i-1,j+1,k)*vh(i-1,j+1,k) + wh(i-1,j+1,k)*wh(i-1,j+1,k))
 	udotc=(-uh(i-1,j+1,k)+vh(i-1,j+1,k))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li-1,lj+1,lk)+(temp - udotc))
+    temp_pop=p2*(loc_rhoh(li-1,lj+1,lk)+(temp - udotc))
 #else
-	feq=p2*(rhoh(i-1,j+1,k)+(temp - udotc))
+	temp_pop=p2*(rhoh(i-1,j+1,k)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j+1,k)+qyy*pyyh(i-1,j+1,k)-cssq*pzzh(i-1,j+1,k)+2.0_db*qxy_9_10*pxyh(i-1,j+1,k))
-	temp_pop=feq+fneq + (fx-fy)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j+1,k)+qyy*pyyh(i-1,j+1,k)-cssq*pzzh(i-1,j+1,k)+two*qxy_9_10*pxyh(i-1,j+1,k))
+	temp_pop=temp_pop + (fx-fy)*p2dcssq
 	!+1 -1  0
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u+temp_pop
@@ -726,38 +736,40 @@
 	temp_pxx=temp_pxx+temp_pop
 	temp_pyy=temp_pyy+temp_pop
 	temp_pxy=temp_pxy-temp_pop
-	
+		
 
 	!15  -1  -1
-	uu=0.5_db*(uh(i-1,j,k-1)**2.0_db + vh(i-1,j,k-1)**2.0_db + wh(i-1,j,k-1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i-1,j,k-1)*uh(i-1,j,k-1) + vh(i-1,j,k-1)*vh(i-1,j,k-1) + wh(i-1,j,k-1)*wh(i-1,j,k-1))
 	udotc=(uh(i-1,j,k-1)+wh(i-1,j,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li-1,lj,lk-1)+(temp + udotc))
+    temp_pop=p2*(loc_rhoh(li-1,lj,lk-1)+(temp + udotc))
 #else
-	feq=p2*(rhoh(i-1,j,k-1)+(temp + udotc))
+	temp_pop=p2*(rhoh(i-1,j,k-1)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k-1)+qzz*pzzh(i-1,j,k-1)-cssq*pyyh(i-1,j,k-1)+2.0_db*qxz_15_16*pxzh(i-1,j,k-1))
-	temp_pop=feq+fneq + (fx+fz)*p2dcssq 
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k-1)+qzz*pzzh(i-1,j,k-1)-cssq*pyyh(i-1,j,k-1)+two*qxz_15_16*pxzh(i-1,j,k-1))
+	temp_pop=temp_pop + (fx+fz)*p2dcssq 
+
 	!+1  0  +1
+	
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u+temp_pop
 	temp_w=temp_w+temp_pop
 	temp_pxx=temp_pxx+temp_pop
 	temp_pzz=temp_pzz+temp_pop
 	temp_pxz=temp_pop
-	
+
 	!16  +1  +1
-	uu=0.5_db*(uh(i+1,j,k+1)**2.0_db + vh(i+1,j,k+1)**2.0_db + wh(i+1,j,k+1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i+1,j,k+1)*uh(i+1,j,k+1) + vh(i+1,j,k+1)*vh(i+1,j,k+1) + wh(i+1,j,k+1)*wh(i+1,j,k+1))
 	udotc=(uh(i+1,j,k+1)+wh(i+1,j,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li+1,lj,lk+1)+(temp - udotc))
+    temp_pop=p2*(loc_rhoh(li+1,lj,lk+1)+(temp - udotc))
 #else
-	feq=p2*(rhoh(i+1,j,k+1)+(temp - udotc))
+	temp_pop=p2*(rhoh(i+1,j,k+1)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k+1)+qzz*pzzh(i+1,j,k+1)-cssq*pyyh(i+1,j,k+1)+2.0_db*qxz_15_16*pxzh(i+1,j,k+1))
-	temp_pop=feq+fneq - (fx+fz)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k+1)+qzz*pzzh(i+1,j,k+1)-cssq*pyyh(i+1,j,k+1)+two*qxz_15_16*pxzh(i+1,j,k+1))
+	temp_pop=temp_pop - (fx+fz)*p2dcssq
 	!-1  0  -1
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u-temp_pop
@@ -767,16 +779,16 @@
 	temp_pxz=temp_pxz+temp_pop
 
 	!17  +1   -1
-	uu=0.5_db*(uh(i+1,j,k-1)**2.0_db + vh(i+1,j,k-1)**2.0_db + wh(i+1,j,k-1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i+1,j,k-1)*uh(i+1,j,k-1) + vh(i+1,j,k-1)*vh(i+1,j,k-1) + wh(i+1,j,k-1)*wh(i+1,j,k-1))
 	udotc=(-uh(i+1,j,k-1)+wh(i+1,j,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li+1,lj,lk-1)+(temp + udotc))
+    temp_pop=p2*(loc_rhoh(li+1,lj,lk-1)+(temp + udotc))
 #else
-	feq=p2*(rhoh(i+1,j,k-1)+(temp + udotc))
+	temp_pop=p2*(rhoh(i+1,j,k-1)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k-1)+qzz*pzzh(i+1,j,k-1)-cssq*pyyh(i+1,j,k-1)+2.0_db*qxz_17_18*pxzh(i+1,j,k-1))
-	temp_pop=feq+fneq +(fz-fx)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k-1)+qzz*pzzh(i+1,j,k-1)-cssq*pyyh(i+1,j,k-1)+two*qxz_17_18*pxzh(i+1,j,k-1))
+	temp_pop=temp_pop +(fz-fx)*p2dcssq
 	!-1  0  +1
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u-temp_pop
@@ -784,18 +796,18 @@
 	temp_pxx=temp_pxx+temp_pop
 	temp_pzz=temp_pzz+temp_pop
 	temp_pxz=temp_pxz-temp_pop
-	
+
 	!18   -1   +1
-	uu=0.5_db*(uh(i-1,j,k+1)**2.0_db + vh(i-1,j,k+1)**2.0_db + wh(i-1,j,k+1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i-1,j,k+1)*uh(i-1,j,k+1) + vh(i-1,j,k+1)*vh(i-1,j,k+1) + wh(i-1,j,k+1)*wh(i-1,j,k+1))
 	udotc=(-uh(i-1,j,k+1)+wh(i-1,j,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li-1,lj,lk+1)+(temp - udotc))
+    temp_pop=p2*(loc_rhoh(li-1,lj,lk+1)+(temp - udotc))
 #else
-	feq=p2*(rhoh(i-1,j,k+1)+(temp - udotc))
+	temp_pop=p2*(rhoh(i-1,j,k+1)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k+1)+qzz*pzzh(i-1,j,k+1)-cssq*pyyh(i-1,j,k+1)+2.0_db*qxz_17_18*pxzh(i-1,j,k+1))
-	temp_pop=feq+fneq + (fx-fz)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k+1)+qzz*pzzh(i-1,j,k+1)-cssq*pyyh(i-1,j,k+1)+two*qxz_17_18*pxzh(i-1,j,k+1))
+	temp_pop=temp_pop + (fx-fz)*p2dcssq
 	!+1  0  -1
 	temp_rho=temp_rho+temp_pop
 	temp_u=temp_u+temp_pop
@@ -805,16 +817,16 @@
 	temp_pxz=temp_pxz-temp_pop
 
 	!11  -1  -1
-	uu=0.5_db*(uh(i,j-1,k-1)**2.0_db + vh(i,j-1,k-1)**2.0_db + wh(i,j-1,k-1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i,j-1,k-1)*uh(i,j-1,k-1) + vh(i,j-1,k-1)*vh(i,j-1,k-1) + wh(i,j-1,k-1)*wh(i,j-1,k-1))
 	udotc=(vh(i,j-1,k-1)+wh(i,j-1,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li,lj-1,lk-1)+(temp + udotc))
+    temp_pop=p2*(loc_rhoh(li,lj-1,lk-1)+(temp + udotc))
 #else
-	feq=p2*(rhoh(i,j-1,k-1)+(temp + udotc))
+	temp_pop=p2*(rhoh(i,j-1,k-1)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k-1)+qzz*pzzh(i,j-1,k-1)-cssq*pxxh(i,j-1,k-1)+2.0_db*qyz_11_12*pyzh(i,j-1,k-1))
-	temp_pop=feq+fneq+(fy+fz)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k-1)+qzz*pzzh(i,j-1,k-1)-cssq*pxxh(i,j-1,k-1)+two*qyz_11_12*pyzh(i,j-1,k-1))
+	temp_pop=temp_pop + (fy+fz)*p2dcssq
 	! 0 +1 +1
 	temp_rho=temp_rho+temp_pop
 	temp_v=temp_v+temp_pop
@@ -824,16 +836,16 @@
 	temp_pyz=temp_pop
 	
 	!12   +1  +1
-	uu=0.5_db*(uh(i,j+1,k+1)**2.0_db + vh(i,j+1,k+1)**2.0_db + wh(i,j+1,k+1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i,j+1,k+1)*uh(i,j+1,k+1) + vh(i,j+1,k+1)*vh(i,j+1,k+1) + wh(i,j+1,k+1)*wh(i,j+1,k+1))
 	udotc=(vh(i,j+1,k+1)+wh(i,j+1,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li,lj+1,lk+1)+(temp - udotc))
+    temp_pop=p2*(loc_rhoh(li,lj+1,lk+1)+(temp - udotc))
 #else
-	feq=p2*(rhoh(i,j+1,k+1)+(temp - udotc))
+	temp_pop=p2*(rhoh(i,j+1,k+1)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k+1)+qzz*pzzh(i,j+1,k+1)-cssq*pxxh(i,j+1,k+1)+2.0_db*qyz_11_12*pyzh(i,j+1,k+1))
-	temp_pop=feq+fneq - (fy+fz)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k+1)+qzz*pzzh(i,j+1,k+1)-cssq*pxxh(i,j+1,k+1)+two*qyz_11_12*pyzh(i,j+1,k+1))
+	temp_pop=temp_pop - (fy+fz)*p2dcssq
 	! 0 -1 -1
 	temp_rho=temp_rho+temp_pop
 	temp_v=temp_v-temp_pop
@@ -843,16 +855,16 @@
 	temp_pyz=temp_pyz+temp_pop
 
 	!13   -1   +1
-	uu=0.5_db*(uh(i,j-1,k+1)**2.0_db + vh(i,j-1,k+1)**2.0_db + wh(i,j-1,k+1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i,j-1,k+1)*uh(i,j-1,k+1) + vh(i,j-1,k+1)*vh(i,j-1,k+1) + wh(i,j-1,k+1)*wh(i,j-1,k+1))
 	udotc=(vh(i,j-1,k+1)-wh(i,j-1,k+1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li,lj-1,lk+1)+(temp + udotc))
+    temp_pop=p2*(loc_rhoh(li,lj-1,lk+1)+(temp + udotc))
 #else
-	feq=p2*(rhoh(i,j-1,k+1)+(temp + udotc))
+	temp_pop=p2*(rhoh(i,j-1,k+1)+(temp + udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k+1)+qzz*pzzh(i,j-1,k+1)-cssq*pxxh(i,j-1,k+1)+2.0_db*qyz_13_14*pyzh(i,j-1,k+1))
-	temp_pop=feq+fneq + (fy-fz)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k+1)+qzz*pzzh(i,j-1,k+1)-cssq*pxxh(i,j-1,k+1)+two*qyz_13_14*pyzh(i,j-1,k+1))
+	temp_pop=temp_pop + (fy-fz)*p2dcssq
 	! 0 +1 -1
 	temp_rho=temp_rho+temp_pop
 	temp_v=temp_v+temp_pop
@@ -862,16 +874,16 @@
 	temp_pyz=temp_pyz-temp_pop
 	
 	!14  +1 -1
-	uu=0.5_db*(uh(i,j+1,k-1)**2.0_db + vh(i,j+1,k-1)**2.0_db + wh(i,j+1,k-1)**2.0_db)/cssq
+	uu=halfonecssq*(uh(i,j+1,k-1)*uh(i,j+1,k-1) + vh(i,j+1,k-1)*vh(i,j+1,k-1) + wh(i,j+1,k-1)*wh(i,j+1,k-1))
 	udotc=(vh(i,j+1,k-1)-wh(i,j+1,k-1))*onecssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 #ifdef USESHARE 
-    feq=p2*(loc_rhoh(li,lj+1,lk-1)+(temp - udotc))
+    temp_pop=p2*(loc_rhoh(li,lj+1,lk-1)+(temp - udotc))
 #else
-	feq=p2*(rhoh(i,j+1,k-1)+(temp - udotc))
+	temp_pop=p2*(rhoh(i,j+1,k-1)+(temp - udotc))
 #endif
-	fneq=oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k-1)+qzz*pzzh(i,j+1,k-1)-cssq*pxxh(i,j+1,k-1)+2.0_db*qyz_13_14*pyzh(i,j+1,k-1))
-	temp_pop=feq+fneq + (fz-fy)*p2dcssq
+	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k-1)+qzz*pzzh(i,j+1,k-1)-cssq*pxxh(i,j+1,k-1)+two*qyz_13_14*pyzh(i,j+1,k-1))
+	temp_pop=temp_pop + (fz-fy)*p2dcssq
 	! 0 -1 +1
 	temp_rho=temp_rho+temp_pop
 	temp_v=temp_v-temp_pop

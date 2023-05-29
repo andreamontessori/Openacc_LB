@@ -522,9 +522,9 @@
   i=1
   tmp=real(inum,kind=db)
   do
-    if(tmp< 10.0_db )exit
+    if(tmp< ten )exit
     i=i+1
-    tmp=tmp/ 10.0_db
+    tmp=tmp/ ten
   enddo
 
   dimenumb=i

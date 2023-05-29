@@ -23,10 +23,10 @@
 	
 	if(abs(isfluid(i,j,k)).ne.1)return
                         
-	uu=0.5_db*(uh(i,j,k)*uh(i,j,k) + vh(i,j,k)*vh(i,j,k) + wh(i,j,k)*wh(i,j,k))/cssq
+	uu=half*(uh(i,j,k)*uh(i,j,k) + vh(i,j,k)*vh(i,j,k) + wh(i,j,k)*wh(i,j,k))/cssq
 	!1-2
 	udotc=uh(i,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p1*(rhoh(i,j,k)+(temp + udotc))
 	temp_pxx=feq
 	feq=p1*(rhoh(i,j,k)+(temp - udotc))
@@ -34,21 +34,21 @@
 
 	!3-4
 	udotc=vh(i,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p1*(rhoh(i,j,k)+(temp + udotc))
 	temp_pyy=feq
 	feq=p1*(rhoh(i,j,k)+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	!5-6
 	udotc=wh(i,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p1*(rhoh(i,j,k)+(temp + udotc))
 	temp_pzz=feq
 	feq=p1*(rhoh(i,j,k)+(temp - udotc))
 	temp_pzz=temp_pzz+feq
 	!7-8
 	udotc=(uh(i,j,k)+vh(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rhoh(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
@@ -59,7 +59,7 @@
 	temp_pxy=temp_pxy+feq
 	!10-9
 	udotc=(-uh(i,j,k)+vh(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rhoh(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
@@ -70,7 +70,7 @@
 	temp_pxy=temp_pxy-feq
 	!11-12
 	udotc=(vh(i,j,k)+wh(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rhoh(i,j,k)+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
@@ -81,7 +81,7 @@
 	temp_pyz=temp_pyz+feq
 	!13-14
 	udotc=(vh(i,j,k)-wh(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rhoh(i,j,k)+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
@@ -92,7 +92,7 @@
 	temp_pyz=temp_pyz-feq
 	!15-16
 	udotc=(uh(i,j,k)+wh(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rhoh(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
@@ -103,7 +103,7 @@
 	temp_pxz=temp_pxz+feq
 	!17-18
 	udotc=(-uh(i,j,k)+wh(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rhoh(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
@@ -143,10 +143,10 @@
 	
 	if(abs(isfluid(i,j,k)).ne.1)return
 	
-    uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
+    uu=half*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
 	!1-2
 	udotc=u(i,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p1*(rho(i,j,k)+(temp + udotc))
 	temp_pxx=feq
 	feq=p1*(rho(i,j,k)+(temp - udotc))
@@ -154,21 +154,21 @@
 
 	!3-4
 	udotc=v(i,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p1*(rho(i,j,k)+(temp + udotc))
 	temp_pyy=feq
 	feq=p1*(rho(i,j,k)+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	!5-6
 	udotc=w(i,j,k)/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p1*(rho(i,j,k)+(temp + udotc))
 	temp_pzz=feq
 	feq=p1*(rho(i,j,k)+(temp - udotc))
 	temp_pzz=temp_pzz+feq
 	!7-8
 	udotc=(u(i,j,k)+v(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rho(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
@@ -179,7 +179,7 @@
 	temp_pxy=temp_pxy+feq
 	!10-9
 	udotc=(-u(i,j,k)+v(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rho(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
@@ -190,7 +190,7 @@
 	temp_pxy=temp_pxy-feq
 	!11-12
 	udotc=(v(i,j,k)+w(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rho(i,j,k)+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
@@ -201,7 +201,7 @@
 	temp_pyz=temp_pyz+feq
 	!13-14
 	udotc=(v(i,j,k)-w(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rho(i,j,k)+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
@@ -212,7 +212,7 @@
 	temp_pyz=temp_pyz-feq
 	!15-16
 	udotc=(u(i,j,k)+w(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rho(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
@@ -223,7 +223,7 @@
 	temp_pxz=temp_pxz+feq
 	!17-18
 	udotc=(-u(i,j,k)+w(i,j,k))/cssq
-	temp = -uu + 0.5_db*udotc*udotc
+	temp = -uu + half*udotc*udotc
 	feq=p2*(rho(i,j,k)+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
