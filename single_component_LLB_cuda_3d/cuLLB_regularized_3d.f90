@@ -64,9 +64,9 @@ program lb_openacc
         lvtk=.false.
         lasync=.false.
         
-        TILE_DIMx=256
-        TILE_DIMy=1
-        TILE_DIMz=1
+        TILE_DIMx=8
+        TILE_DIMy=8
+        TILE_DIMz=4
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
           write(*,*) 'nx must be a multiple of TILE_DIM'
@@ -203,11 +203,14 @@ program lb_openacc
 	
 	
 	istat = cudaGetDeviceProperties(prop, devNum)
+	
 #ifdef USESHARE 
     mshared = prop%sharedMemPerBlock
 #else
     mshared = 0
 #endif
+    mshared = prop%sharedMemPerBlock
+    
 	call printDeviceProperties(prop,6, devNum)
         
 	! create events and streams
@@ -310,11 +313,7 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-        call streamcoll_bulk<<<dimGrid,dimBlock,mshared,stream1>>>()
-        !call streamcoll_bulk01<<<dimGrid,dimBlock,mshared,stream1>>>()
-        !call streamcoll_bulk012xy<<<dimGrid,dimBlock,mshared,stream1>>>()
-        !call streamcoll_bulk012xz<<<dimGrid,dimBlock,mshared,stream1>>>()
-        !call streamcoll_bulk012yz<<<dimGrid,dimBlock,mshared,stream1>>>()
+        call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
@@ -383,7 +382,7 @@ program lb_openacc
         
         !***********************************collision + no slip + forcing: fused implementation*********
         
-        call streamcoll_bulk_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+        call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
