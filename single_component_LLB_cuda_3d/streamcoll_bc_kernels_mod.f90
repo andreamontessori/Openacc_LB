@@ -1468,7 +1468,7 @@
     endif      
     
     call syncthreads
-#ifdef STRAIGHTBC    
+    
     if(isfluid(i,j,k).eq.0)then
 #ifdef IFBC
           
@@ -1530,38 +1530,7 @@
 
 #endif
     endif
-#else   
-    if(isfluid(i,j,k).eq.-1)then
-
-          if(isfluid(i+1,j,k-1).eq.0)f17(li+1,lj,lk-1)=f18(li,lj,lk) !gpc 
-          if(isfluid(i-1,j,k+1).eq.0)f18(li-1,lj,lk+1)=f17(li,lj,lk) !hpc
-
-          if(isfluid(i-1,j,k-1).eq.0)f15(li-1,lj,lk-1)=f16(li,lj,lk) !gpc 
-          if(isfluid(i+1,j,k+1).eq.0)f16(li+1,lj,lk+1)=f15(li,lj,lk) !hpc
-
-          if(isfluid(i,j-1,k+1).eq.0)f13(li,lj-1,lk+1)=f14(li,lj,lk)!gpc 
-          if(isfluid(i,j+1,k-1).eq.0)f14(li,lj+1,lk-1)=f13(li,lj,lk)!hpc
-        
-          if(isfluid(i,j-1,k-1).eq.0)f11(li,lj-1,lk-1)=f12(li,lj,lk)!gpc 
-          if(isfluid(i,j+1,k+1).eq.0)f12(li,lj+1,lk+1)=f11(li,lj,lk)!hpc
-
-          if(isfluid(i-1,j+1,k).eq.0)f09(li-1,lj+1,lk)=f10(li,lj,lk)!gpc 
-          if(isfluid(i+1,j-1,k).eq.0)f10(li+1,lj-1,lk)=f09(li,lj,lk)!hpc
-
-          if(isfluid(i-1,j-1,k).eq.0)f07(li-1,lj-1,lk)=f08(li,lj,lk)!gpc 
-          if(isfluid(i+1,j+1,k).eq.0)f08(li+1,lj+1,lk)=f07(li,lj,lk)!hpc
-
-          if(isfluid(i,j,k-1).eq.0)f05(li,lj,lk-1)=f06(li,lj,lk)!gpc 
-          if(isfluid(i,j,k+1).eq.0)f06(li,lj,lk+1)=f05(li,lj,lk)!hpc 
-
-          if(isfluid(i,j-1,k).eq.0)f03(li,lj-1,lk)=f04(li,lj,lk)!gpc 
-          if(isfluid(i,j+1,k).eq.0)f04(li,lj+1,lk)=f03(li,lj,lk)!hpc 
-
-          if(isfluid(i-1,j,k).eq.0)f01(li-1,lj,lk)=f02(li,lj,lk)!gpc 
-          if(isfluid(i+1,j,k).eq.0)f02(li+1,lj,lk)=f01(li,lj,lk)!hpc 
-
-    endif
-#endif    
+    
     call syncthreads
     
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
@@ -2364,7 +2333,7 @@
     endif      
     
     call syncthreads
-#ifdef STRAIGHTBC   
+    
     if(isfluid(i,j,k).eq.0)then
 #ifdef IFBC
           
@@ -2426,38 +2395,7 @@
 
 #endif
     endif
-#else    
-    if(isfluid(i,j,k).eq.-1)then
-
-          if(isfluid(i+1,j,k-1).eq.0)f17(li+1,lj,lk-1)=f18(li,lj,lk) !gpc 
-          if(isfluid(i-1,j,k+1).eq.0)f18(li-1,lj,lk+1)=f17(li,lj,lk) !hpc
-
-          if(isfluid(i-1,j,k-1).eq.0)f15(li-1,lj,lk-1)=f16(li,lj,lk) !gpc 
-          if(isfluid(i+1,j,k+1).eq.0)f16(li+1,lj,lk+1)=f15(li,lj,lk) !hpc
-
-          if(isfluid(i,j-1,k+1).eq.0)f13(li,lj-1,lk+1)=f14(li,lj,lk)!gpc 
-          if(isfluid(i,j+1,k-1).eq.0)f14(li,lj+1,lk-1)=f13(li,lj,lk)!hpc
-        
-          if(isfluid(i,j-1,k-1).eq.0)f11(li,lj-1,lk-1)=f12(li,lj,lk)!gpc 
-          if(isfluid(i,j+1,k+1).eq.0)f12(li,lj+1,lk+1)=f11(li,lj,lk)!hpc
-
-          if(isfluid(i-1,j+1,k).eq.0)f09(li-1,lj+1,lk)=f10(li,lj,lk)!gpc 
-          if(isfluid(i+1,j-1,k).eq.0)f10(li+1,lj-1,lk)=f09(li,lj,lk)!hpc
-
-          if(isfluid(i-1,j-1,k).eq.0)f07(li-1,lj-1,lk)=f08(li,lj,lk)!gpc 
-          if(isfluid(i+1,j+1,k).eq.0)f08(li+1,lj+1,lk)=f07(li,lj,lk)!hpc
-
-          if(isfluid(i,j,k-1).eq.0)f05(li,lj,lk-1)=f06(li,lj,lk)!gpc 
-          if(isfluid(i,j,k+1).eq.0)f06(li,lj,lk+1)=f05(li,lj,lk)!hpc 
-
-          if(isfluid(i,j-1,k).eq.0)f03(li,lj-1,lk)=f04(li,lj,lk)!gpc 
-          if(isfluid(i,j+1,k).eq.0)f04(li,lj+1,lk)=f03(li,lj,lk)!hpc 
-
-          if(isfluid(i-1,j,k).eq.0)f01(li-1,lj,lk)=f02(li,lj,lk)!gpc 
-          if(isfluid(i+1,j,k).eq.0)f02(li+1,lj,lk)=f01(li,lj,lk)!hpc 
-
-    endif
-#endif    
+    
     call syncthreads
     
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
