@@ -894,7 +894,7 @@
 	implicit none  
 	  
     integer :: i,j,k
-	real(kind=db) :: udotc,uu
+	real(kind=db) :: udotc,uu,temp
     
     integer :: li,lj,lk
 	real(kind=db), shared :: f00(1:TILE_DIMx_d,1:TILE_DIMy_d,1:TILE_DIMz_d)
@@ -937,17 +937,15 @@
     
 	!1 -1  0  0
 	udotc=u(i,j,k)*onecssq
-	f01(li,lj,lk)=p1*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f01(li,lj,lk)=p1*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))) &
 	 + fx*p1dcssq
 	!+1  0  0
 
 
 	!2 +1  0  0
-	udotc=u(i,j,k)*onecssq
-	f02(li,lj,lk)=p1*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f02(li,lj,lk)=p1*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k))) &
 	 - fx*p1dcssq
 	!-1  0  0
@@ -955,17 +953,15 @@
     		
 	!3 0 -1  0
 	udotc=v(i,j,k)*onecssq
-	f03(li,lj,lk)=p1*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f03(li,lj,lk)=p1*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k))) &
 	 + fy*p1dcssq
 	! 0 +1  0
 
 	
 	!4  0 +1  0
-	udotc=v(i,j,k)*onecssq
-	f04(li,lj,lk)=p1*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f04(li,lj,lk)=p1*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k))) &
 	 - fy*p1dcssq
 	! 0 -1  0
@@ -973,17 +969,15 @@
 	
 	!5  0  0 -1
 	udotc=w(i,j,k)*onecssq
-	f05(li,lj,lk)=p1*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f05(li,lj,lk)=p1*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k))) &
 	 + fz*p1dcssq
 	! 0  0 +1
 
 
 	!6  0  0  +1
-	udotc=w(i,j,k)*onecssq
-	f06(li,lj,lk)=p1*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f06(li,lj,lk)=p1*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k))) &
 	 - fz*p1dcssq
 	! 0  0 -1
@@ -991,17 +985,15 @@
     	
 	!7 -1 -1  0
 	udotc=(u(i,j,k)+v(i,j,k))*onecssq
-	f07(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f07(li,lj,lk)=p2*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+two*qxy_7_8*pxy(i,j,k)) &
 	 + (fx+fy)*p2dcssq 
 	!+1 +1  0
 
 	
 	!8 +1 +1  0
-	udotc=(u(i,j,k)+v(i,j,k))*onecssq
-	f08(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f08(li,lj,lk)=p2*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+two*qxy_7_8*pxy(i,j,k)) &
 	 - (fx+fy)*p2dcssq
 	!-1 -1  0
@@ -1009,17 +1001,15 @@
 	
 	!10   +1 -1  0
 	udotc=(-u(i,j,k)+v(i,j,k))*onecssq
-	f10(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f10(li,lj,lk)=p2*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+two*qxy_9_10*pxy(i,j,k)) &
 	 +(fy-fx)*p2dcssq
 	!-1 +1  0
 
 	
 	!9  -1 +1 0
-	udotc=(-u(i,j,k)+v(i,j,k))*onecssq
-	f09(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f09(li,lj,lk)=p2*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+two*qxy_9_10*pxy(i,j,k)) &
 	 + (fx-fy)*p2dcssq
 	!+1 -1  0
@@ -1028,17 +1018,15 @@
 
 	!15  -1  0 -1
 	udotc=(u(i,j,k)+w(i,j,k))*onecssq
-	f15(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f15(li,lj,lk)=p2*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+two*qxz_15_16*pxz(i,j,k)) &
 	 + (fx+fz)*p2dcssq 
 	!+1  0  +1
 
 
 	!16  +1  0 +1
-	udotc=(u(i,j,k)+w(i,j,k))*onecssq
-	f16(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f16(li,lj,lk)=p2*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+two*qxz_15_16*pxz(i,j,k)) &
 	 - (fx+fz)*p2dcssq
 	!-1  0  -1
@@ -1046,17 +1034,15 @@
 
 	!17  +1  0 -1
 	udotc=(-u(i,j,k)+w(i,j,k))*onecssq
-	f17(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f17(li,lj,lk)=p2*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+two*qxz_17_18*pxz(i,j,k)) &
 	 +(fz-fx)*p2dcssq
 	!-1  0  +1
 
 
 	!18   -1   0  +1
-	udotc=(-u(i,j,k)+w(i,j,k))*onecssq
-	f18(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f18(li,lj,lk)=p2*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+two*qxz_17_18*pxz(i,j,k)) &
 	 + (fx-fz)*p2dcssq
 	!+1  0  -1
@@ -1064,17 +1050,15 @@
 
 	!11  0  -1  -1
 	udotc=(v(i,j,k)+w(i,j,k))*onecssq
-	f11(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f11(li,lj,lk)=p2*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+two*qyz_11_12*pyz(i,j,k)) &
 	 + (fy+fz)*p2dcssq
 	! 0 +1 +1
 
 	
 	!12  0  +1  +1
-	udotc=(v(i,j,k)+w(i,j,k))*onecssq
-	f12(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f12(li,lj,lk)=p2*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+two*qyz_11_12*pyz(i,j,k)) &
 	 - (fy+fz)*p2dcssq
 	! 0 -1 -1
@@ -1082,17 +1066,15 @@
 
 	!13  0  -1   +1
 	udotc=(v(i,j,k)-w(i,j,k))*onecssq
-	f13(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc)) &
+	temp = -uu + half*udotc*udotc
+	f13(li,lj,lk)=p2*(rho(i,j,k)+(temp + udotc)) &
 	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+two*qyz_13_14*pyz(i,j,k)) &
 	 + (fy-fz)*p2dcssq
 	! 0 +1 -1
 
 	
 	!14  0  +1  -1
-	udotc=(v(i,j,k)-w(i,j,k))*onecssq
-	f14(li,lj,lk)=p2*(rho(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc)) &
+	f14(li,lj,lk)=p2*(rho(i,j,k)+(temp - udotc)) &
 	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+two*qyz_13_14*pyz(i,j,k)) &
 	 + (fz-fy)*p2dcssq
 	! 0 -1 +1
@@ -1563,128 +1545,110 @@
     
 	!1 -1  0  0
 	udotc=uh(i,j,k)*onecssq
-	f01(li,lj,lk)=p1*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f01(li,lj,lk)=p1*(rhoh(i,j,k)+(temp + udotc))
 	!+1  0  0
 
 
 	!2 +1  0  0
-	udotc=uh(i,j,k)*onecssq
-	f02(li,lj,lk)=p1*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f02(li,lj,lk)=p1*(rhoh(i,j,k)+(temp - udotc))
 	!-1  0  0
 
     		
 	!3 0 -1  0
 	udotc=vh(i,j,k)*onecssq
-	f03(li,lj,lk)=p1*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f03(li,lj,lk)=p1*(rhoh(i,j,k)+(temp + udotc))
 	! 0 +1  0
 
 	
 	!4  0 +1  0
-	udotc=vh(i,j,k)*onecssq
-	f04(li,lj,lk)=p1*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f04(li,lj,lk)=p1*(rhoh(i,j,k)+(temp - udotc))
 	! 0 -1  0
 
 	
 	!5  0  0 -1
 	udotc=wh(i,j,k)*onecssq
-	f05(li,lj,lk)=p1*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f05(li,lj,lk)=p1*(rhoh(i,j,k)+(temp + udotc))
 	! 0  0 +1
 
 
 	!6  0  0  +1
-	udotc=wh(i,j,k)*onecssq
-	f06(li,lj,lk)=p1*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f06(li,lj,lk)=p1*(rhoh(i,j,k)+(temp - udotc))
 	! 0  0 -1
 
     	
 	!7 -1 -1  0
 	udotc=(uh(i,j,k)+vh(i,j,k))*onecssq
-	f07(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f07(li,lj,lk)=p2*(rhoh(i,j,k)+(temp + udotc))
 	!+1 +1  0
 
 	
 	!8 +1 +1  0
-	udotc=(uh(i,j,k)+vh(i,j,k))*onecssq
-	f08(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f08(li,lj,lk)=p2*(rhoh(i,j,k)+(temp - udotc))
 	!-1 -1  0
 
 	
 	!10   +1 -1  0
 	udotc=(-uh(i,j,k)+vh(i,j,k))*onecssq
-	f10(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f10(li,lj,lk)=p2*(rhoh(i,j,k)+(temp + udotc))
 	!-1 +1  0
 
 	
 	!9  -1 +1 0
-	udotc=(-uh(i,j,k)+vh(i,j,k))*onecssq
-	f09(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f09(li,lj,lk)=p2*(rhoh(i,j,k)+(temp - udotc))
 	!+1 -1  0
 
 		
 
 	!15  -1  0 -1
 	udotc=(uh(i,j,k)+wh(i,j,k))*onecssq
-	f15(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f15(li,lj,lk)=p2*(rhoh(i,j,k)+(temp + udotc))
 	!+1  0  +1
 
 
 	!16  +1  0 +1
-	udotc=(uh(i,j,k)+wh(i,j,k))*onecssq
-	f16(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f16(li,lj,lk)=p2*(rhoh(i,j,k)+(temp - udotc))
 	!-1  0  -1
 
 
 	!17  +1  0 -1
 	udotc=(-uh(i,j,k)+wh(i,j,k))*onecssq
-	f17(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f17(li,lj,lk)=p2*(rhoh(i,j,k)+(temp + udotc))
 	!-1  0  +1
 
 
 	!18   -1   0  +1
-	udotc=(-uh(i,j,k)+wh(i,j,k))*onecssq
-	f18(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f18(li,lj,lk)=p2*(rhoh(i,j,k)+(temp - udotc))
 	!+1  0  -1
 
 
 	!11  0  -1  -1
 	udotc=(vh(i,j,k)+wh(i,j,k))*onecssq
-	f11(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f11(li,lj,lk)=p2*(rhoh(i,j,k)+(temp + udotc))
 	! 0 +1 +1
 
 	
 	!12  0  +1  +1
-	udotc=(vh(i,j,k)+wh(i,j,k))*onecssq
-	f12(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f12(li,lj,lk)=p2*(rhoh(i,j,k)+(temp - udotc))
 	! 0 -1 -1
 
 
 	!13  0  -1   +1
 	udotc=(vh(i,j,k)-wh(i,j,k))*onecssq
-	f13(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc + udotc))
+	temp = -uu + half*udotc*udotc
+	f13(li,lj,lk)=p2*(rhoh(i,j,k)+(temp + udotc))
 	! 0 +1 -1
 
 	
 	!14  0  +1  -1
-	udotc=(vh(i,j,k)-wh(i,j,k))*onecssq
-	f14(li,lj,lk)=p2*(rhoh(i,j,k)+(-uu &
-	 + half*udotc*udotc - udotc))
+	f14(li,lj,lk)=p2*(rhoh(i,j,k)+(temp - udotc))
 	! 0 -1 +1
 	
 	udotc=f01(li,lj,lk)+f02(li,lj,lk)+  &
