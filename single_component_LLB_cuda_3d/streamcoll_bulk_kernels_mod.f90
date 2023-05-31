@@ -1555,7 +1555,8 @@
 	udotc=f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)- &
      f13(li,lj-1,lk+1)-f14(li,lj+1,lk-1)
 	pyzh(i,j,k)=udotc
-	
+     return
+#if 0
 	call syncthreads
 	
 	uu=halfonecssq*(uh(i,j,k)*uh(i,j,k) + vh(i,j,k)*vh(i,j,k) + wh(i,j,k)*wh(i,j,k))
@@ -1721,7 +1722,7 @@
 	
 	    
     return
-	
+#endif	
   end subroutine streamcoll_bulk_shared
   
   attributes(global) subroutine streamcoll_bulk_shared_flop()
@@ -2390,7 +2391,8 @@
 	udotc=f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)- &
      f13(li,lj-1,lk+1)-f14(li,lj+1,lk-1)
 	pyz(i,j,k)=udotc
-	
+     return
+#if 0     
 	call syncthreads
 	
 	uu=halfonecssq*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))
@@ -2554,11 +2556,9 @@
      f13(li,lj,lk)-f14(li,lj,lk)
 	pyz(i,j,k)=pyz(i,j,k)-udotc
 	
-	
-	
 	    
     return
-	
+#endif	
   end subroutine streamcoll_bulk_shared_flop
   
  end module streamcoll_bulk_kernels

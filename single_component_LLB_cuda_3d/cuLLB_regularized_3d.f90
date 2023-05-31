@@ -54,7 +54,7 @@ program lb_openacc
         nx=256
         ny=256
         nz=256
-        nsteps=10
+        nsteps=1000
         stamp=100
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
@@ -326,10 +326,10 @@ program lb_openacc
         call abortOnLastErrorAndSync('after streamcoll_bc', istep)
         
         !***********************************correct pressor*********
-!        call correct_pressure<<<dimGrid,dimBlock,0,stream1>>>()
-!        istat = cudaEventRecord(dummyEvent1, stream1)
-!        istat = cudaEventSynchronize(dummyEvent1)
-!        call abortOnLastErrorAndSync('after correct_pressure', istep)
+        call correct_pressure<<<dimGrid,dimBlock,0,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after correct_pressure', istep)
         
         !flop
         istep=step+1
@@ -395,10 +395,10 @@ program lb_openacc
         call abortOnLastErrorAndSync('after streamcoll_bc_flop', istep)
         
         !***********************************correct pressor*********
-!        call correct_pressure_flop<<<dimGrid,dimBlock,0,stream1>>>()
-!        istat = cudaEventRecord(dummyEvent1, stream1)
-!        istat = cudaEventSynchronize(dummyEvent1)
-!        call abortOnLastErrorAndSync('after correct_pressure_flop', istep)
+        call correct_pressure_flop<<<dimGrid,dimBlock,0,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after correct_pressure_flop', istep)
         
     enddo 
     
