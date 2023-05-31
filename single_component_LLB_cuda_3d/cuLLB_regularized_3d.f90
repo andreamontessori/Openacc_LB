@@ -35,7 +35,7 @@ program lb_openacc
      ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
     integer, parameter, dimension(0:npops) :: &
     opp=(/0, 2,  1, 4,  3,  6,  5,  8,   7, 10,   9, 12,  11, 14,  13, 16,  15,  18,  17/)
-    integer(kind=4), allocatable, dimension(:,:,:) :: h_isfluid
+    integer(kind=1), allocatable, dimension(:,:,:) :: h_isfluid
     
     real(kind=db) :: mymemory,totmemory
     real(kind=db) :: time
@@ -313,24 +313,25 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-        call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
-        istat = cudaEventRecord(dummyEvent1, stream1)
-        istat = cudaEventSynchronize(dummyEvent1)
-        call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
+!        call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
+!        istat = cudaEventRecord(dummyEvent1, stream1)
+!        istat = cudaEventSynchronize(dummyEvent1)
+!        call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
 
         !********************************close to boundary conditions no slip everywhere********************************!
         
-        call streamcoll_bc<<<dimGrid,dimBlock,0,stream1>>>()
+        call streamcoll_bc_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bc', istep)
         
         !***********************************correct pressor*********
+#ifndef PRESSCORR
         call correct_pressure<<<dimGrid,dimBlock,0,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after correct_pressure', istep)
-        
+#endif        
         !flop
         istep=step+1
         !******************************************call other bcs************************
@@ -382,24 +383,25 @@ program lb_openacc
         
         !***********************************collision + no slip + forcing: fused implementation*********
         
-        call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
-        istat = cudaEventRecord(dummyEvent1, stream1)
-        istat = cudaEventSynchronize(dummyEvent1)
-        call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
+!        call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+!        istat = cudaEventRecord(dummyEvent1, stream1)
+!        istat = cudaEventSynchronize(dummyEvent1)
+!        call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
         
         !********************************close to boundary conditions no slip everywhere********************************!
         
-        call streamcoll_bc_flop<<<dimGrid,dimBlock,0,stream1>>>()
+        call streamcoll_bc_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bc_flop', istep)
         
         !***********************************correct pressor*********
+#ifndef PRESSCORR
         call correct_pressure_flop<<<dimGrid,dimBlock,0,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after correct_pressure_flop', istep)
-        
+#endif
     enddo 
     
     istat = cudaEventRecord(stopEvent, 0)

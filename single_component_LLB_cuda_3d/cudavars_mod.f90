@@ -56,7 +56,7 @@
     real(kind=db), allocatable, dimension(:,:,:), device :: rhoh,uh,vh,wh,pxxh,pxyh,pxzh,pyyh,pyzh,pzzh
     real(kind=4), allocatable, dimension(:,:,:), device :: rhoprint_d
     real(kind=4), allocatable, dimension(:,:,:,:), device :: velprint_d
-    integer(kind=4), allocatable, dimension(:,:,:), device   :: isfluid
+    integer(kind=1), allocatable, dimension(:,:,:), device   :: isfluid
     
     contains
     
