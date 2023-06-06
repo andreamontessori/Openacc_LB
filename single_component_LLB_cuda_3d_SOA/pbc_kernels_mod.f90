@@ -9,35 +9,43 @@
  
  attributes(global) subroutine pbc_edge_x()
 	  
-	integer :: j,k
+	integer :: i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
 	
-	  
 	j = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
 	k = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
 	  
 	if (j>ny_d .or. k>nz_d)return
-	  
-	rho(0,j,k)=rho(nx_d,j,k)
-	u(0,j,k)=u(nx_d,j,k)
-	v(0,j,k)=v(nx_d,j,k)
-	w(0,j,k)=w(nx_d,j,k)
-	pxx(0,j,k)=pxx(nx_d,j,k)
-	pyy(0,j,k)=pyy(nx_d,j,k)
-	pzz(0,j,k)=pzz(nx_d,j,k)
-	pxy(0,j,k)=pxy(nx_d,j,k)
-	pxz(0,j,k)=pxz(nx_d,j,k)
-	pyz(0,j,k)=pyz(nx_d,j,k)
 	
-	rho(nx_d+1,j,k)=rho(1,j,k)
-	u(nx_d+1,j,k)=u(1,j,k)
-	v(nx_d+1,j,k)=v(1,j,k)
-	w(nx_d+1,j,k)=w(1,j,k)
-	pxx(nx_d+1,j,k)=pxx(1,j,k)
-	pyy(nx_d+1,j,k)=pyy(1,j,k)
-	pzz(nx_d+1,j,k)=pzz(1,j,k)
-	pxy(nx_d+1,j,k)=pxy(1,j,k)
-	pxz(nx_d+1,j,k)=pxz(1,j,k)
-	pyz(nx_d+1,j,k)=pyz(1,j,k)
+	i=1
+	xblock=(i+TILE_DIMx_d-1)/TILE_DIMx_d
+    yblock=(j+TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(k+TILE_DIMz_d-1)/TILE_DIMz_d
+	idblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+	ii=i-xblock*TILE_DIMx_d+TILE_DIMx_d
+    jj=j-yblock*TILE_DIMy_d+TILE_DIMy_d
+    kk=k-zblock*TILE_DIMz_d+TILE_DIMz_d
+	  
+	rho(0,j,k,idblock)=rho(nx_d,j,k,idblock)
+	u(0,j,k,idblock)=u(nx_d,j,k,idblock)
+	v(0,j,k,idblock)=v(nx_d,j,k,idblock)
+	w(0,j,k,idblock)=w(nx_d,j,k,idblock)
+	pxx(0,j,k,idblock)=pxx(nx_d,j,k,idblock)
+	pyy(0,j,k,idblock)=pyy(nx_d,j,k,idblock)
+	pzz(0,j,k,idblock)=pzz(nx_d,j,k,idblock)
+	pxy(0,j,k,idblock)=pxy(nx_d,j,k,idblock)
+	pxz(0,j,k,idblock)=pxz(nx_d,j,k,idblock)
+	pyz(0,j,k,idblock)=pyz(nx_d,j,k,idblock)
+	
+	rho(nx_d+1,j,k,idblock)=rho(1,j,k,idblock)
+	u(nx_d+1,j,k,idblock)=u(1,j,k,idblock)
+	v(nx_d+1,j,k,idblock)=v(1,j,k,idblock)
+	w(nx_d+1,j,k,idblock)=w(1,j,k,idblock)
+	pxx(nx_d+1,j,k,idblock)=pxx(1,j,k,idblock)
+	pyy(nx_d+1,j,k,idblock)=pyy(1,j,k,idblock)
+	pzz(nx_d+1,j,k,idblock)=pzz(1,j,k,idblock)
+	pxy(nx_d+1,j,k,idblock)=pxy(1,j,k,idblock)
+	pxz(nx_d+1,j,k,idblock)=pxz(1,j,k,idblock)
+	pyz(nx_d+1,j,k,idblock)=pyz(1,j,k,idblock)
 	  
     return
 		  
@@ -45,35 +53,34 @@
   
   attributes(global) subroutine pbc_edge_x_flop()
 	  
-	integer :: j,k
-	
+	integer :: j,k,ii,jj,kk,xblock,yblock,zblock,idblock
 	  
 	j = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
 	k = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
 	  
 	if (j>ny_d .or. k>nz_d)return
 	  
-	rhoh(0,j,k)=rhoh(nx_d,j,k)
-	uh(0,j,k)=uh(nx_d,j,k)
-	vh(0,j,k)=vh(nx_d,j,k)
-	wh(0,j,k)=wh(nx_d,j,k)
-	pxxh(0,j,k)=pxxh(nx_d,j,k)
-	pyyh(0,j,k)=pyyh(nx_d,j,k)
-	pzzh(0,j,k)=pzzh(nx_d,j,k)
-	pxyh(0,j,k)=pxyh(nx_d,j,k)
-	pxzh(0,j,k)=pxzh(nx_d,j,k)
-	pyzh(0,j,k)=pyzh(nx_d,j,k)
+	rhoh(0,j,k,idblock)=rhoh(nx_d,j,k,idblock)
+	uh(0,j,k,idblock)=uh(nx_d,j,k,idblock)
+	vh(0,j,k,idblock)=vh(nx_d,j,k,idblock)
+	wh(0,j,k,idblock)=wh(nx_d,j,k,idblock)
+	pxxh(0,j,k,idblock)=pxxh(nx_d,j,k,idblock)
+	pyyh(0,j,k,idblock)=pyyh(nx_d,j,k,idblock)
+	pzzh(0,j,k,idblock)=pzzh(nx_d,j,k,idblock)
+	pxyh(0,j,k,idblock)=pxyh(nx_d,j,k,idblock)
+	pxzh(0,j,k,idblock)=pxzh(nx_d,j,k,idblock)
+	pyzh(0,j,k,idblock)=pyzh(nx_d,j,k,idblock)
 	
-	rhoh(nx_d+1,j,k)=rhoh(1,j,k)
-	uh(nx_d+1,j,k)=uh(1,j,k)
-	vh(nx_d+1,j,k)=vh(1,j,k)
-	wh(nx_d+1,j,k)=wh(1,j,k)
-	pxxh(nx_d+1,j,k)=pxxh(1,j,k)
-	pyyh(nx_d+1,j,k)=pyyh(1,j,k)
-	pzzh(nx_d+1,j,k)=pzzh(1,j,k)
-	pxyh(nx_d+1,j,k)=pxyh(1,j,k)
-	pxzh(nx_d+1,j,k)=pxzh(1,j,k)
-	pyzh(nx_d+1,j,k)=pyzh(1,j,k)
+	rhoh(nx_d+1,j,k,idblock)=rhoh(1,j,k,idblock)
+	uh(nx_d+1,j,k,idblock)=uh(1,j,k,idblock)
+	vh(nx_d+1,j,k,idblock)=vh(1,j,k,idblock)
+	wh(nx_d+1,j,k,idblock)=wh(1,j,k,idblock)
+	pxxh(nx_d+1,j,k,idblock)=pxxh(1,j,k,idblock)
+	pyyh(nx_d+1,j,k,idblock)=pyyh(1,j,k,idblock)
+	pzzh(nx_d+1,j,k,idblock)=pzzh(1,j,k,idblock)
+	pxyh(nx_d+1,j,k,idblock)=pxyh(1,j,k,idblock)
+	pxzh(nx_d+1,j,k,idblock)=pxzh(1,j,k,idblock)
+	pyzh(nx_d+1,j,k,idblock)=pyzh(1,j,k,idblock)
 	  
     return
 		  
@@ -82,35 +89,34 @@
   attributes(global) subroutine pbc_edge_y()
 	
 	implicit none
-	integer :: i,k
-	
+	integer :: i,k,ii,jj,kk,xblock,yblock,zblock,idblock
 	  
 	i = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
 	k = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
 
 	if (i>nx_d .or. k>nz_d)return
 	
-	rho(i,0,k)=rho(i,ny_d,k)
-	u(i,0,k)=u(i,ny_d,k)
-	v(i,0,k)=v(i,ny_d,k)
-	w(i,0,k)=w(i,ny_d,k)
-	pxx(i,0,k)=pxx(i,ny_d,k)
-	pyy(i,0,k)=pyy(i,ny_d,k)
-	pzz(i,0,k)=pzz(i,ny_d,k)
-	pxy(i,0,k)=pxy(i,ny_d,k)
-	pxz(i,0,k)=pxz(i,ny_d,k)
-	pyz(i,0,k)=pyz(i,ny_d,k)
+	rho(i,0,k,idblock)=rho(i,ny_d,k,idblock)
+	u(i,0,k,idblock)=u(i,ny_d,k,idblock)
+	v(i,0,k,idblock)=v(i,ny_d,k,idblock)
+	w(i,0,k,idblock)=w(i,ny_d,k,idblock)
+	pxx(i,0,k,idblock)=pxx(i,ny_d,k,idblock)
+	pyy(i,0,k,idblock)=pyy(i,ny_d,k,idblock)
+	pzz(i,0,k,idblock)=pzz(i,ny_d,k,idblock)
+	pxy(i,0,k,idblock)=pxy(i,ny_d,k,idblock)
+	pxz(i,0,k,idblock)=pxz(i,ny_d,k,idblock)
+	pyz(i,0,k,idblock)=pyz(i,ny_d,k,idblock)
 	
-	rho(i,ny_d+1,k)=rho(i,1,k)
-	u(i,ny_d+1,k)=u(i,1,k)
-	v(i,ny_d+1,k)=v(i,1,k)
-	w(i,ny_d+1,k)=w(i,1,k)
-	pxx(i,ny_d+1,k)=pxx(i,1,k)
-	pyy(i,ny_d+1,k)=pyy(i,1,k)
-	pzz(i,ny_d+1,k)=pzz(i,1,k)
-	pxy(i,ny_d+1,k)=pxy(i,1,k)
-	pxz(i,ny_d+1,k)=pxz(i,1,k)
-	pyz(i,ny_d+1,k)=pyz(i,1,k)
+	rho(i,ny_d+1,k,idblock)=rho(i,1,k,idblock)
+	u(i,ny_d+1,k,idblock)=u(i,1,k,idblock)
+	v(i,ny_d+1,k,idblock)=v(i,1,k,idblock)
+	w(i,ny_d+1,k,idblock)=w(i,1,k,idblock)
+	pxx(i,ny_d+1,k,idblock)=pxx(i,1,k,idblock)
+	pyy(i,ny_d+1,k,idblock)=pyy(i,1,k,idblock)
+	pzz(i,ny_d+1,k,idblock)=pzz(i,1,k,idblock)
+	pxy(i,ny_d+1,k,idblock)=pxy(i,1,k,idblock)
+	pxz(i,ny_d+1,k,idblock)=pxz(i,1,k,idblock)
+	pyz(i,ny_d+1,k,idblock)=pyz(i,1,k,idblock)
 	  
     return
 
@@ -120,35 +126,34 @@
 	
 	implicit none
 	
-	integer :: i,k
-	
+	integer :: i,k,ii,jj,kk,xblock,yblock,zblock,idblock
 	  
 	i = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
 	k = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
 
 	if (i>nx_d .or. k>nz_d)return
 	
-	rhoh(i,0,k)=rhoh(i,ny_d,k)
-	uh(i,0,k)=uh(i,ny_d,k)
-	vh(i,0,k)=vh(i,ny_d,k)
-	wh(i,0,k)=wh(i,ny_d,k)
-	pxxh(i,0,k)=pxxh(i,ny_d,k)
-	pyyh(i,0,k)=pyyh(i,ny_d,k)
-	pzzh(i,0,k)=pzzh(i,ny_d,k)
-	pxyh(i,0,k)=pxyh(i,ny_d,k)
-	pxzh(i,0,k)=pxzh(i,ny_d,k)
-	pyzh(i,0,k)=pyzh(i,ny_d,k)
+	rhoh(i,0,k,idblock)=rhoh(i,ny_d,k,idblock)
+	uh(i,0,k,idblock)=uh(i,ny_d,k,idblock)
+	vh(i,0,k,idblock)=vh(i,ny_d,k,idblock)
+	wh(i,0,k,idblock)=wh(i,ny_d,k,idblock)
+	pxxh(i,0,k,idblock)=pxxh(i,ny_d,k,idblock)
+	pyyh(i,0,k,idblock)=pyyh(i,ny_d,k,idblock)
+	pzzh(i,0,k,idblock)=pzzh(i,ny_d,k,idblock)
+	pxyh(i,0,k,idblock)=pxyh(i,ny_d,k,idblock)
+	pxzh(i,0,k,idblock)=pxzh(i,ny_d,k,idblock)
+	pyzh(i,0,k,idblock)=pyzh(i,ny_d,k,idblock)
 	
-	rhoh(i,ny_d+1,k)=rhoh(i,1,k)
-	uh(i,ny_d+1,k)=uh(i,1,k)
-	vh(i,ny_d+1,k)=vh(i,1,k)
-	wh(i,ny_d+1,k)=wh(i,1,k)
-	pxxh(i,ny_d+1,k)=pxxh(i,1,k)
-	pyyh(i,ny_d+1,k)=pyyh(i,1,k)
-	pzzh(i,ny_d+1,k)=pzzh(i,1,k)
-	pxyh(i,ny_d+1,k)=pxyh(i,1,k)
-	pxzh(i,ny_d+1,k)=pxzh(i,1,k)
-	pyzh(i,ny_d+1,k)=pyzh(i,1,k)
+	rhoh(i,ny_d+1,k,idblock)=rhoh(i,1,k,idblock)
+	uh(i,ny_d+1,k,idblock)=uh(i,1,k,idblock)
+	vh(i,ny_d+1,k,idblock)=vh(i,1,k,idblock)
+	wh(i,ny_d+1,k,idblock)=wh(i,1,k,idblock)
+	pxxh(i,ny_d+1,k,idblock)=pxxh(i,1,k,idblock)
+	pyyh(i,ny_d+1,k,idblock)=pyyh(i,1,k,idblock)
+	pzzh(i,ny_d+1,k,idblock)=pzzh(i,1,k,idblock)
+	pxyh(i,ny_d+1,k,idblock)=pxyh(i,1,k,idblock)
+	pxzh(i,ny_d+1,k,idblock)=pxzh(i,1,k,idblock)
+	pyzh(i,ny_d+1,k,idblock)=pyzh(i,1,k,idblock)
 	  
     return
 

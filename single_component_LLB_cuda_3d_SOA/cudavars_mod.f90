@@ -52,8 +52,10 @@
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
     
-    real(kind=db), allocatable, dimension(:,:,:), device :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
-    real(kind=db), allocatable, dimension(:,:,:), device :: rhoh,uh,vh,wh,pxxh,pxyh,pxzh,pyyh,pyzh,pzzh
+    integer, constant :: nxblock_d,nxyblock_d
+    
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: rhoh,uh,vh,wh,pxxh,pxyh,pxzh,pyyh,pyzh,pzzh
     real(kind=4), allocatable, dimension(:,:,:), device :: rhoprint_d
     real(kind=4), allocatable, dimension(:,:,:,:), device :: velprint_d
     integer(kind=1), allocatable, dimension(:,:,:), device   :: isfluid
@@ -64,63 +66,83 @@
     
     real(kind=db), value :: rhos,vxs,vys,vzs
     
-    integer :: i,j,k
-          
+    !integer :: i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
+    integer :: i,j,k,gi,gj,gk,idblock       
             
-	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	
+	i=threadIdx%x
+	j=threadIdx%y
+	k=threadIdx%z
+	
+	!xblock=(i+TILE_DIMx_d-1)/TILE_DIMx_d
+    !yblock=(j+TILE_DIMy_d-1)/TILE_DIMy_d
+    !zblock=(k+TILE_DIMz_d-1)/TILE_DIMz_d
+	!idblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+	!ii=i-xblock*TILE_DIMx_d+TILE_DIMx_d
+    !jj=j-yblock*TILE_DIMy_d+TILE_DIMy_d
+    !kk=k-zblock*TILE_DIMz_d+TILE_DIMz_d
+    !if(ii/=threadIdx%x .or. jj/=threadIdx%y .or. kk/=threadIdx%z)write(*,*)'cazzo1'
+    !if(xblock/=(blockIdx%x) .or. yblock/=(blockIdx%y) .or. zblock/=(blockIdx%z))write(*,*)'cazzo2'
+	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	
 	
-	u(i,j,k)=vxs
-	v(i,j,k)=vys
-	w(i,j,k)=vzs
-	rho(i,j,k)=rhos
-	pxx(i,j,k)=zero
-	pxy(i,j,k)=zero
-	pxz(i,j,k)=zero
-	pyy(i,j,k)=zero
-	pyz(i,j,k)=zero
-	pzz(i,j,k)=zero
+	u(i,j,k,idblock)=vxs
+	v(i,j,k,idblock)=vys
+	w(i,j,k,idblock)=vzs
+	rho(i,j,k,idblock)=rhos
+	pxx(i,j,k,idblock)=zero
+	pxy(i,j,k,idblock)=zero
+	pxz(i,j,k,idblock)=zero
+	pyy(i,j,k,idblock)=zero
+	pyz(i,j,k,idblock)=zero
+	pzz(i,j,k,idblock)=zero
 	
-	uh(i,j,k)=vxs
-	vh(i,j,k)=vys
-	wh(i,j,k)=vzs
-	rhoh(i,j,k)=rhos
-	pxxh(i,j,k)=zero
-	pxyh(i,j,k)=zero
-	pxzh(i,j,k)=zero
-	pyyh(i,j,k)=zero
-	pyzh(i,j,k)=zero
-	pzzh(i,j,k)=zero
+	uh(i,j,k,idblock)=vxs
+	vh(i,j,k,idblock)=vys
+	wh(i,j,k,idblock)=vzs
+	rhoh(i,j,k,idblock)=rhos
+	pxxh(i,j,k,idblock)=zero
+	pxyh(i,j,k,idblock)=zero
+	pxzh(i,j,k,idblock)=zero
+	pyyh(i,j,k,idblock)=zero
+	pyzh(i,j,k,idblock)=zero
+	pzzh(i,j,k,idblock)=zero
     
     return
 
  end subroutine setup_system
  
  attributes(global) subroutine store_print()
-	  
-	integer :: i,j,k
 	
-	  
-	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	integer :: i,j,k,gi,gj,gk,idblock       
+            
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	
+	i=threadIdx%x
+	j=threadIdx%y
+	k=threadIdx%z
+	
+	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	  
 	  
 	!write(*,*)i,j,p_d(0)*myrho_d
-	if(abs(isfluid(i,j,k)).eq.1)then
-      rhoprint_d(i,j,k)=rho(i,j,k)
-	  velprint_d(1,i,j,k)=u(i,j,k)
-	  velprint_d(2,i,j,k)=v(i,j,k)
-	  velprint_d(3,i,j,k)=w(i,j,k)
+	if(abs(isfluid(gi,gj,gk)).eq.1)then
+      rhoprint_d(gi,gj,gk)=rho(i,j,k,idblock)
+	  velprint_d(1,gi,gj,gk)=u(i,j,k,idblock)
+	  velprint_d(2,gi,gj,gk)=v(i,j,k,idblock)
+	  velprint_d(3,gi,gj,gk)=w(i,j,k,idblock)
 		
 	else
 	  
-	  rhoprint_d(i,j,k)=zero
-	  velprint_d(1,i,j,k)=zero
-	  velprint_d(2,i,j,k)=zero
-	  velprint_d(3,i,j,k)=zero
+	  rhoprint_d(gi,gj,gk)=zero
+	  velprint_d(1,gi,gj,gk)=zero
+	  velprint_d(2,gi,gj,gk)=zero
+	  velprint_d(3,gi,gj,gk)=zero
 	  
 	endif
 	  
@@ -130,27 +152,32 @@
  
  attributes(global) subroutine store_print_flop()
 	  
-	integer :: i,j,k
+	integer :: i,j,k,gi,gj,gk,idblock       
+            
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
 	
-	  
-	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	i=threadIdx%x
+	j=threadIdx%y
+	k=threadIdx%z
+	
+	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	  
 	  
 	!write(*,*)i,j,p_d(0)*myrho_d
-	if(abs(isfluid(i,j,k)).eq.1)then
-      rhoprint_d(i,j,k)=rhoh(i,j,k)
-	  velprint_d(1,i,j,k)=uh(i,j,k)
-	  velprint_d(2,i,j,k)=vh(i,j,k)
-	  velprint_d(3,i,j,k)=wh(i,j,k)
+	if(abs(isfluid(gi,gj,gk)).eq.1)then
+      rhoprint_d(gi,gj,gk)=rhoh(i,j,k,idblock)
+	  velprint_d(1,gi,gj,gk)=uh(i,j,k,idblock)
+	  velprint_d(2,gi,gj,gk)=vh(i,j,k,idblock)
+	  velprint_d(3,gi,gj,gk)=wh(i,j,k,idblock)
 		
 	else
 	  
-	  rhoprint_d(i,j,k)=zero
-	  velprint_d(1,i,j,k)=zero
-	  velprint_d(2,i,j,k)=zero
-	  velprint_d(3,i,j,k)=zero
+	  rhoprint_d(gi,gj,gk)=zero
+	  velprint_d(1,gi,gj,gk)=zero
+	  velprint_d(2,gi,gj,gk)=zero
+	  velprint_d(3,gi,gj,gk)=zero
 	  
 	endif
 	  

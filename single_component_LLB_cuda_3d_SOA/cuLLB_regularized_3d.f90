@@ -41,7 +41,7 @@ program lb_openacc
     real(kind=db) :: time
     
     integer :: mshared
-    
+    integer :: nxblock,nyblock,nzblock,nblocks,idblock,xblock,yblock,zblock,ciao(3)
     
        
     nlinks=18 !pari!
@@ -59,7 +59,7 @@ program lb_openacc
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
-        lpbc=.true.
+        lpbc=.false.
         lprint=.false.
         lvtk=.false.
         lasync=.false.
@@ -86,26 +86,47 @@ program lb_openacc
         dimGridx  = dim3((ny+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimGridy  = dim3((nx+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimBlock2 = dim3(TILE_DIM, TILE_DIM, 1)
+        !plus 2 for the halo forward and backward
+        nxblock=nx/TILE_DIMx +2
+        nyblock=ny/TILE_DIMy +2
+        nzblock=nz/TILE_DIMz +2
         
-        allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
-        allocate(pxx(0:nx+1,0:ny+1,0:nz+1),pxy(0:nx+1,0:ny+1,0:nz+1),pxz(0:nx+1,0:ny+1,0:nz+1),pyy(0:nx+1,0:ny+1,0:nz+1))
-        allocate(pyz(0:nx+1,0:ny+1,0:nz+1),pzz(0:nx+1,0:ny+1,0:nz+1))
-        allocate(rhoh(0:nx+1,0:ny+1,0:nz+1),uh(0:nx+1,0:ny+1,0:nz+1),vh(0:nx+1,0:ny+1,0:nz+1),wh(0:nx+1,0:ny+1,0:nz+1))
-        allocate(pxxh(0:nx+1,0:ny+1,0:nz+1),pxyh(0:nx+1,0:ny+1,0:nz+1),pxzh(0:nx+1,0:ny+1,0:nz+1),pyyh(0:nx+1,0:ny+1,0:nz+1))
-        allocate(pyzh(0:nx+1,0:ny+1,0:nz+1),pzzh(0:nx+1,0:ny+1,0:nz+1))
-        allocate(h_isfluid(0:nx+1,0:ny+1,0:nz+1))
-        allocate(isfluid(0:nx+1,0:ny+1,0:nz+1)) 
-        if(lprint)then
-          allocate(rhoprint(1:nx,1:ny,1:nz))
-          allocate(velprint(1:3,1:nx,1:ny,1:nz))
-          rhoprint(1:nx,1:ny,1:nz)=0.0
-          velprint(1:3,1:nx,1:ny,1:nz)=0.0
-          
-          allocate(rhoprint_d(1:nx,1:ny,1:nz))
-          allocate(velprint_d(1:3,1:nx,1:ny,1:nz))
-          rhoprint_d(1:nx,1:ny,1:nz)=0.0
-          velprint_d(1:3,1:nx,1:ny,1:nz)=0.0
-        endif
+        nblocks=nxblock*nyblock*nzblock
+        
+        write(6,*)'nx,ny,nz',nx,ny,nz
+        write(6,*)'TILE_DIMx,TILE_DIMy,TILE_DIMz',TILE_DIMx,TILE_DIMy,TILE_DIMz
+        write(6,*)'nxblock,nyblock,nzblock',nxblock,nyblock,nzblock
+        write(6,*)'nblocks',nblocks
+        
+#if 0   
+       k=1
+       j=1   
+        do k=0,nz+1
+        do j=0,ny+1
+        do i=0,nx+1
+          xblock=(i+TILE_DIMx-1)/TILE_DIMx
+          yblock=(j+TILE_DIMy-1)/TILE_DIMy
+          zblock=(k+TILE_DIMz-1)/TILE_DIMz
+          !idblock start from 1
+          idblock=xblock+yblock*nxblock+zblock*(nxblock*nyblock)+1
+          !return coord of block from its id
+          ciao=coordblock(idblock,nxblock,nyblock)
+          ii=i-xblock*TILE_DIMx+TILE_DIMx
+          jj=j-yblock*TILE_DIMy+TILE_DIMy
+          kk=k-zblock*TILE_DIMz+TILE_DIMz
+          write(6,'(10i4)')i,j,k,xblock,yblock,zblock,i-xblock*TILE_DIMx+TILE_DIMx, &
+           j-yblock*TILE_DIMy+TILE_DIMy,k-zblock*TILE_DIMz+TILE_DIMz
+          if(xblock/=ciao(1) .or. yblock/=ciao(2) .or. zblock/=ciao(3) .or. idblock>nblocks)then
+            write(6,*)'cazzo',ciao(1),xblock
+            stop
+          endif
+        enddo
+        enddo
+        enddo
+        
+#endif        
+        
+    
         
        
         h_omega=one/tau
@@ -122,6 +143,42 @@ program lb_openacc
         TILE_DIMy_d=TILE_DIMy
         TILE_DIMz_d=TILE_DIMz
         TILE_DIM_d=TILE_DIM
+        nxblock_d=nxblock
+        nxyblock_d=nxblock*nyblock
+        
+!        allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
+!        allocate(pxx(0:nx+1,0:ny+1,0:nz+1),pxy(0:nx+1,0:ny+1,0:nz+1),pxz(0:nx+1,0:ny+1,0:nz+1),pyy(0:nx+1,0:ny+1,0:nz+1))
+!        allocate(pyz(0:nx+1,0:ny+1,0:nz+1),pzz(0:nx+1,0:ny+1,0:nz+1))
+!        allocate(rhoh(0:nx+1,0:ny+1,0:nz+1),uh(0:nx+1,0:ny+1,0:nz+1),vh(0:nx+1,0:ny+1,0:nz+1),wh(0:nx+1,0:ny+1,0:nz+1))
+!        allocate(pxxh(0:nx+1,0:ny+1,0:nz+1),pxyh(0:nx+1,0:ny+1,0:nz+1),pxzh(0:nx+1,0:ny+1,0:nz+1),pyyh(0:nx+1,0:ny+1,0:nz+1))
+!        allocate(pyzh(0:nx+1,0:ny+1,0:nz+1),pzzh(0:nx+1,0:ny+1,0:nz+1))
+        
+        
+        allocate(rho(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),u(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks), &
+         v(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),w(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
+        allocate(pxx(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pxy(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),&
+         pxz(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pyy(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
+        allocate(pyz(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pzz(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
+        allocate(rhoh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),uh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks), &
+         vh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),wh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
+        allocate(pxxh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pxyh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks), &
+         pxzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pyyh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
+        allocate(pyzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pzzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
+        
+        allocate(h_isfluid(0:nx+1,0:ny+1,0:nz+1))
+        allocate(isfluid(0:nx+1,0:ny+1,0:nz+1)) 
+        if(lprint)then
+          allocate(rhoprint(1:nx,1:ny,1:nz))
+          allocate(velprint(1:3,1:nx,1:ny,1:nz))
+          rhoprint(1:nx,1:ny,1:nz)=0.0
+          velprint(1:3,1:nx,1:ny,1:nz)=0.0
+          
+          allocate(rhoprint_d(1:nx,1:ny,1:nz))
+          allocate(velprint_d(1:3,1:nx,1:ny,1:nz))
+          rhoprint_d(1:nx,1:ny,1:nz)=0.0
+          velprint_d(1:3,1:nx,1:ny,1:nz)=0.0
+        endif
+        
     !*****************************************geometry************************
         h_isfluid=0
         h_isfluid(1:nx,1:ny,1:nz)=1
@@ -165,7 +222,9 @@ program lb_openacc
     !*************************************initial conditions ************************    
     
     call setup_system<<<dimGrid,dimBlock>>>(one,zero,zero,zero)
-        
+    istat = cudaDeviceSynchronize
+    call abortOnLastErrorAndSync('after setup_system', 0)
+    
         
     !*************************************check data ************************ 
 	istat = cudaGetDeviceCount(ngpus)
@@ -199,6 +258,8 @@ program lb_openacc
     write(6,*) 'TILE_DIMy',TILE_DIMy
     write(6,*) 'TILE_DIMz',TILE_DIMz
     write(6,*) 'TILE_DIM ',TILE_DIM
+    write(6,*)'nxblock,nyblock,nzblock',nxblock,nyblock,nzblock
+    write(6,*)'nblocks',nblocks
 	write(6,*) '*******************************************'
 	
 	
