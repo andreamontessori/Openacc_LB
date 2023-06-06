@@ -19,6 +19,24 @@
    
   contains
   
+      subroutine abortOnLastErrorAndSync(msg, step)
+      implicit none
+      integer, intent(in) :: step
+      character(len=*), intent(in) :: msg
+      integer :: istat0
+    
+      istat0 = cudaGetLastError()
+    
+      if (istat0/=0) then
+        write(*,*) 'status after ',msg,':', cudaGetErrorString(istat0)
+        write(*,*) 'Exiting at step:', step
+        stop
+      endif
+    
+      return
+    
+      end subroutine  abortOnLastErrorAndSync
+  
     attributes(global) subroutine setup_pops()
       
       integer :: i,j
@@ -1201,6 +1219,7 @@
             call store_print<<<dimGrid,dimBlock,0,stream1>>>()
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
+            call abortOnLastErrorAndSync('after store_print', step)
             if(lasync)then
               call close_print_async
               istat = cudaMemcpyAsync(rhoprint,rhoprint_d,nx*ny*nz,cudaMemcpyDeviceToHost,stream2)
@@ -1231,12 +1250,17 @@
         
         !***********************************collision + no slip + forcing: fused implementation*********
         call  streamcoll<<<dimGrid,dimBlock,0,stream1>>>()
-        
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after streamcoll', step)
         
           
         !********************************************bcs no slip*****************************************!
         
         call bcs_no_slip<<<dimGrid,dimBlock,0,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after bcs_no_slip', step)
         
         
      
@@ -1246,6 +1270,9 @@
         !!$acc kernels 
         if(lpbc)then
           call pbc_edge_x<<<(ny+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
+          istat = cudaEventRecord(dummyEvent1, stream1)
+          istat = cudaEventSynchronize(dummyEvent1)
+          call abortOnLastErrorAndSync('after pbc_edge_x', step)
           !call pbc_edge_y<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
         endif
         
