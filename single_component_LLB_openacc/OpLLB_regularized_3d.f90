@@ -731,8 +731,8 @@ program lb_openacc
         nx=256
         ny=256
         nz=256
-        nsteps=10
-        stamp=1
+        nsteps=1000
+        stamp=100
         fx=1.0_db*10.0**(-5)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)

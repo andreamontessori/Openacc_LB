@@ -3023,7 +3023,7 @@ program lb_openacc
         nx=256
         ny=256
         nz=256
-        nsteps=10
+        nsteps=1000
         stamp=100
         h_fx=1.0_db*10.0**(-5)
         h_fy=0.0_db*10.0**(-5)
@@ -3033,9 +3033,9 @@ program lb_openacc
         lvtk=.false.
         lasync=.false.
         
-        TILE_DIMx=256
-        TILE_DIMy=4
-        TILE_DIMz=1
+        TILE_DIMx=8
+        TILE_DIMy=8
+        TILE_DIMz=4
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
           write(*,*) 'nx must be a multiple of TILE_DIM'
