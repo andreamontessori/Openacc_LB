@@ -7,7 +7,7 @@ FC=nvfortran
 CUDAFLAGS = -cuda -gpu=cc70 -O0 -g -Mbounds -Mchkptr -Mchkstk
 CUDAFLAGS = -cuda -gpu=cc70,keepptx -O0 -g
 CUDAFLAGS = -cuda -fast -gpu=cc80 -DMYDIMESION=128 -DTILE1=128 -DTILE2=1 -DTILE3=1
-CUDAFLAGS = -gpu=cc75,cuda11.0,lineinfo,ptxinfo -cpp -cuda -O3
+CUDAFLAGS = -gpu=cc70,cuda11.0,lineinfo,ptxinfo -cpp -cuda -O3
 CUDAFLAGSREG = -gpu=cc75,cuda11.0,lineinfo,ptxinfo,maxregcount:128 -cpp -cuda -O3
 
 

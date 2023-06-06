@@ -1284,18 +1284,18 @@ program lb_openacc
         myv=zero
         myw=zero
         myrho=one  !tot dens
-        nsteps=10
-        stamp=10
+        nsteps=1000
+        stamp=100
         lprint=.false.
-        lvtk=.true.
-        lpbc=.true.
+        lvtk=.false.
+        lpbc=.false.
         lasync=.false.
         fx=one*10.0**(-5)
         fy=zero*10.0**(-5)
         fz=zero*10.0**(-5)
         
-        TILE_DIMx=256
-        TILE_DIMy=1
+        TILE_DIMx=128
+        TILE_DIMy=2
         TILE_DIMz=1
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then

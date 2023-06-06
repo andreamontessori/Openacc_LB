@@ -706,9 +706,9 @@ program lb_openacc
 #endif
 
     !*******************************user parameters and allocations**************************m
-        nx=512
-        ny=512
-        nz=512
+        nx=256
+        ny=256
+        nz=256
         nsteps=1000
         stamp=100000
         fx=0.0_db*10.0**(-7)
