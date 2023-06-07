@@ -52,7 +52,7 @@
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
     
-    integer, constant :: nxblock_d,nxyblock_d
+    integer, constant :: nxblock_d,nxyblock_d,nblocks_d
     
     real(kind=db), allocatable, dimension(:,:,:,:), device :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
     real(kind=db), allocatable, dimension(:,:,:,:), device :: rhoh,uh,vh,wh,pxxh,pxyh,pxzh,pyyh,pyzh,pzzh
@@ -65,6 +65,7 @@
     attributes(global) subroutine setup_system(rhos,vxs,vys,vzs)
     
     real(kind=db), value :: rhos,vxs,vys,vzs
+    real :: mytest
     
     !integer :: i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
     integer :: i,j,k,gi,gj,gk,idblock       
@@ -88,11 +89,12 @@
     !if(xblock/=(blockIdx%x) .or. yblock/=(blockIdx%y) .or. zblock/=(blockIdx%z))write(*,*)'cazzo2'
 	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	
+	mytest=rhos!real(gi**3+gj**3+gk**3)
 	
 	u(i,j,k,idblock)=vxs
 	v(i,j,k,idblock)=vys
 	w(i,j,k,idblock)=vzs
-	rho(i,j,k,idblock)=rhos
+	rho(i,j,k,idblock)=mytest!rhos
 	pxx(i,j,k,idblock)=zero
 	pxy(i,j,k,idblock)=zero
 	pxz(i,j,k,idblock)=zero
@@ -103,7 +105,7 @@
 	uh(i,j,k,idblock)=vxs
 	vh(i,j,k,idblock)=vys
 	wh(i,j,k,idblock)=vzs
-	rhoh(i,j,k,idblock)=rhos
+	rhoh(i,j,k,idblock)=mytest!rhos
 	pxxh(i,j,k,idblock)=zero
 	pxyh(i,j,k,idblock)=zero
 	pxzh(i,j,k,idblock)=zero
@@ -117,8 +119,9 @@
  
  attributes(global) subroutine store_print()
 	
-	integer :: i,j,k,gi,gj,gk,idblock       
-            
+	integer :: i,j,k,gi,gj,gk,idblock,ii,jj,kk  ,xblock,yblock,zblock,idblocko
+    real :: mytest
+    
 	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
 	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
@@ -128,7 +131,19 @@
 	k=threadIdx%z
 	
 	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
-	  
+	
+	xblock=(gi+TILE_DIMx_d-1)/TILE_DIMx_d
+	yblock=(gj+TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
+    ii=gi-xblock*TILE_DIMx_d+TILE_DIMx_d
+    jj=gj-yblock*TILE_DIMy_d+TILE_DIMy_d
+    kk=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
+    
+    idblocko=xblock+yblock*nxblock_d+zblock*nxyblock_d-1
+	
+	mytest=real(gi**3+gj**3+gk**3)
+	
+	!if(rho(ii,jj,kk,idblocko).ne. mytest)write(*,*)'cazzo'
 	  
 	!write(*,*)i,j,p_d(0)*myrho_d
 	if(abs(isfluid(gi,gj,gk)).eq.1)then

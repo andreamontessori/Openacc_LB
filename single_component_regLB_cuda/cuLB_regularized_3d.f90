@@ -1306,7 +1306,7 @@ program lb_openacc
         stamp=100
         lprint=.false.
         lvtk=.false.
-        lpbc=.false.
+        lpbc=.true.
         lasync=.false.
         fx=one*10.0**(-5)
         fy=zero*10.0**(-5)

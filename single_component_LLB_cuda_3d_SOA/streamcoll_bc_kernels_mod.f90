@@ -17,7 +17,7 @@
 	real(kind=db) :: temp_pop,temp_rho,temp_u,temp_v,temp_w
 	real(kind=db) :: temp_pxx,temp_pyy,temp_pzz,temp_pxy,temp_pxz,temp_pyz
     
-    integer :: idblock=1
+    
     
 	
 	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
@@ -465,7 +465,7 @@
 	real(kind=db) :: uu,udotc,temp,feq,uu0,fneq
 	real(kind=db) :: temp_pop,temp_rho,temp_u,temp_v,temp_w
 	real(kind=db) :: temp_pxx,temp_pyy,temp_pzz,temp_pxy,temp_pxz,temp_pyz
-	integer :: idblock=1
+	integer :: idblock
 	
 	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
@@ -900,9 +900,11 @@
 	
 	implicit none  
 	  
-    integer :: i,j,k,gi,gj,gk,idblock
+    integer :: i,j,k,gi,gj,gk,myblock,iidblock
+    integer :: gii,gjj,gkk,ii,jj,kk
+    integer :: xblock,yblock,zblock
 	real(kind=db) :: udotc,uu,temp
-    integer :: idblock=1
+    
     
     integer :: li,lj,lk
 	real(kind=db), shared :: f00(1:TILE_DIMx_d,1:TILE_DIMy_d,1:TILE_DIMz_d)
@@ -941,238 +943,262 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
-	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
     
     
     
-    uu=halfonecssq*(u(i,j,k,idblock)*u(i,j,k,idblock) + v(i,j,k,idblock)*v(i,j,k,idblock) + w(i,j,k,idblock)*w(i,j,k,idblock))
+    uu=halfonecssq*(u(i,j,k,myblock)*u(i,j,k,myblock) + v(i,j,k,myblock)*v(i,j,k,myblock) + w(i,j,k,myblock)*w(i,j,k,myblock))
     
     !0
-	f00(li,lj,lk)=p0*(rho(i,j,k,idblock)-uu) &
-	 + oneminusomega*pi2cssq0*(-cssq*(pyy(i,j,k,idblock)+pxx(i,j,k,idblock)+pzz(i,j,k,idblock)))
+	f00(li,lj,lk)=p0*(rho(i,j,k,myblock)-uu) &
+	 + oneminusomega*pi2cssq0*(-cssq*(pyy(i,j,k,myblock)+pxx(i,j,k,myblock)+pzz(i,j,k,myblock)))
 	
     
 	!1 -1  0  0
-	udotc=u(i,j,k,idblock)*onecssq
+	udotc=u(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f01(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq1*(qxx*pxx(i,j,k,idblock)-cssq*(pyy(i,j,k,idblock)+pzz(i,j,k,idblock))) &
+	f01(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq1*(qxx*pxx(i,j,k,myblock)-cssq*(pyy(i,j,k,myblock)+pzz(i,j,k,myblock))) &
 	 + fx*p1dcssq
 	!+1  0  0
 
 
 	!2 +1  0  0
-	f02(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq1*(qxx*pxx(i,j,k,idblock)-cssq*(pyy(i,j,k,idblock)+pzz(i,j,k,idblock))) &
+	f02(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq1*(qxx*pxx(i,j,k,myblock)-cssq*(pyy(i,j,k,myblock)+pzz(i,j,k,myblock))) &
 	 - fx*p1dcssq
 	!-1  0  0
 
     		
 	!3 0 -1  0
-	udotc=v(i,j,k,idblock)*onecssq
+	udotc=v(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f03(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq1*(qyy*pyy(i,j,k,idblock)-cssq*(pxx(i,j,k,idblock)+pzz(i,j,k,idblock))) &
+	f03(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq1*(qyy*pyy(i,j,k,myblock)-cssq*(pxx(i,j,k,myblock)+pzz(i,j,k,myblock))) &
 	 + fy*p1dcssq
 	! 0 +1  0
 
 	
 	!4  0 +1  0
-	f04(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq1*(qyy*pyy(i,j,k,idblock)-cssq*(pxx(i,j,k,idblock)+pzz(i,j,k,idblock))) &
+	f04(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq1*(qyy*pyy(i,j,k,myblock)-cssq*(pxx(i,j,k,myblock)+pzz(i,j,k,myblock))) &
 	 - fy*p1dcssq
 	! 0 -1  0
 
 	
 	!5  0  0 -1
-	udotc=w(i,j,k,idblock)*onecssq
+	udotc=w(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f05(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k,idblock)-cssq*(pxx(i,j,k,idblock)+pyy(i,j,k,idblock))) &
+	f05(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k,myblock)-cssq*(pxx(i,j,k,myblock)+pyy(i,j,k,myblock))) &
 	 + fz*p1dcssq
 	! 0  0 +1
 
 
 	!6  0  0  +1
-	f06(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k,idblock)-cssq*(pxx(i,j,k,idblock)+pyy(i,j,k,idblock))) &
+	f06(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k,myblock)-cssq*(pxx(i,j,k,myblock)+pyy(i,j,k,myblock))) &
 	 - fz*p1dcssq
 	! 0  0 -1
 
     	
 	!7 -1 -1  0
-	udotc=(u(i,j,k,idblock)+v(i,j,k,idblock))*onecssq
+	udotc=(u(i,j,k,myblock)+v(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f07(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qyy*pyy(i,j,k,idblock)-cssq*pzz(i,j,k,idblock)+two*qxy_7_8*pxy(i,j,k,idblock)) &
+	f07(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qyy*pyy(i,j,k,myblock)-cssq*pzz(i,j,k,myblock)+two*qxy_7_8*pxy(i,j,k,myblock)) &
 	 + (fx+fy)*p2dcssq 
 	!+1 +1  0
 
 	
 	!8 +1 +1  0
-	f08(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qyy*pyy(i,j,k,idblock)-cssq*pzz(i,j,k,idblock)+two*qxy_7_8*pxy(i,j,k,idblock)) &
+	f08(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qyy*pyy(i,j,k,myblock)-cssq*pzz(i,j,k,myblock)+two*qxy_7_8*pxy(i,j,k,myblock)) &
 	 - (fx+fy)*p2dcssq
 	!-1 -1  0
 
 	
 	!10   +1 -1  0
-	udotc=(-u(i,j,k,idblock)+v(i,j,k,idblock))*onecssq
+	udotc=(-u(i,j,k,myblock)+v(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f10(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qyy*pyy(i,j,k,idblock)-cssq*pzz(i,j,k,idblock)+two*qxy_9_10*pxy(i,j,k,idblock)) &
+	f10(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qyy*pyy(i,j,k,myblock)-cssq*pzz(i,j,k,myblock)+two*qxy_9_10*pxy(i,j,k,myblock)) &
 	 +(fy-fx)*p2dcssq
 	!-1 +1  0
 
 	
 	!9  -1 +1 0
-	f09(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qyy*pyy(i,j,k,idblock)-cssq*pzz(i,j,k,idblock)+two*qxy_9_10*pxy(i,j,k,idblock)) &
+	f09(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qyy*pyy(i,j,k,myblock)-cssq*pzz(i,j,k,myblock)+two*qxy_9_10*pxy(i,j,k,myblock)) &
 	 + (fx-fy)*p2dcssq
 	!+1 -1  0
 
 		
 
 	!15  -1  0 -1
-	udotc=(u(i,j,k,idblock)+w(i,j,k,idblock))*onecssq
+	udotc=(u(i,j,k,myblock)+w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f15(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pyy(i,j,k,idblock)+two*qxz_15_16*pxz(i,j,k,idblock)) &
+	f15(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pyy(i,j,k,myblock)+two*qxz_15_16*pxz(i,j,k,myblock)) &
 	 + (fx+fz)*p2dcssq 
 	!+1  0  +1
 
 
 	!16  +1  0 +1
-	f16(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pyy(i,j,k,idblock)+two*qxz_15_16*pxz(i,j,k,idblock)) &
+	f16(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pyy(i,j,k,myblock)+two*qxz_15_16*pxz(i,j,k,myblock)) &
 	 - (fx+fz)*p2dcssq
 	!-1  0  -1
 
 
 	!17  +1  0 -1
-	udotc=(-u(i,j,k,idblock)+w(i,j,k,idblock))*onecssq
+	udotc=(-u(i,j,k,myblock)+w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f17(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pyy(i,j,k,idblock)+two*qxz_17_18*pxz(i,j,k,idblock)) &
+	f17(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pyy(i,j,k,myblock)+two*qxz_17_18*pxz(i,j,k,myblock)) &
 	 +(fz-fx)*p2dcssq
 	!-1  0  +1
 
 
 	!18   -1   0  +1
-	f18(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pyy(i,j,k,idblock)+two*qxz_17_18*pxz(i,j,k,idblock)) &
+	f18(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pyy(i,j,k,myblock)+two*qxz_17_18*pxz(i,j,k,myblock)) &
 	 + (fx-fz)*p2dcssq
 	!+1  0  -1
 
 
 	!11  0  -1  -1
-	udotc=(v(i,j,k,idblock)+w(i,j,k,idblock))*onecssq
+	udotc=(v(i,j,k,myblock)+w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f11(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pxx(i,j,k,idblock)+two*qyz_11_12*pyz(i,j,k,idblock)) &
+	f11(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pxx(i,j,k,myblock)+two*qyz_11_12*pyz(i,j,k,myblock)) &
 	 + (fy+fz)*p2dcssq
 	! 0 +1 +1
 
 	
 	!12  0  +1  +1
-	f12(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pxx(i,j,k,idblock)+two*qyz_11_12*pyz(i,j,k,idblock)) &
+	f12(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pxx(i,j,k,myblock)+two*qyz_11_12*pyz(i,j,k,myblock)) &
 	 - (fy+fz)*p2dcssq
 	! 0 -1 -1
 
 
 	!13  0  -1   +1
-	udotc=(v(i,j,k,idblock)-w(i,j,k,idblock))*onecssq
+	udotc=(v(i,j,k,myblock)-w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f13(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pxx(i,j,k,idblock)+two*qyz_13_14*pyz(i,j,k,idblock)) &
+	f13(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pxx(i,j,k,myblock)+two*qyz_13_14*pyz(i,j,k,myblock)) &
 	 + (fy-fz)*p2dcssq
 	! 0 +1 -1
 
 	
 	!14  0  +1  -1
-	f14(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,idblock)+qzz*pzz(i,j,k,idblock)-cssq*pxx(i,j,k,idblock)+two*qyz_13_14*pyz(i,j,k,idblock)) &
+	f14(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k,myblock)+qzz*pzz(i,j,k,myblock)-cssq*pxx(i,j,k,myblock)+two*qyz_13_14*pyz(i,j,k,myblock)) &
 	 + (fz-fy)*p2dcssq
 	! 0 -1 +1
     
-        ! Halo Faces
+    ! Halo Faces
     if(li==1)then
       
-      uu=halfonecssq*(u(i-1,j,k,idblock)*u(i-1,j,k,idblock) + v(i-1,j,k,idblock)*v(i-1,j,k,idblock) + w(i-1,j,k,idblock)*w(i-1,j,k,idblock))
+      gii=gi-1
+      gjj=gj
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !1 -1  0  0
-	  udotc=u(i-1,j,k,idblock)*onecssq
-	  f01(li-1,lj,lk)=p1*(rho(i-1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq1*(qxx*pxx(i-1,j,k,idblock)-cssq*(pyy(i-1,j,k,idblock)+pzz(i-1,j,k,idblock))) &
+	  udotc=u(ii,jj,kk,iidblock)*onecssq
+	  f01(li-1,lj,lk)=p1*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq1*(qxx*pxx(ii,jj,kk,iidblock)-cssq*(pyy(ii,jj,kk,iidblock)+pzz(ii,jj,kk,iidblock))) &
 	   + fx*p1dcssq
 	  !+1  0  0
 	  
 	  !7 -1 -1  0
-	  udotc=(u(i-1,j,k,idblock)+v(i-1,j,k,idblock))*onecssq
-	  f07(li-1,lj,lk)=p2*(rho(i-1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k,idblock)+qyy*pyy(i-1,j,k,idblock)-cssq*pzz(i-1,j,k,idblock)+two*qxy_7_8*pxy(i-1,j,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f07(li-1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_7_8*pxy(ii,jj,kk,iidblock)) &
 	   + (fx+fy)*p2dcssq 
 	  !+1 +1  0
 	  
 	  !9  -1 +1 0
-      udotc=(-u(i-1,j,k,idblock)+v(i-1,j,k,idblock))*onecssq
-	  f09(li-1,lj,lk)=p2*(rho(i-1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k,idblock)+qyy*pyy(i-1,j,k,idblock)-cssq*pzz(i-1,j,k,idblock)+two*qxy_9_10*pxy(i-1,j,k,idblock)) &
+      udotc=(-u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f09(li-1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_9_10*pxy(ii,jj,kk,iidblock)) &
 	   + (fx-fy)*p2dcssq
 	  !+1 -1  0
 	  
 	  !15  -1  0 -1
-	  udotc=(u(i-1,j,k,idblock)+w(i-1,j,k,idblock))*onecssq
-	  f15(li-1,lj,lk)=p2*(rho(i-1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k,idblock)+qzz*pzz(i-1,j,k,idblock)-cssq*pyy(i-1,j,k,idblock)+two*qxz_15_16*pxz(i-1,j,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f15(li-1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_15_16*pxz(ii,jj,kk,iidblock)) &
 	   + (fx+fz)*p2dcssq 
 	  !+1  0  +1
 	  
 	  !18   -1   0  +1
-	  udotc=(-u(i-1,j,k,idblock)+w(i-1,j,k,idblock))*onecssq
-	  f18(li-1,lj,lk)=p2*(rho(i-1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k,idblock)+qzz*pzz(i-1,j,k,idblock)-cssq*pyy(i-1,j,k,idblock)+two*qxz_17_18*pxz(i-1,j,k,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f18(li-1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_17_18*pxz(ii,jj,kk,iidblock)) &
 	   + (fx-fz)*p2dcssq
 	  !+1  0  -1
       
     endif
     if(li==TILE_DIMx_d)then
       
-      uu=halfonecssq*(u(i+1,j,k,idblock)*u(i+1,j,k,idblock) + v(i+1,j,k,idblock)*v(i+1,j,k,idblock) + w(i+1,j,k,idblock)*w(i+1,j,k,idblock))
+      gii=gi+1
+      gjj=gj
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !2 +1  0  0
-	  udotc=u(i+1,j,k,idblock)*onecssq
-	  f02(li+1,lj,lk)=p1*(rho(i+1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq1*(qxx*pxx(i+1,j,k,idblock)-cssq*(pyy(i+1,j,k,idblock)+pzz(i+1,j,k,idblock))) &
+	  udotc=u(ii,jj,kk,iidblock)*onecssq
+	  f02(li+1,lj,lk)=p1*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq1*(qxx*pxx(ii,jj,kk,iidblock)-cssq*(pyy(ii,jj,kk,iidblock)+pzz(ii,jj,kk,iidblock))) &
 	   - fx*p1dcssq
 	  !-1  0  0
 	  
 	  !8 +1 +1  0
-	  udotc=(u(i+1,j,k,idblock)+v(i+1,j,k,idblock))*onecssq
-	  f08(li+1,lj,lk)=p2*(rho(i+1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k,idblock)+qyy*pyy(i+1,j,k,idblock)-cssq*pzz(i+1,j,k,idblock)+two*qxy_7_8*pxy(i+1,j,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f08(li+1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_7_8*pxy(ii,jj,kk,iidblock)) &
 	   - (fx+fy)*p2dcssq
 	  !-1 -1  0
 	  
 	  !10   +1 -1  0
-	  udotc=(-u(i+1,j,k,idblock)+v(i+1,j,k,idblock))*onecssq
-	  f10(li+1,lj,lk)=p2*(rho(i+1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k,idblock)+qyy*pyy(i+1,j,k,idblock)-cssq*pzz(i+1,j,k,idblock)+two*qxy_9_10*pxy(i+1,j,k,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f10(li+1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_9_10*pxy(ii,jj,kk,iidblock)) &
 	   +(fy-fx)*p2dcssq
 	  !-1 +1  0
 	  
 	  !16  +1  0 +1
-	  udotc=(u(i+1,j,k,idblock)+w(i+1,j,k,idblock))*onecssq
-	  f16(li+1,lj,lk)=p2*(rho(i+1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k,idblock)+qzz*pzz(i+1,j,k,idblock)-cssq*pyy(i+1,j,k,idblock)+two*qxz_15_16*pxz(i+1,j,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f16(li+1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_15_16*pxz(ii,jj,kk,iidblock)) &
 	   - (fx+fz)*p2dcssq
 	  !-1  0  -1
 	  
 	  !17  +1  0 -1
-	  udotc=(-u(i+1,j,k,idblock)+w(i+1,j,k,idblock))*onecssq
-	  f17(li+1,lj,lk)=p2*(rho(i+1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   + oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k,idblock)+qzz*pzz(i+1,j,k,idblock)-cssq*pyy(i+1,j,k,idblock)+two*qxz_17_18*pxz(i+1,j,k,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f17(li+1,lj,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   + oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_17_18*pxz(ii,jj,kk,iidblock)) &
 	   +(fz-fx)*p2dcssq
 	  !-1  0  +1
 	  
@@ -1180,80 +1206,104 @@
 
     if(lj==1)then
       
-      uu=halfonecssq*(u(i,j-1,k,idblock)*u(i,j-1,k,idblock) + v(i,j-1,k,idblock)*v(i,j-1,k,idblock) + w(i,j-1,k,idblock)*w(i,j-1,k,idblock))
+      gii=gi
+      gjj=gj-1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
       
-            !3 0 -1  0
-	  udotc=v(i,j-1,k,idblock)*onecssq
-	  f03(li,lj-1,lk)=p1*(rho(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq1*(qyy*pyy(i,j-1,k,idblock)-cssq*(pxx(i,j-1,k,idblock)+pzz(i,j-1,k,idblock))) &
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
+      
+      !3 0 -1  0
+	  udotc=v(ii,jj,kk,iidblock)*onecssq
+	  f03(li,lj-1,lk)=p1*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq1*(qyy*pyy(ii,jj,kk,iidblock)-cssq*(pxx(ii,jj,kk,iidblock)+pzz(ii,jj,kk,iidblock))) &
 	   + fy*p1dcssq
 	  ! 0 +1  0
 	  
 	  !7 -1 -1  0
-	  udotc=(u(i,j-1,k,idblock)+v(i,j-1,k,idblock))*onecssq
-	  f07(li,lj-1,lk)=p2*(rho(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j-1,k,idblock)+qyy*pyy(i,j-1,k,idblock)-cssq*pzz(i,j-1,k,idblock)+two*qxy_7_8*pxy(i,j-1,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f07(li,lj-1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_7_8*pxy(ii,jj,kk,iidblock)) &
 	   + (fx+fy)*p2dcssq 
 	  !+1 +1  0
 	  
 	  !10   +1 -1  0
-	  udotc=(-u(i,j-1,k,idblock)+v(i,j-1,k,idblock))*onecssq
-	  f10(li,lj-1,lk)=p2*(rho(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j-1,k,idblock)+qyy*pyy(i,j-1,k,idblock)-cssq*pzz(i,j-1,k,idblock)+two*qxy_9_10*pxy(i,j-1,k,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f10(li,lj-1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_9_10*pxy(ii,jj,kk,iidblock)) &
 	   +(fy-fx)*p2dcssq
 	  !-1 +1  0
 	  
 	  !11  0  -1  -1
-	  udotc=(v(i,j-1,k,idblock)+w(i,j-1,k,idblock))*onecssq
-	  f11(li,lj-1,lk)=p2*(rho(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k,idblock)+qzz*pzz(i,j-1,k,idblock)-cssq*pxx(i,j-1,k,idblock)+two*qyz_11_12*pyz(i,j-1,k,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f11(li,lj-1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_11_12*pyz(ii,jj,kk,iidblock)) &
 	   + (fy+fz)*p2dcssq
 	  ! 0 +1 +1
 	  
 	  !13  0  -1   +1
-	  udotc=(v(i,j-1,k,idblock)-w(i,j-1,k,idblock))*onecssq
-	  f13(li,lj-1,lk)=p2*(rho(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k,idblock)+qzz*pzz(i,j-1,k,idblock)-cssq*pxx(i,j-1,k,idblock)+two*qyz_13_14*pyz(i,j-1,k,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)-w(ii,jj,kk,iidblock))*onecssq
+	  f13(li,lj-1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_13_14*pyz(ii,jj,kk,iidblock)) &
 	   + (fy-fz)*p2dcssq
 	  ! 0 +1 -1
       
     endif
     if(lj==TILE_DIMy_d)then
       
-      uu=halfonecssq*(u(i,j+1,k,idblock)*u(i,j+1,k,idblock) + v(i,j+1,k,idblock)*v(i,j+1,k,idblock) + w(i,j+1,k,idblock)*w(i,j+1,k,idblock))
+      gii=gi
+      gjj=gj+1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !4  0 +1  0
-	  udotc=v(i,j+1,k,idblock)*onecssq
-	  f04(li,lj+1,lk)=p1*(rho(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq1*(qyy*pyy(i,j+1,k,idblock)-cssq*(pxx(i,j+1,k,idblock)+pzz(i,j+1,k,idblock))) &
+	  udotc=v(ii,jj,kk,iidblock)*onecssq
+	  f04(li,lj+1,lk)=p1*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq1*(qyy*pyy(ii,jj,kk,iidblock)-cssq*(pxx(ii,jj,kk,iidblock)+pzz(ii,jj,kk,iidblock))) &
 	   - fy*p1dcssq
 	  ! 0 -1  0
       
       !8 +1 +1  0
-	  udotc=(u(i,j+1,k,idblock)+v(i,j+1,k,idblock))*onecssq
-	  f08(li,lj+1,lk)=p2*(rho(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j+1,k,idblock)+qyy*pyy(i,j+1,k,idblock)-cssq*pzz(i,j+1,k,idblock)+two*qxy_7_8*pxy(i,j+1,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f08(li,lj+1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_7_8*pxy(ii,jj,kk,iidblock)) &
 	   - (fx+fy)*p2dcssq
 	  !-1 -1  0
       
       !9  -1 +1 0
-	  udotc=(-u(i,j+1,k,idblock)+v(i,j+1,k,idblock))*onecssq
-	  f09(li,lj+1,lk)=p2*(rho(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j+1,k,idblock)+qyy*pyy(i,j+1,k,idblock)-cssq*pzz(i,j+1,k,idblock)+two*qxy_9_10*pxy(i,j+1,k,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f09(li,lj+1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_9_10*pxy(ii,jj,kk,iidblock)) &
 	   + (fx-fy)*p2dcssq
 	  !+1 -1  0
 	  
 	  !12  0  +1  +1
-	  udotc=(v(i,j+1,k,idblock)+w(i,j+1,k,idblock))*onecssq
-	  f12(li,lj+1,lk)=p2*(rho(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k,idblock)+qzz*pzz(i,j+1,k,idblock)-cssq*pxx(i,j+1,k,idblock)+two*qyz_11_12*pyz(i,j+1,k,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f12(li,lj+1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_11_12*pyz(ii,jj,kk,iidblock)) &
 	   - (fy+fz)*p2dcssq
 	  ! 0 -1 -1
 	  
 	  !14  0  +1  -1
-	  udotc=(v(i,j+1,k,idblock)-w(i,j+1,k,idblock))*onecssq
-	  f14(li,lj+1,lk)=p2*(rho(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k,idblock)+qzz*pzz(i,j+1,k,idblock)-cssq*pxx(i,j+1,k,idblock)+two*qyz_13_14*pyz(i,j+1,k,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)-w(ii,jj,kk,iidblock))*onecssq
+	  f14(li,lj+1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_13_14*pyz(ii,jj,kk,iidblock)) &
 	   + (fz-fy)*p2dcssq
 	  ! 0 -1 +1
       
@@ -1261,40 +1311,52 @@
 
     if(lk==1)then
       
-      uu=halfonecssq*(u(i,j,k-1,idblock)*u(i,j,k-1,idblock) + v(i,j,k-1,idblock)*v(i,j,k-1,idblock) + w(i,j,k-1,idblock)*w(i,j,k-1,idblock))
+      gii=gi
+      gjj=gj
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !5  0  0 -1
-	  udotc=w(i,j,k-1,idblock)*onecssq
-	  f05(li,lj,lk-1)=p1*(rho(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k-1,idblock)-cssq*(pxx(i,j,k-1,idblock)+pyy(i,j,k-1,idblock))) &
+	  udotc=w(ii,jj,kk,iidblock)*onecssq
+	  f05(li,lj,lk-1)=p1*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq1*(qzz*pzz(ii,jj,kk,iidblock)-cssq*(pxx(ii,jj,kk,iidblock)+pyy(ii,jj,kk,iidblock))) &
 	   + fz*p1dcssq
 	  ! 0  0 +1
       
       !15  -1  0 -1
-	  udotc=(u(i,j,k-1,idblock)+w(i,j,k-1,idblock))*onecssq
-	  f15(li,lj,lk-1)=p2*(rho(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k-1,idblock)+qzz*pzz(i,j,k-1,idblock)-cssq*pyy(i,j,k-1,idblock)+two*qxz_15_16*pxz(i,j,k-1,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f15(li,lj,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_15_16*pxz(ii,jj,kk,iidblock)) &
 	   + (fx+fz)*p2dcssq 
 	  !+1  0  +1
       
       !17  +1  0 -1
-	  udotc=(-u(i,j,k-1,idblock)+w(i,j,k-1,idblock))*onecssq
-	  f17(li,lj,lk-1)=p2*(rho(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k-1,idblock)+qzz*pzz(i,j,k-1,idblock)-cssq*pyy(i,j,k-1,idblock)+two*qxz_17_18*pxz(i,j,k-1,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f17(li,lj,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_17_18*pxz(ii,jj,kk,iidblock)) &
 	   +(fz-fx)*p2dcssq
 	  !-1  0  +1
 	  
 	  !11  0  -1  -1
-	  udotc=(v(i,j,k-1,idblock)+w(i,j,k-1,idblock))*onecssq
-	  f11(li,lj,lk-1)=p2*(rho(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k-1,idblock)+qzz*pzz(i,j,k-1,idblock)-cssq*pxx(i,j,k-1,idblock)+two*qyz_11_12*pyz(i,j,k-1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f11(li,lj,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_11_12*pyz(ii,jj,kk,iidblock)) &
 	   + (fy+fz)*p2dcssq
 	  ! 0 +1 +1
 	  
 	  !14  0  +1  -1
-	  udotc=(v(i,j,k-1,idblock)-w(i,j,k-1,idblock))*onecssq
-	  f14(li,lj,lk-1)=p2*(rho(i,j,k-1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k-1,idblock)+qzz*pzz(i,j,k-1,idblock)-cssq*pxx(i,j,k-1,idblock)+two*qyz_13_14*pyz(i,j,k-1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)-w(ii,jj,kk,iidblock))*onecssq
+	  f14(li,lj,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_13_14*pyz(ii,jj,kk,iidblock)) &
 	   + (fz-fy)*p2dcssq
 	  ! 0 -1 +1
 	  
@@ -1302,41 +1364,53 @@
     endif
     if(lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(u(i,j,k+1,idblock)*u(i,j,k+1,idblock) + v(i,j,k+1,idblock)*v(i,j,k+1,idblock) + w(i,j,k+1,idblock)*w(i,j,k+1,idblock))
+      gii=gi
+      gjj=gj
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !6  0  0  +1
-	  udotc=w(i,j,k+1,idblock)*onecssq
-	  f06(li,lj,lk+1)=p1*(rho(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq1*(qzz*pzz(i,j,k+1,idblock)-cssq*(pxx(i,j,k+1,idblock)+pyy(i,j,k+1,idblock))) &
+	  udotc=w(ii,jj,kk,iidblock)*onecssq
+	  f06(li,lj,lk+1)=p1*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq1*(qzz*pzz(ii,jj,kk,iidblock)-cssq*(pxx(ii,jj,kk,iidblock)+pyy(ii,jj,kk,iidblock))) &
 	   - fz*p1dcssq
 	  ! 0  0 -1
 	  
 	  !16  +1  0 +1
-	  udotc=(u(i,j,k+1,idblock)+w(i,j,k+1,idblock))*onecssq
-	  f16(li,lj,lk+1)=p2*(rho(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k+1,idblock)+qzz*pzz(i,j,k+1,idblock)-cssq*pyy(i,j,k+1,idblock)+two*qxz_15_16*pxz(i,j,k+1,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f16(li,lj,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_15_16*pxz(ii,jj,kk,iidblock)) &
 	   - (fx+fz)*p2dcssq
 	  !-1  0  -1
       
       !18   -1   0  +1
-	  udotc=(-u(i,j,k+1,idblock)+w(i,j,k+1,idblock))*onecssq
-	  f18(li,lj,lk+1)=p2*(rho(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i,j,k+1,idblock)+qzz*pzz(i,j,k+1,idblock)-cssq*pyy(i,j,k+1,idblock)+two*qxz_17_18*pxz(i,j,k+1,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f18(li,lj,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_17_18*pxz(ii,jj,kk,iidblock)) &
 	   + (fx-fz)*p2dcssq
 	  !+1  0  -1
 	  
 	  !12  0  +1  +1
-	  udotc=(v(i,j,k+1,idblock)+w(i,j,k+1,idblock))*onecssq
-	  f12(li,lj,lk+1)=p2*(rho(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k+1,idblock)+qzz*pzz(i,j,k+1,idblock)-cssq*pxx(i,j,k+1,idblock)+two*qyz_11_12*pyz(i,j,k+1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f12(li,lj,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_11_12*pyz(ii,jj,kk,iidblock)) &
 	   - (fy+fz)*p2dcssq
 	  ! 0 -1 -1
 
 
 	  !13  0  -1   +1
-	  udotc=(v(i,j,k+1,idblock)-w(i,j,k+1,idblock))*onecssq
-	  f13(li,lj,lk+1)=p2*(rho(i,j,k+1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j,k+1,idblock)+qzz*pzz(i,j,k+1,idblock)-cssq*pxx(i,j,k+1,idblock)+two*qyz_13_14*pyz(i,j,k+1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)-w(ii,jj,kk,iidblock))*onecssq
+	  f13(li,lj,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_13_14*pyz(ii,jj,kk,iidblock)) &
 	   + (fy-fz)*p2dcssq
 	  ! 0 +1 -1
     endif
@@ -1344,144 +1418,288 @@
     ! Halo edges
     if(li==1 .and. lj==1)then
       
-      uu=halfonecssq*(u(i-1,j-1,k,idblock)*u(i-1,j-1,k,idblock) + v(i-1,j-1,k,idblock)*v(i-1,j-1,k,idblock) + w(i-1,j-1,k,idblock)*w(i-1,j-1,k,idblock))
+      gii=gi-1
+      gjj=gj-1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !7 -1 -1  0
-	  udotc=(u(i-1,j-1,k,idblock)+v(i-1,j-1,k,idblock))*onecssq
-	  f07(li-1,lj-1,lk)=p2*(rho(i-1,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j-1,k,idblock)+qyy*pyy(i-1,j-1,k,idblock)-cssq*pzz(i-1,j-1,k,idblock)+two*qxy_7_8*pxy(i-1,j-1,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f07(li-1,lj-1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_7_8*pxy(ii,jj,kk,iidblock)) &
 	   + (fx+fy)*p2dcssq 
 	  !+1 +1  0
       
     endif
     if(li==1 .and. lj==TILE_DIMy_d)then
       
-      uu=halfonecssq*(u(i-1,j+1,k,idblock)*u(i-1,j+1,k,idblock) + v(i-1,j+1,k,idblock)*v(i-1,j+1,k,idblock) + w(i-1,j+1,k,idblock)*w(i-1,j+1,k,idblock))
+      gii=gi-1
+      gjj=gj+1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !9  -1 +1 0
-      udotc=(-u(i-1,j+1,k,idblock)+v(i-1,j+1,k,idblock))*onecssq
-	  f09(li-1,lj+1,lk)=p2*(rho(i-1,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j+1,k,idblock)+qyy*pyy(i-1,j+1,k,idblock)-cssq*pzz(i-1,j+1,k,idblock)+two*qxy_9_10*pxy(i-1,j+1,k,idblock)) &
+      udotc=(-u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f09(li-1,lj+1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_9_10*pxy(ii,jj,kk,iidblock)) &
 	   + (fx-fy)*p2dcssq
 	  !+1 -1  0
       
     endif
     if(li==1 .and. lk==1)then
       
-      uu=halfonecssq*(u(i-1,j,k-1,idblock)*u(i-1,j,k-1,idblock) + v(i-1,j,k-1,idblock)*v(i-1,j,k-1,idblock) + w(i-1,j,k-1,idblock)*w(i-1,j,k-1,idblock))
+      gii=gi-1
+      gjj=gj
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !15  -1  0 -1
-	  udotc=(u(i-1,j,k-1,idblock)+w(i-1,j,k-1,idblock))*onecssq
-	  f15(li-1,lj,lk-1)=p2*(rho(i-1,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k-1,idblock)+qzz*pzz(i-1,j,k-1,idblock)-cssq*pyy(i-1,j,k-1,idblock)+two*qxz_15_16*pxz(i-1,j,k-1,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f15(li-1,lj,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_15_16*pxz(ii,jj,kk,iidblock)) &
 	   + (fx+fz)*p2dcssq 
 	  !+1  0  +1
       
     endif
     if(li==1 .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(u(i-1,j,k+1,idblock)*u(i-1,j,k+1,idblock) + v(i-1,j,k+1,idblock)*v(i-1,j,k+1,idblock) + w(i-1,j,k+1,idblock)*w(i-1,j,k+1,idblock))
+      gii=gi-1
+      gjj=gj
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !18   -1   0  +1
-	  udotc=(-u(i-1,j,k+1,idblock)+w(i-1,j,k+1,idblock))*onecssq
-	  f18(li-1,lj,lk+1)=p2*(rho(i-1,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i-1,j,k+1,idblock)+qzz*pzz(i-1,j,k+1,idblock)-cssq*pyy(i-1,j,k+1,idblock)+two*qxz_17_18*pxz(i-1,j,k+1,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f18(li-1,lj,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_17_18*pxz(ii,jj,kk,iidblock)) &
 	   + (fx-fz)*p2dcssq
 	  !+1  0  -1
       
     endif
     if(li==TILE_DIMx_d .and. lj==1)then
       
-      uu=halfonecssq*(u(i+1,j-1,k,idblock)*u(i+1,j-1,k,idblock) + v(i+1,j-1,k,idblock)*v(i+1,j-1,k,idblock) + w(i+1,j-1,k,idblock)*w(i+1,j-1,k,idblock))
+      gii=gi+1
+      gjj=gj-1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !10   +1 -1  0
-	  udotc=(-u(i+1,j-1,k,idblock)+v(i+1,j-1,k,idblock))*onecssq
-	  f10(li+1,lj-1,lk)=p2*(rho(i+1,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i+1,j-1,k,idblock)+qyy*pyy(i+1,j-1,k,idblock)-cssq*pzz(i+1,j-1,k,idblock)+two*qxy_9_10*pxy(i+1,j-1,k,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f10(li+1,lj-1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_9_10*pxy(ii,jj,kk,iidblock)) &
 	   +(fy-fx)*p2dcssq
 	  !-1 +1  0
       
     endif
     if(li==TILE_DIMx_d .and. lj==TILE_DIMy_d)then
       
-      uu=halfonecssq*(u(i+1,j+1,k,idblock)*u(i+1,j+1,k,idblock) + v(i+1,j+1,k,idblock)*v(i+1,j+1,k,idblock) + w(i+1,j+1,k,idblock)*w(i+1,j+1,k,idblock))
+      gii=gi+1
+      gjj=gj+1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !8 +1 +1  0
-	  udotc=(u(i+1,j+1,k,idblock)+v(i+1,j+1,k,idblock))*onecssq
-	  f08(li+1,lj+1,lk)=p2*(rho(i+1,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i+1,j+1,k,idblock)+qyy*pyy(i+1,j+1,k,idblock)-cssq*pzz(i+1,j+1,k,idblock)+two*qxy_7_8*pxy(i+1,j+1,k,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+v(ii,jj,kk,iidblock))*onecssq
+	  f08(li+1,lj+1,lk)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qyy*pyy(ii,jj,kk,iidblock)-cssq*pzz(ii,jj,kk,iidblock)+two*qxy_7_8*pxy(ii,jj,kk,iidblock)) &
 	   - (fx+fy)*p2dcssq
 	  !-1 -1  0
       
     endif
     if(li==TILE_DIMx_d .and. lk==1)then
       
-      uu=halfonecssq*(u(i+1,j,k-1,idblock)*u(i+1,j,k-1,idblock) + v(i+1,j,k-1,idblock)*v(i+1,j,k-1,idblock) + w(i+1,j,k-1,idblock)*w(i+1,j,k-1,idblock))
+      gii=gi+1
+      gjj=gj
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !17  +1  0 -1
-	  udotc=(-u(i+1,j,k-1,idblock)+w(i+1,j,k-1,idblock))*onecssq
-	  f17(li+1,lj,lk-1)=p2*(rho(i+1,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   + oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k-1,idblock)+qzz*pzz(i+1,j,k-1,idblock)-cssq*pyy(i+1,j,k-1,idblock)+two*qxz_17_18*pxz(i+1,j,k-1,idblock)) &
+	  udotc=(-u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f17(li+1,lj,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   + oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_17_18*pxz(ii,jj,kk,iidblock)) &
 	   +(fz-fx)*p2dcssq
 	  !-1  0  +1
       
     endif
     if(li==TILE_DIMx_d .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(u(i+1,j,k+1,idblock)*u(i+1,j,k+1,idblock) + v(i+1,j,k+1,idblock)*v(i+1,j,k+1,idblock) + w(i+1,j,k+1,idblock)*w(i+1,j,k+1,idblock))
+      gii=gi+1
+      gjj=gj
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !16  +1  0 +1
-	  udotc=(u(i+1,j,k+1,idblock)+w(i+1,j,k+1,idblock))*onecssq
-	  f16(li+1,lj,lk+1)=p2*(rho(i+1,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxx(i+1,j,k+1,idblock)+qzz*pzz(i+1,j,k+1,idblock)-cssq*pyy(i+1,j,k+1,idblock)+two*qxz_15_16*pxz(i+1,j,k+1,idblock)) &
+	  udotc=(u(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f16(li+1,lj,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxx(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pyy(ii,jj,kk,iidblock)+two*qxz_15_16*pxz(ii,jj,kk,iidblock)) &
 	   - (fx+fz)*p2dcssq
 	  !-1  0  -1
       
     endif
     if(lj==1 .and. lk==1)then
       
-      uu=halfonecssq*(u(i,j-1,k-1,idblock)*u(i,j-1,k-1,idblock) + v(i,j-1,k-1,idblock)*v(i,j-1,k-1,idblock) + w(i,j-1,k-1,idblock)*w(i,j-1,k-1,idblock))
+      gii=gi
+      gjj=gj-1
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !11  0  -1  -1
-	  udotc=(v(i,j-1,k-1,idblock)+w(i,j-1,k-1,idblock))*onecssq
-	  f11(li,lj-1,lk-1)=p2*(rho(i,j-1,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k-1,idblock)+qzz*pzz(i,j-1,k-1,idblock)-cssq*pxx(i,j-1,k-1,idblock)+two*qyz_11_12*pyz(i,j-1,k-1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f11(li,lj-1,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_11_12*pyz(ii,jj,kk,iidblock)) &
 	   + (fy+fz)*p2dcssq
 	  ! 0 +1 +1
       
     endif
     if(lj==1 .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(u(i,j-1,k+1,idblock)*u(i,j-1,k+1,idblock) + v(i,j-1,k+1,idblock)*v(i,j-1,k+1,idblock) + w(i,j-1,k+1,idblock)*w(i,j-1,k+1,idblock))
+      gii=gi
+      gjj=gj-1
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !13  0  -1   +1
-	  udotc=(v(i,j-1,k+1,idblock)-w(i,j-1,k+1,idblock))*onecssq
-	  f13(li,lj-1,lk+1)=p2*(rho(i,j-1,k+1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j-1,k+1,idblock)+qzz*pzz(i,j-1,k+1,idblock)-cssq*pxx(i,j-1,k+1,idblock)+two*qyz_13_14*pyz(i,j-1,k+1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)-w(ii,jj,kk,iidblock))*onecssq
+	  f13(li,lj-1,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_13_14*pyz(ii,jj,kk,iidblock)) &
 	   + (fy-fz)*p2dcssq
 	  ! 0 +1 -1
       
     endif
     if(lj==TILE_DIMy_d .and. lk==1)then
       
-      uu=halfonecssq*(u(i,j+1,k-1,idblock)*u(i,j+1,k-1,idblock) + v(i,j+1,k-1,idblock)*v(i,j+1,k-1,idblock) + w(i,j+1,k-1,idblock)*w(i,j+1,k-1,idblock))
+      gii=gi
+      gjj=gj+1
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !14  0  +1  -1
-	  udotc=(v(i,j+1,k-1,idblock)-w(i,j+1,k-1,idblock))*onecssq
-	  f14(li,lj+1,lk-1)=p2*(rho(i,j+1,k-1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k-1,idblock)+qzz*pzz(i,j+1,k-1,idblock)-cssq*pxx(i,j+1,k-1,idblock)+two*qyz_13_14*pyz(i,j+1,k-1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)-w(ii,jj,kk,iidblock))*onecssq
+	  f14(li,lj+1,lk-1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_13_14*pyz(ii,jj,kk,iidblock)) &
 	   + (fz-fy)*p2dcssq
 	  ! 0 -1 +1
       
     endif
     if(lj==TILE_DIMy_d .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(u(i,j+1,k+1,idblock)*u(i,j+1,k+1,idblock) + v(i,j+1,k+1,idblock)*v(i,j+1,k+1,idblock) + w(i,j+1,k+1,idblock)*w(i,j+1,k+1,idblock))
+      gii=gi
+      gjj=gj+1
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(u(ii,jj,kk,iidblock)*u(ii,jj,kk,iidblock) + v(ii,jj,kk,iidblock)*v(ii,jj,kk,iidblock) + w(ii,jj,kk,iidblock)*w(ii,jj,kk,iidblock))
       
       !12  0  +1  +1
-	  udotc=(v(i,j+1,k+1,idblock)+w(i,j+1,k+1,idblock))*onecssq
-	  f12(li,lj+1,lk+1)=p2*(rho(i,j+1,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyy(i,j+1,k+1,idblock)+qzz*pzz(i,j+1,k+1,idblock)-cssq*pxx(i,j+1,k+1,idblock)+two*qyz_11_12*pyz(i,j+1,k+1,idblock)) &
+	  udotc=(v(ii,jj,kk,iidblock)+w(ii,jj,kk,iidblock))*onecssq
+	  f12(li,lj+1,lk+1)=p2*(rho(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyy(ii,jj,kk,iidblock)+qzz*pzz(ii,jj,kk,iidblock)-cssq*pxx(ii,jj,kk,iidblock)+two*qyz_11_12*pyz(ii,jj,kk,iidblock)) &
 	   - (fy+fz)*p2dcssq
 	  ! 0 -1 -1
       
@@ -1501,55 +1719,199 @@
           if(isfluid(gi,gj-1,gk+1).eq.-1)f14(li,lj,lk)=f13(li,lj-1,lk+1)!gpc 
           if(isfluid(gi,gj+1,gk-1).eq.-1)f13(li,lj,lk)=f14(li,lj+1,lk-1)!hpc
         
-          if(isfluid(i,j-1,k-1).eq.-1)f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc
-          if(isfluid(i,j+1,k+1).eq.-1)f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
+          if(isfluid(gi,gj-1,gk-1).eq.-1)f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc
+          if(isfluid(gi,gj+1,gk+1).eq.-1)f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
 
-          if(isfluid(i-1,j+1,k).eq.-1)f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc  
-          if(isfluid(i+1,j-1,k).eq.-1)f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
+          if(isfluid(gi-1,gj+1,gk).eq.-1)f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc  
+          if(isfluid(gi+1,gj-1,gk).eq.-1)f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
 
-          if(isfluid(i-1,j-1,k).eq.-1)f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
-          if(isfluid(i+1,j+1,k).eq.-1)f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
+          if(isfluid(gi-1,gj-1,gk).eq.-1)f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
+          if(isfluid(gi+1,gj+1,gk).eq.-1)f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
 
-          if(isfluid(i,j,k-1).eq.-1)f06(li,lj,lk)=f05(li,lj,lk-1)!gpc
-          if(isfluid(i,j,k+1).eq.-1)f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
+          if(isfluid(gi,gj,gk-1).eq.-1)f06(li,lj,lk)=f05(li,lj,lk-1)!gpc
+          if(isfluid(gi,gj,gk+1).eq.-1)f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
 
-          if(isfluid(i,j-1,k).eq.-1)f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
-          if(isfluid(i,j+1,k).eq.-1)f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
+          if(isfluid(gi,gj-1,gk).eq.-1)f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
+          if(isfluid(gi,gj+1,gk).eq.-1)f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
 
-          if(isfluid(i-1,j,k).eq.-1)f02(li,lj,lk)=f01(li-1,lj,lk)!gpc
-          if(isfluid(i+1,j,k).eq.-1)f01(li,lj,lk)=f02(li+1,lj,lk)!hpc 
+          if(isfluid(gi-1,gj,gk).eq.-1)f02(li,lj,lk)=f01(li-1,lj,lk)!gpc
+          if(isfluid(gi+1,gj,gk).eq.-1)f01(li,lj,lk)=f02(li+1,lj,lk)!hpc 
           
 #else
           
-          f18(li,lj,lk)=f17(li+1,lj,lk-1) !gpc 
-          f17(li,lj,lk)=f18(li-1,lj,lk+1) !hpc
-
-          f16(li,lj,lk)=f15(li-1,lj,lk-1) !gpc 
-          f15(li,lj,lk)=f16(li+1,lj,lk+1) !hpc
-
-          f14(li,lj,lk)=f13(li,lj-1,lk+1)!gpc 
-          f13(li,lj,lk)=f14(li,lj+1,lk-1)!hpc
+        f01(li,lj,lk)=f02(li+1,lj,lk)!hpc 
+        f02(li,lj,lk)=f01(li-1,lj,lk)!gpc 
         
-          f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc 
-          f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
-
-          f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc 
-          f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
-
-          f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
-          f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
-
-          f06(li,lj,lk)=f05(li,lj,lk-1)!gpc 
-          f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
-
-          f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
-          f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
-
-          f02(li,lj,lk)=f01(li-1,lj,lk)!gpc 
-          f01(li,lj,lk)=f02(li+1,lj,lk)!hpc          
+        f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
+        f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
+        
+        f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
+        f06(li,lj,lk)=f05(li,lj,lk-1)!gpc 
+        
+        f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
+        f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
+        
+        f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
+        f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc 
+        
+        f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
+        f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc 
+        
+        f13(li,lj,lk)=f14(li,lj+1,lk-1)!hpc
+        f14(li,lj,lk)=f13(li,lj-1,lk+1)!gpc 
+        
+        f15(li,lj,lk)=f16(li+1,lj,lk+1) !hpc
+        f16(li,lj,lk)=f15(li-1,lj,lk-1) !gpc 
+        
+        f17(li,lj,lk)=f18(li-1,lj,lk+1) !hpc
+        f18(li,lj,lk)=f17(li+1,lj,lk-1) !gpc       
 
 #endif
     endif
+    
+    ! Halo Faces
+    if(li==1)then
+      if(isfluid(gi-1,gj,gk).eq.0)then
+        f01(li-1,lj,lk)=f02(li,lj,lk)!hpc 
+        
+        f07(li-1,lj,lk)=f08(li,lj+1,lk)!hpc
+        
+        f09(li-1,lj,lk)=f10(li,lj-1,lk)!hpc
+        
+        f15(li-1,lj,lk)=f16(li,lj,lk+1) !hpc
+
+        f18(li-1,lj,lk)=f17(li,lj,lk-1) !gpc 
+      endif
+    endif
+    if(li==TILE_DIMx_d)then
+      if(isfluid(gi+1,gj,gk).eq.0)then
+        f02(li+1,lj,lk)=f01(li,lj,lk)!gpc 
+        
+        f08(li+1,lj,lk)=f07(li,lj-1,lk)!gpc 
+        
+        f10(li+1,lj,lk)=f09(li,lj+1,lk)!gpc 
+        
+        f16(li+1,lj,lk)=f15(li,lj,lk-1) !gpc 
+        
+        f17(li+1,lj,lk)=f18(li,lj,lk+1) !hpc 
+      endif
+    endif
+
+    if(lj==1)then
+      if(isfluid(gi,gj-1,gk).eq.0)then
+        f03(li,lj-1,lk)=f04(li,lj,lk)!hpc 
+        
+        f07(li,lj-1,lk)=f08(li+1,lj,lk)!hpc
+        
+        f10(li,lj-1,lk)=f09(li-1,lj,lk)!gpc 
+        
+        f11(li,lj-1,lk)=f12(li,lj,lk+1)!hpc
+        
+        f13(li,lj-1,lk)=f14(li,lj,lk-1)!hpc    
+      endif
+    endif
+    if(lj==TILE_DIMy_d)then
+      if(isfluid(gi,gj+1,gk).eq.0)then
+        f04(li,lj+1,lk)=f03(li,lj,lk)!gpc 
+        
+        f08(li,lj+1,lk)=f07(li-1,lj,lk)!gpc 
+        
+        f09(li,lj+1,lk)=f10(li+1,lj,lk)!hpc
+        
+        f12(li,lj+1,lk)=f11(li,lj,lk-1)!gpc 
+        
+        f14(li,lj+1,lk)=f13(li,lj,lk+1)!gpc   
+      endif
+    endif
+
+    if(lk==1)then
+      if(isfluid(gi,gj,gk-1).eq.0)then
+        f05(li,lj,lk-1)=f06(li,lj,lk)!hpc 
+        
+        f11(li,lj,lk-1)=f12(li,lj+1,lk)!hpc
+        
+        f14(li,lj,lk-1)=f13(li,lj-1,lk)!gpc 
+        
+        f15(li,lj,lk-1)=f16(li+1,lj,lk) !hpc
+        
+        f17(li,lj,lk-1)=f18(li-1,lj,lk) !hpc
+      endif
+    endif
+    if(lk==TILE_DIMz_d)then
+      if(isfluid(gi,gj,gk+1).eq.0)then
+        f06(li,lj,lk+1)=f05(li,lj,lk)!gpc 
+        
+        f12(li,lj,lk+1)=f11(li,lj-1,lk)!gpc 
+        
+        f13(li,lj,lk+1)=f14(li,lj+1,lk)!hpc
+        
+        f16(li,lj,lk+1)=f15(li-1,lj,lk) !gpc 
+        
+        f18(li,lj,lk+1)=f17(li+1,lj,lk) !gpc 
+      endif
+    endif
+
+    ! Halo edges
+    if(li==1 .and. lj==1)then
+      if(isfluid(gi-1,gj-1,gk).eq.0)then
+        f07(li-1,lj-1,lk)=f08(li,lj,lk)!hpc
+      endif
+    endif
+    if(li==1 .and. lj==TILE_DIMy_d)then
+      if(isfluid(gi-1,gj+1,gk).eq.0)then
+        f09(li-1,lj+1,lk)=f10(li,lj,lk)!hpc
+      endif
+    endif
+    if(li==1 .and. lk==1)then
+      if(isfluid(gi-1,gj,gk-1).eq.0)then
+        f15(li-1,lj,lk-1)=f16(li,lj,lk) !hpc
+      endif
+    endif
+    if(li==1 .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi-1,gj,gk+1).eq.0)then
+        f18(li-1,lj,lk+1)=f17(li,lj,lk) !gpc    
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lj==1)then
+      if(isfluid(gi+1,gj-1,gk).eq.0)then
+        f10(li+1,lj-1,lk)=f09(li,lj,lk)!gpc 
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lj==TILE_DIMy_d)then
+      if(isfluid(gi+1,gj+1,gk).eq.0)then
+        f08(li+1,lj+1,lk)=f07(li,lj,lk)!gpc 
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lk==1)then
+      if(isfluid(gi+1,gj,gk-1).eq.0)then
+        f17(li+1,lj,lk-1)=f18(li,lj,lk) !hpc
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi+1,gj,gk+1).eq.0)then
+        f16(li+1,lj,lk+1)=f15(li,lj,lk) !gpc 
+      endif
+    endif
+    if(lj==1 .and. lk==1)then
+      if(isfluid(gi,gj-1,gk-1).eq.0)then
+        f11(li,lj-1,lk-1)=f12(li,lj,lk)!hpc
+      endif
+    endif
+    if(lj==1 .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi,gj-1,gk+1).eq.0)then
+        f13(li,lj-1,lk+1)=f14(li,lj,lk)!hpc
+      endif
+    endif
+    if(lj==TILE_DIMy_d .and. lk==1)then
+      if(isfluid(gi,gj+1,gk-1).eq.0)then
+        f14(li,lj+1,lk-1)=f13(li,lj,lk)!gpc 
+      endif
+    endif
+    if(lj==TILE_DIMy_d .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi,gj+1,gk+1).eq.0)then
+        f12(li,lj+1,lk+1)=f11(li,lj,lk)!gpc 
+      endif
+    endif      
     
     call syncthreads
     
@@ -1562,14 +1924,14 @@
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)+ &
      f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	rhoh(i,j,k,idblock)=udotc
+	rhoh(i,j,k,myblock)=udotc
 	
 	udotc=f01(li-1,lj,lk)-f02(li+1,lj,lk)+  &
      f07(li-1,lj-1,lk)-f08(li+1,lj+1,lk)+ &
      f09(li-1,lj+1,lk)-f10(li+1,lj-1,lk)+ &
      f15(li-1,lj,lk-1)-f16(li+1,lj,lk+1)- &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	uh(i,j,k,idblock)=udotc
+	uh(i,j,k,myblock)=udotc
 	
 	
 	udotc=f03(li,lj-1,lk)-f04(li,lj+1,lk)+ &
@@ -1577,160 +1939,160 @@
      f09(li-1,lj+1,lk)+f10(li+1,lj-1,lk)+ &
      f11(li,lj-1,lk-1)-f12(li,lj+1,lk+1)+ &
      f13(li,lj-1,lk+1)-f14(li,lj+1,lk-1)
-	vh(i,j,k,idblock)=udotc
+	vh(i,j,k,myblock)=udotc
 	
 	udotc=f05(li,lj,lk-1)-f06(li,lj,lk+1)+  &
      f11(li,lj-1,lk-1)-f12(li,lj+1,lk+1)- &
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)+ &
      f15(li-1,lj,lk-1)-f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)-f18(li-1,lj,lk+1)
-	wh(i,j,k,idblock)=udotc
+	wh(i,j,k,myblock)=udotc
 	
 	udotc=f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f07(li-1,lj-1,lk)+f08(li+1,lj+1,lk)+ &
      f09(li-1,lj+1,lk)+f10(li+1,lj-1,lk)+ &
      f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	pxxh(i,j,k,idblock)=udotc
+	pxxh(i,j,k,myblock)=udotc
 	
 	udotc=f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
      f07(li-1,lj-1,lk)+f08(li+1,lj+1,lk)+ &
      f09(li-1,lj+1,lk)+f10(li+1,lj-1,lk)+ &
      f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)+ &
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)
-	pyyh(i,j,k,idblock)=udotc
+	pyyh(i,j,k,myblock)=udotc
 	
 	udotc=f05(li,lj,lk-1)+f06(li,lj,lk+1)+  &
      f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)+ &
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)+ &
      f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	pzzh(i,j,k,idblock)=udotc
+	pzzh(i,j,k,myblock)=udotc
 	
 	udotc=f07(li-1,lj-1,lk)+f08(li+1,lj+1,lk)- &
      f09(li-1,lj+1,lk)-f10(li+1,lj-1,lk)
-	pxyh(i,j,k,idblock)=udotc
+	pxyh(i,j,k,myblock)=udotc
 	
 	udotc=f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)- &
      f17(li+1,lj,lk-1)-f18(li-1,lj,lk+1)
-	pxzh(i,j,k,idblock)=udotc
+	pxzh(i,j,k,myblock)=udotc
 	
 	udotc=f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)- &
      f13(li,lj-1,lk+1)-f14(li,lj+1,lk-1)
-	pyzh(i,j,k,idblock)=udotc
+	pyzh(i,j,k,myblock)=udotc
      
 #ifdef PRESSCORR
 
 	call syncthreads
 	
-	uu=halfonecssq*(uh(i,j,k,idblock)*uh(i,j,k,idblock) + vh(i,j,k,idblock)*vh(i,j,k,idblock) + wh(i,j,k,idblock)*wh(i,j,k,idblock))
+	uu=halfonecssq*(uh(i,j,k,myblock)*uh(i,j,k,myblock) + vh(i,j,k,myblock)*vh(i,j,k,myblock) + wh(i,j,k,myblock)*wh(i,j,k,myblock))
     
 	!1 -1  0  0
-	udotc=uh(i,j,k,idblock)*onecssq
+	udotc=uh(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f01(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f01(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp + udotc))
 	!+1  0  0
 
 
 	!2 +1  0  0
-	f02(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f02(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp - udotc))
 	!-1  0  0
 
     		
 	!3 0 -1  0
-	udotc=vh(i,j,k,idblock)*onecssq
+	udotc=vh(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f03(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f03(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp + udotc))
 	! 0 +1  0
 
 	
 	!4  0 +1  0
-	f04(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f04(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp - udotc))
 	! 0 -1  0
 
 	
 	!5  0  0 -1
-	udotc=wh(i,j,k,idblock)*onecssq
+	udotc=wh(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f05(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f05(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp + udotc))
 	! 0  0 +1
 
 
 	!6  0  0  +1
-	f06(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f06(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp - udotc))
 	! 0  0 -1
 
     	
 	!7 -1 -1  0
-	udotc=(uh(i,j,k,idblock)+vh(i,j,k,idblock))*onecssq
+	udotc=(uh(i,j,k,myblock)+vh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f07(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f07(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc))
 	!+1 +1  0
 
 	
 	!8 +1 +1  0
-	f08(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f08(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc))
 	!-1 -1  0
 
 	
 	!10   +1 -1  0
-	udotc=(-uh(i,j,k,idblock)+vh(i,j,k,idblock))*onecssq
+	udotc=(-uh(i,j,k,myblock)+vh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f10(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f10(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc))
 	!-1 +1  0
 
 	
 	!9  -1 +1 0
-	f09(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f09(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc))
 	!+1 -1  0
 
 		
 
 	!15  -1  0 -1
-	udotc=(uh(i,j,k,idblock)+wh(i,j,k,idblock))*onecssq
+	udotc=(uh(i,j,k,myblock)+wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f15(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f15(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc))
 	!+1  0  +1
 
 
 	!16  +1  0 +1
-	f16(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f16(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc))
 	!-1  0  -1
 
 
 	!17  +1  0 -1
-	udotc=(-uh(i,j,k,idblock)+wh(i,j,k,idblock))*onecssq
+	udotc=(-uh(i,j,k,myblock)+wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f17(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f17(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc))
 	!-1  0  +1
 
 
 	!18   -1   0  +1
-	f18(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f18(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc))
 	!+1  0  -1
 
 
 	!11  0  -1  -1
-	udotc=(vh(i,j,k,idblock)+wh(i,j,k,idblock))*onecssq
+	udotc=(vh(i,j,k,myblock)+wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f11(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f11(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc))
 	! 0 +1 +1
 
 	
 	!12  0  +1  +1
-	f12(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f12(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc))
 	! 0 -1 -1
 
 
 	!13  0  -1   +1
-	udotc=(vh(i,j,k,idblock)-wh(i,j,k,idblock))*onecssq
+	udotc=(vh(i,j,k,myblock)-wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f13(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc))
+	f13(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc))
 	! 0 +1 -1
 
 	
 	!14  0  +1  -1
-	f14(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc))
+	f14(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc))
 	! 0 -1 +1
 	
 	udotc=f01(li,lj,lk)+f02(li,lj,lk)+  &
@@ -1738,45 +2100,49 @@
      f09(li,lj,lk)+f10(li,lj,lk)+ &
      f15(li,lj,lk)+f16(li,lj,lk)+ &
      f17(li,lj,lk)+f18(li,lj,lk)
-	pxxh(i,j,k,idblock)=pxxh(i,j,k,idblock)-udotc
+	pxxh(i,j,k,myblock)=pxxh(i,j,k,myblock)-udotc
 	
 	udotc=f03(li,lj,lk)+f04(li,lj,lk)+  &
      f07(li,lj,lk)+f08(li,lj,lk)+ &
      f09(li,lj,lk)+f10(li,lj,lk)+ &
      f11(li,lj,lk)+f12(li,lj,lk)+ &
      f13(li,lj,lk)+f14(li,lj,lk)
-	pyyh(i,j,k,idblock)=pyyh(i,j,k,idblock)-udotc
+	pyyh(i,j,k,myblock)=pyyh(i,j,k,myblock)-udotc
 	
 	udotc=f05(li,lj,lk)+f06(li,lj,lk)+  &
      f11(li,lj,lk)+f12(li,lj,lk)+ &
      f13(li,lj,lk)+f14(li,lj,lk)+ &
      f15(li,lj,lk)+f16(li,lj,lk)+ &
      f17(li,lj,lk)+f18(li,lj,lk)
-	pzzh(i,j,k,idblock)=pzzh(i,j,k,idblock)-udotc
+	pzzh(i,j,k,myblock)=pzzh(i,j,k,myblock)-udotc
 	
 	udotc=f07(li,lj,lk)+f08(li,lj,lk)- &
      f09(li,lj,lk)-f10(li,lj,lk)
-	pxyh(i,j,k,idblock)=pxyh(i,j,k,idblock)-udotc
+	pxyh(i,j,k,myblock)=pxyh(i,j,k,myblock)-udotc
 	
 	udotc=f15(li,lj,lk)+f16(li,lj,lk)- &
      f17(li,lj,lk)-f18(li,lj,lk)
-	pxzh(i,j,k,idblock)=pxzh(i,j,k,idblock)-udotc
+	pxzh(i,j,k,myblock)=pxzh(i,j,k,myblock)-udotc
 	
 	udotc=f11(li,lj,lk)+f12(li,lj,lk)- &
      f13(li,lj,lk)-f14(li,lj,lk)
-	pyzh(i,j,k,idblock)=pyzh(i,j,k,idblock)-udotc
+	pyzh(i,j,k,myblock)=pyzh(i,j,k,myblock)-udotc
 	
 	    
     return
 #endif	
   end subroutine streamcoll_bc_shared
   
-    attributes(global) subroutine streamcoll_bc_shared_flop()
+  attributes(global) subroutine streamcoll_bc_shared_flop()
 	
 	implicit none  
-	  
-    integer :: i,j,k,gi,gj,gk,idblock
+	
+	
+	integer :: i,j,k,gi,gj,gk,myblock,iidblock
+    integer :: gii,gjj,gkk,ii,jj,kk
+    integer :: xblock,yblock,zblock
 	real(kind=db) :: udotc,uu,temp
+    
     
     integer :: li,lj,lk
 	real(kind=db), shared :: f00(1:TILE_DIMx_d,1:TILE_DIMy_d,1:TILE_DIMz_d)
@@ -1798,17 +2164,8 @@
     real(kind=db), shared :: f16(1:TILE_DIMx_d+1,1:TILE_DIMy_d,1:TILE_DIMz_d+1)
     real(kind=db), shared :: f17(1:TILE_DIMx_d+1,1:TILE_DIMy_d,0:TILE_DIMz_d)
     real(kind=db), shared :: f18(0:TILE_DIMx_d,1:TILE_DIMy_d,1:TILE_DIMz_d+1)
-    integer :: idblock=1
+    
 		  
-	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	
-	i=threadIdx%x
-	j=threadIdx%y
-	k=threadIdx%z
-	
-	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 		  
 	!if(isfluid(i,j,k).ne.1)return
     	
@@ -1816,234 +2173,270 @@
     lj = threadIdx%y
     lk = threadIdx%z
     
-    uu=halfonecssq*(uh(i,j,k,idblock)*uh(i,j,k,idblock) + vh(i,j,k,idblock)*vh(i,j,k,idblock) + wh(i,j,k,idblock)*wh(i,j,k,idblock))
+    gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	
+	i=threadIdx%x
+	j=threadIdx%y
+	k=threadIdx%z
+	
+	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+    
+    
+    
+    uu=halfonecssq*(uh(i,j,k,myblock)*uh(i,j,k,myblock) + vh(i,j,k,myblock)*vh(i,j,k,myblock) + wh(i,j,k,myblock)*wh(i,j,k,myblock))
     
     !0
-	f00(li,lj,lk)=p0*(rhoh(i,j,k,idblock)-uu) &
-	 + oneminusomega*pi2cssq0*(-cssq*(pyyh(i,j,k,idblock)+pxxh(i,j,k,idblock)+pzzh(i,j,k,idblock)))
+	f00(li,lj,lk)=p0*(rhoh(i,j,k,myblock)-uu) &
+	 + oneminusomega*pi2cssq0*(-cssq*(pyyh(i,j,k,myblock)+pxxh(i,j,k,myblock)+pzzh(i,j,k,myblock)))
 	
     
 	!1 -1  0  0
-	udotc=uh(i,j,k,idblock)*onecssq
+	udotc=uh(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f01(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq1*(qxx*pxxh(i,j,k,idblock)-cssq*(pyyh(i,j,k,idblock)+pzzh(i,j,k,idblock))) &
+	f01(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq1*(qxx*pxxh(i,j,k,myblock)-cssq*(pyyh(i,j,k,myblock)+pzzh(i,j,k,myblock))) &
 	 + fx*p1dcssq
 	!+1  0  0
 
 
 	!2 +1  0  0
-	f02(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq1*(qxx*pxxh(i,j,k,idblock)-cssq*(pyyh(i,j,k,idblock)+pzzh(i,j,k,idblock))) &
+	f02(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq1*(qxx*pxxh(i,j,k,myblock)-cssq*(pyyh(i,j,k,myblock)+pzzh(i,j,k,myblock))) &
 	 - fx*p1dcssq
 	!-1  0  0
 
     		
 	!3 0 -1  0
-	udotc=vh(i,j,k,idblock)*onecssq
+	udotc=vh(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f03(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq1*(qyy*pyyh(i,j,k,idblock)-cssq*(pxxh(i,j,k,idblock)+pzzh(i,j,k,idblock))) &
+	f03(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq1*(qyy*pyyh(i,j,k,myblock)-cssq*(pxxh(i,j,k,myblock)+pzzh(i,j,k,myblock))) &
 	 + fy*p1dcssq
 	! 0 +1  0
 
 	
 	!4  0 +1  0
-	f04(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq1*(qyy*pyyh(i,j,k,idblock)-cssq*(pxxh(i,j,k,idblock)+pzzh(i,j,k,idblock))) &
+	f04(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq1*(qyy*pyyh(i,j,k,myblock)-cssq*(pxxh(i,j,k,myblock)+pzzh(i,j,k,myblock))) &
 	 - fy*p1dcssq
 	! 0 -1  0
 
 	
 	!5  0  0 -1
-	udotc=wh(i,j,k,idblock)*onecssq
+	udotc=wh(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f05(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k,idblock)-cssq*(pxxh(i,j,k,idblock)+pyyh(i,j,k,idblock))) &
+	f05(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k,myblock)-cssq*(pxxh(i,j,k,myblock)+pyyh(i,j,k,myblock))) &
 	 + fz*p1dcssq
 	! 0  0 +1
 
 
 	!6  0  0  +1
-	f06(li,lj,lk)=p1*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k,idblock)-cssq*(pxxh(i,j,k,idblock)+pyyh(i,j,k,idblock))) &
+	f06(li,lj,lk)=p1*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k,myblock)-cssq*(pxxh(i,j,k,myblock)+pyyh(i,j,k,myblock))) &
 	 - fz*p1dcssq
 	! 0  0 -1
 
     	
 	!7 -1 -1  0
-	udotc=(uh(i,j,k,idblock)+vh(i,j,k,idblock))*onecssq
+	udotc=(uh(i,j,k,myblock)+vh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f07(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qyy*pyyh(i,j,k,idblock)-cssq*pzzh(i,j,k,idblock)+two*qxy_7_8*pxyh(i,j,k,idblock)) &
+	f07(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qyy*pyyh(i,j,k,myblock)-cssq*pzzh(i,j,k,myblock)+two*qxy_7_8*pxyh(i,j,k,myblock)) &
 	 + (fx+fy)*p2dcssq 
 	!+1 +1  0
 
 	
 	!8 +1 +1  0
-	f08(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qyy*pyyh(i,j,k,idblock)-cssq*pzzh(i,j,k,idblock)+two*qxy_7_8*pxyh(i,j,k,idblock)) &
+	f08(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qyy*pyyh(i,j,k,myblock)-cssq*pzzh(i,j,k,myblock)+two*qxy_7_8*pxyh(i,j,k,myblock)) &
 	 - (fx+fy)*p2dcssq
 	!-1 -1  0
 
 	
 	!10   +1 -1  0
-	udotc=(-uh(i,j,k,idblock)+vh(i,j,k,idblock))*onecssq
+	udotc=(-uh(i,j,k,myblock)+vh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f10(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qyy*pyyh(i,j,k,idblock)-cssq*pzzh(i,j,k,idblock)+two*qxy_9_10*pxyh(i,j,k,idblock)) &
+	f10(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qyy*pyyh(i,j,k,myblock)-cssq*pzzh(i,j,k,myblock)+two*qxy_9_10*pxyh(i,j,k,myblock)) &
 	 +(fy-fx)*p2dcssq
 	!-1 +1  0
 
 	
 	!9  -1 +1 0
-	f09(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qyy*pyyh(i,j,k,idblock)-cssq*pzzh(i,j,k,idblock)+two*qxy_9_10*pxyh(i,j,k,idblock)) &
+	f09(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qyy*pyyh(i,j,k,myblock)-cssq*pzzh(i,j,k,myblock)+two*qxy_9_10*pxyh(i,j,k,myblock)) &
 	 + (fx-fy)*p2dcssq
 	!+1 -1  0
 
 		
 
 	!15  -1  0 -1
-	udotc=(uh(i,j,k,idblock)+wh(i,j,k,idblock))*onecssq
+	udotc=(uh(i,j,k,myblock)+wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f15(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pyyh(i,j,k,idblock)+two*qxz_15_16*pxzh(i,j,k,idblock)) &
+	f15(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pyyh(i,j,k,myblock)+two*qxz_15_16*pxzh(i,j,k,myblock)) &
 	 + (fx+fz)*p2dcssq 
 	!+1  0  +1
 
 
 	!16  +1  0 +1
-	f16(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pyyh(i,j,k,idblock)+two*qxz_15_16*pxzh(i,j,k,idblock)) &
+	f16(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pyyh(i,j,k,myblock)+two*qxz_15_16*pxzh(i,j,k,myblock)) &
 	 - (fx+fz)*p2dcssq
 	!-1  0  -1
 
 
 	!17  +1  0 -1
-	udotc=(-uh(i,j,k,idblock)+wh(i,j,k,idblock))*onecssq
+	udotc=(-uh(i,j,k,myblock)+wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f17(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pyyh(i,j,k,idblock)+two*qxz_17_18*pxzh(i,j,k,idblock)) &
+	f17(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pyyh(i,j,k,myblock)+two*qxz_17_18*pxzh(i,j,k,myblock)) &
 	 +(fz-fx)*p2dcssq
 	!-1  0  +1
 
 
 	!18   -1   0  +1
-	f18(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pyyh(i,j,k,idblock)+two*qxz_17_18*pxzh(i,j,k,idblock)) &
+	f18(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pyyh(i,j,k,myblock)+two*qxz_17_18*pxzh(i,j,k,myblock)) &
 	 + (fx-fz)*p2dcssq
 	!+1  0  -1
 
 
 	!11  0  -1  -1
-	udotc=(vh(i,j,k,idblock)+wh(i,j,k,idblock))*onecssq
+	udotc=(vh(i,j,k,myblock)+wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f11(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pxxh(i,j,k,idblock)+two*qyz_11_12*pyzh(i,j,k,idblock)) &
+	f11(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pxxh(i,j,k,myblock)+two*qyz_11_12*pyzh(i,j,k,myblock)) &
 	 + (fy+fz)*p2dcssq
 	! 0 +1 +1
 
 	
 	!12  0  +1  +1
-	f12(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pxxh(i,j,k,idblock)+two*qyz_11_12*pyzh(i,j,k,idblock)) &
+	f12(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pxxh(i,j,k,myblock)+two*qyz_11_12*pyzh(i,j,k,myblock)) &
 	 - (fy+fz)*p2dcssq
 	! 0 -1 -1
 
 
 	!13  0  -1   +1
-	udotc=(vh(i,j,k,idblock)-wh(i,j,k,idblock))*onecssq
+	udotc=(vh(i,j,k,myblock)-wh(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f13(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp + udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pxxh(i,j,k,idblock)+two*qyz_13_14*pyzh(i,j,k,idblock)) &
+	f13(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp + udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pxxh(i,j,k,myblock)+two*qyz_13_14*pyzh(i,j,k,myblock)) &
 	 + (fy-fz)*p2dcssq
 	! 0 +1 -1
 
 	
 	!14  0  +1  -1
-	f14(li,lj,lk)=p2*(rhoh(i,j,k,idblock)+(temp - udotc)) &
-	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,idblock)+qzz*pzzh(i,j,k,idblock)-cssq*pxxh(i,j,k,idblock)+two*qyz_13_14*pyzh(i,j,k,idblock)) &
+	f14(li,lj,lk)=p2*(rhoh(i,j,k,myblock)+(temp - udotc)) &
+	 +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k,myblock)+qzz*pzzh(i,j,k,myblock)-cssq*pxxh(i,j,k,myblock)+two*qyz_13_14*pyzh(i,j,k,myblock)) &
 	 + (fz-fy)*p2dcssq
 	! 0 -1 +1
     
     ! Halo Faces
     if(li==1)then
       
-      uu=halfonecssq*(uh(i-1,j,k,idblock)*uh(i-1,j,k,idblock) + vh(i-1,j,k,idblock)*vh(i-1,j,k,idblock) + wh(i-1,j,k,idblock)*wh(i-1,j,k,idblock))
+      gii=gi-1
+      gjj=gj
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !1 -1  0  0
-	  udotc=uh(i-1,j,k,idblock)*onecssq
-	  f01(li-1,lj,lk)=p1*(rhoh(i-1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq1*(qxx*pxxh(i-1,j,k,idblock)-cssq*(pyyh(i-1,j,k,idblock)+pzzh(i-1,j,k,idblock))) &
+	  udotc=uh(ii,jj,kk,iidblock)*onecssq
+	  f01(li-1,lj,lk)=p1*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq1*(qxx*pxxh(ii,jj,kk,iidblock)-cssq*(pyyh(ii,jj,kk,iidblock)+pzzh(ii,jj,kk,iidblock))) &
 	   + fx*p1dcssq
 	  !+1  0  0
 	  
 	  !7 -1 -1  0
-	  udotc=(uh(i-1,j,k,idblock)+vh(i-1,j,k,idblock))*onecssq
-	  f07(li-1,lj,lk)=p2*(rhoh(i-1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k,idblock)+qyy*pyyh(i-1,j,k,idblock)-cssq*pzzh(i-1,j,k,idblock)+two*qxy_7_8*pxyh(i-1,j,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f07(li-1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_7_8*pxyh(ii,jj,kk,iidblock)) &
 	   + (fx+fy)*p2dcssq 
 	  !+1 +1  0
 	  
 	  !9  -1 +1 0
-      udotc=(-uh(i-1,j,k,idblock)+vh(i-1,j,k,idblock))*onecssq
-	  f09(li-1,lj,lk)=p2*(rhoh(i-1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k,idblock)+qyy*pyyh(i-1,j,k,idblock)-cssq*pzzh(i-1,j,k,idblock)+two*qxy_9_10*pxyh(i-1,j,k,idblock)) &
+      udotc=(-uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f09(li-1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_9_10*pxyh(ii,jj,kk,iidblock)) &
 	   + (fx-fy)*p2dcssq
 	  !+1 -1  0
 	  
 	  !15  -1  0 -1
-	  udotc=(uh(i-1,j,k,idblock)+wh(i-1,j,k,idblock))*onecssq
-	  f15(li-1,lj,lk)=p2*(rhoh(i-1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k,idblock)+qzz*pzzh(i-1,j,k,idblock)-cssq*pyyh(i-1,j,k,idblock)+two*qxz_15_16*pxzh(i-1,j,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f15(li-1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_15_16*pxzh(ii,jj,kk,iidblock)) &
 	   + (fx+fz)*p2dcssq 
 	  !+1  0  +1
 	  
 	  !18   -1   0  +1
-	  udotc=(-uh(i-1,j,k,idblock)+wh(i-1,j,k,idblock))*onecssq
-	  f18(li-1,lj,lk)=p2*(rhoh(i-1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k,idblock)+qzz*pzzh(i-1,j,k,idblock)-cssq*pyyh(i-1,j,k,idblock)+two*qxz_17_18*pxzh(i-1,j,k,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f18(li-1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_17_18*pxzh(ii,jj,kk,iidblock)) &
 	   + (fx-fz)*p2dcssq
 	  !+1  0  -1
       
     endif
     if(li==TILE_DIMx_d)then
       
-      uu=halfonecssq*(uh(i+1,j,k,idblock)*uh(i+1,j,k,idblock) + vh(i+1,j,k,idblock)*vh(i+1,j,k,idblock) + wh(i+1,j,k,idblock)*wh(i+1,j,k,idblock))
+      gii=gi+1
+      gjj=gj
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !2 +1  0  0
-	  udotc=uh(i+1,j,k,idblock)*onecssq
-	  f02(li+1,lj,lk)=p1*(rhoh(i+1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq1*(qxx*pxxh(i+1,j,k,idblock)-cssq*(pyyh(i+1,j,k,idblock)+pzzh(i+1,j,k,idblock))) &
+	  udotc=uh(ii,jj,kk,iidblock)*onecssq
+	  f02(li+1,lj,lk)=p1*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq1*(qxx*pxxh(ii,jj,kk,iidblock)-cssq*(pyyh(ii,jj,kk,iidblock)+pzzh(ii,jj,kk,iidblock))) &
 	   - fx*p1dcssq
 	  !-1  0  0
 	  
 	  !8 +1 +1  0
-	  udotc=(uh(i+1,j,k,idblock)+vh(i+1,j,k,idblock))*onecssq
-	  f08(li+1,lj,lk)=p2*(rhoh(i+1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k,idblock)+qyy*pyyh(i+1,j,k,idblock)-cssq*pzzh(i+1,j,k,idblock)+two*qxy_7_8*pxyh(i+1,j,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f08(li+1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_7_8*pxyh(ii,jj,kk,iidblock)) &
 	   - (fx+fy)*p2dcssq
 	  !-1 -1  0
 	  
 	  !10   +1 -1  0
-	  udotc=(-uh(i+1,j,k,idblock)+vh(i+1,j,k,idblock))*onecssq
-	  f10(li+1,lj,lk)=p2*(rhoh(i+1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k,idblock)+qyy*pyyh(i+1,j,k,idblock)-cssq*pzzh(i+1,j,k,idblock)+two*qxy_9_10*pxyh(i+1,j,k,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f10(li+1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_9_10*pxyh(ii,jj,kk,iidblock)) &
 	   +(fy-fx)*p2dcssq
 	  !-1 +1  0
 	  
 	  !16  +1  0 +1
-	  udotc=(uh(i+1,j,k,idblock)+wh(i+1,j,k,idblock))*onecssq
-	  f16(li+1,lj,lk)=p2*(rhoh(i+1,j,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k,idblock)+qzz*pzzh(i+1,j,k,idblock)-cssq*pyyh(i+1,j,k,idblock)+two*qxz_15_16*pxzh(i+1,j,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f16(li+1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_15_16*pxzh(ii,jj,kk,iidblock)) &
 	   - (fx+fz)*p2dcssq
 	  !-1  0  -1
 	  
 	  !17  +1  0 -1
-	  udotc=(-uh(i+1,j,k,idblock)+wh(i+1,j,k,idblock))*onecssq
-	  f17(li+1,lj,lk)=p2*(rhoh(i+1,j,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   + oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k,idblock)+qzz*pzzh(i+1,j,k,idblock)-cssq*pyyh(i+1,j,k,idblock)+two*qxz_17_18*pxzh(i+1,j,k,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f17(li+1,lj,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   + oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_17_18*pxzh(ii,jj,kk,iidblock)) &
 	   +(fz-fx)*p2dcssq
 	  !-1  0  +1
 	  
@@ -2051,80 +2444,104 @@
 
     if(lj==1)then
       
-      uu=halfonecssq*(uh(i,j-1,k,idblock)*uh(i,j-1,k,idblock) + vh(i,j-1,k,idblock)*vh(i,j-1,k,idblock) + wh(i,j-1,k,idblock)*wh(i,j-1,k,idblock))
+      gii=gi
+      gjj=gj-1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
       
-            !3 0 -1  0
-	  udotc=vh(i,j-1,k,idblock)*onecssq
-	  f03(li,lj-1,lk)=p1*(rhoh(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq1*(qyy*pyyh(i,j-1,k,idblock)-cssq*(pxxh(i,j-1,k,idblock)+pzzh(i,j-1,k,idblock))) &
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
+      
+      !3 0 -1  0
+	  udotc=vh(ii,jj,kk,iidblock)*onecssq
+	  f03(li,lj-1,lk)=p1*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq1*(qyy*pyyh(ii,jj,kk,iidblock)-cssq*(pxxh(ii,jj,kk,iidblock)+pzzh(ii,jj,kk,iidblock))) &
 	   + fy*p1dcssq
 	  ! 0 +1  0
 	  
 	  !7 -1 -1  0
-	  udotc=(uh(i,j-1,k,idblock)+vh(i,j-1,k,idblock))*onecssq
-	  f07(li,lj-1,lk)=p2*(rhoh(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j-1,k,idblock)+qyy*pyyh(i,j-1,k,idblock)-cssq*pzzh(i,j-1,k,idblock)+two*qxy_7_8*pxyh(i,j-1,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f07(li,lj-1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_7_8*pxyh(ii,jj,kk,iidblock)) &
 	   + (fx+fy)*p2dcssq 
 	  !+1 +1  0
 	  
 	  !10   +1 -1  0
-	  udotc=(-uh(i,j-1,k,idblock)+vh(i,j-1,k,idblock))*onecssq
-	  f10(li,lj-1,lk)=p2*(rhoh(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j-1,k,idblock)+qyy*pyyh(i,j-1,k,idblock)-cssq*pzzh(i,j-1,k,idblock)+two*qxy_9_10*pxyh(i,j-1,k,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f10(li,lj-1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_9_10*pxyh(ii,jj,kk,iidblock)) &
 	   +(fy-fx)*p2dcssq
 	  !-1 +1  0
 	  
 	  !11  0  -1  -1
-	  udotc=(vh(i,j-1,k,idblock)+wh(i,j-1,k,idblock))*onecssq
-	  f11(li,lj-1,lk)=p2*(rhoh(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k,idblock)+qzz*pzzh(i,j-1,k,idblock)-cssq*pxxh(i,j-1,k,idblock)+two*qyz_11_12*pyzh(i,j-1,k,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f11(li,lj-1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_11_12*pyzh(ii,jj,kk,iidblock)) &
 	   + (fy+fz)*p2dcssq
 	  ! 0 +1 +1
 	  
 	  !13  0  -1   +1
-	  udotc=(vh(i,j-1,k,idblock)-wh(i,j-1,k,idblock))*onecssq
-	  f13(li,lj-1,lk)=p2*(rhoh(i,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k,idblock)+qzz*pzzh(i,j-1,k,idblock)-cssq*pxxh(i,j-1,k,idblock)+two*qyz_13_14*pyzh(i,j-1,k,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)-wh(ii,jj,kk,iidblock))*onecssq
+	  f13(li,lj-1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_13_14*pyzh(ii,jj,kk,iidblock)) &
 	   + (fy-fz)*p2dcssq
 	  ! 0 +1 -1
       
     endif
     if(lj==TILE_DIMy_d)then
       
-      uu=halfonecssq*(uh(i,j+1,k,idblock)*uh(i,j+1,k,idblock) + vh(i,j+1,k,idblock)*vh(i,j+1,k,idblock) + wh(i,j+1,k,idblock)*wh(i,j+1,k,idblock))
+      gii=gi
+      gjj=gj+1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !4  0 +1  0
-	  udotc=vh(i,j+1,k,idblock)*onecssq
-	  f04(li,lj+1,lk)=p1*(rhoh(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq1*(qyy*pyyh(i,j+1,k,idblock)-cssq*(pxxh(i,j+1,k,idblock)+pzzh(i,j+1,k,idblock))) &
+	  udotc=vh(ii,jj,kk,iidblock)*onecssq
+	  f04(li,lj+1,lk)=p1*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq1*(qyy*pyyh(ii,jj,kk,iidblock)-cssq*(pxxh(ii,jj,kk,iidblock)+pzzh(ii,jj,kk,iidblock))) &
 	   - fy*p1dcssq
 	  ! 0 -1  0
       
       !8 +1 +1  0
-	  udotc=(uh(i,j+1,k,idblock)+vh(i,j+1,k,idblock))*onecssq
-	  f08(li,lj+1,lk)=p2*(rhoh(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j+1,k,idblock)+qyy*pyyh(i,j+1,k,idblock)-cssq*pzzh(i,j+1,k,idblock)+two*qxy_7_8*pxyh(i,j+1,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f08(li,lj+1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_7_8*pxyh(ii,jj,kk,iidblock)) &
 	   - (fx+fy)*p2dcssq
 	  !-1 -1  0
       
       !9  -1 +1 0
-	  udotc=(-uh(i,j+1,k,idblock)+vh(i,j+1,k,idblock))*onecssq
-	  f09(li,lj+1,lk)=p2*(rhoh(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j+1,k,idblock)+qyy*pyyh(i,j+1,k,idblock)-cssq*pzzh(i,j+1,k,idblock)+two*qxy_9_10*pxyh(i,j+1,k,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f09(li,lj+1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_9_10*pxyh(ii,jj,kk,iidblock)) &
 	   + (fx-fy)*p2dcssq
 	  !+1 -1  0
 	  
 	  !12  0  +1  +1
-	  udotc=(vh(i,j+1,k,idblock)+wh(i,j+1,k,idblock))*onecssq
-	  f12(li,lj+1,lk)=p2*(rhoh(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k,idblock)+qzz*pzzh(i,j+1,k,idblock)-cssq*pxxh(i,j+1,k,idblock)+two*qyz_11_12*pyzh(i,j+1,k,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f12(li,lj+1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_11_12*pyzh(ii,jj,kk,iidblock)) &
 	   - (fy+fz)*p2dcssq
 	  ! 0 -1 -1
 	  
 	  !14  0  +1  -1
-	  udotc=(vh(i,j+1,k,idblock)-wh(i,j+1,k,idblock))*onecssq
-	  f14(li,lj+1,lk)=p2*(rhoh(i,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k,idblock)+qzz*pzzh(i,j+1,k,idblock)-cssq*pxxh(i,j+1,k,idblock)+two*qyz_13_14*pyzh(i,j+1,k,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)-wh(ii,jj,kk,iidblock))*onecssq
+	  f14(li,lj+1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_13_14*pyzh(ii,jj,kk,iidblock)) &
 	   + (fz-fy)*p2dcssq
 	  ! 0 -1 +1
       
@@ -2132,40 +2549,52 @@
 
     if(lk==1)then
       
-      uu=halfonecssq*(uh(i,j,k-1,idblock)*uh(i,j,k-1,idblock) + vh(i,j,k-1,idblock)*vh(i,j,k-1,idblock) + wh(i,j,k-1,idblock)*wh(i,j,k-1,idblock))
+      gii=gi
+      gjj=gj
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !5  0  0 -1
-	  udotc=wh(i,j,k-1,idblock)*onecssq
-	  f05(li,lj,lk-1)=p1*(rhoh(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k-1,idblock)-cssq*(pxxh(i,j,k-1,idblock)+pyyh(i,j,k-1,idblock))) &
+	  udotc=wh(ii,jj,kk,iidblock)*onecssq
+	  f05(li,lj,lk-1)=p1*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq1*(qzz*pzzh(ii,jj,kk,iidblock)-cssq*(pxxh(ii,jj,kk,iidblock)+pyyh(ii,jj,kk,iidblock))) &
 	   + fz*p1dcssq
 	  ! 0  0 +1
       
       !15  -1  0 -1
-	  udotc=(uh(i,j,k-1,idblock)+wh(i,j,k-1,idblock))*onecssq
-	  f15(li,lj,lk-1)=p2*(rhoh(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k-1,idblock)+qzz*pzzh(i,j,k-1,idblock)-cssq*pyyh(i,j,k-1,idblock)+two*qxz_15_16*pxzh(i,j,k-1,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f15(li,lj,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_15_16*pxzh(ii,jj,kk,iidblock)) &
 	   + (fx+fz)*p2dcssq 
 	  !+1  0  +1
       
       !17  +1  0 -1
-	  udotc=(-uh(i,j,k-1,idblock)+wh(i,j,k-1,idblock))*onecssq
-	  f17(li,lj,lk-1)=p2*(rhoh(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k-1,idblock)+qzz*pzzh(i,j,k-1,idblock)-cssq*pyyh(i,j,k-1,idblock)+two*qxz_17_18*pxzh(i,j,k-1,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f17(li,lj,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_17_18*pxzh(ii,jj,kk,iidblock)) &
 	   +(fz-fx)*p2dcssq
 	  !-1  0  +1
 	  
 	  !11  0  -1  -1
-	  udotc=(vh(i,j,k-1,idblock)+wh(i,j,k-1,idblock))*onecssq
-	  f11(li,lj,lk-1)=p2*(rhoh(i,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k-1,idblock)+qzz*pzzh(i,j,k-1,idblock)-cssq*pxxh(i,j,k-1,idblock)+two*qyz_11_12*pyzh(i,j,k-1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f11(li,lj,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_11_12*pyzh(ii,jj,kk,iidblock)) &
 	   + (fy+fz)*p2dcssq
 	  ! 0 +1 +1
 	  
 	  !14  0  +1  -1
-	  udotc=(vh(i,j,k-1,idblock)-wh(i,j,k-1,idblock))*onecssq
-	  f14(li,lj,lk-1)=p2*(rhoh(i,j,k-1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k-1,idblock)+qzz*pzzh(i,j,k-1,idblock)-cssq*pxxh(i,j,k-1,idblock)+two*qyz_13_14*pyzh(i,j,k-1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)-wh(ii,jj,kk,iidblock))*onecssq
+	  f14(li,lj,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_13_14*pyzh(ii,jj,kk,iidblock)) &
 	   + (fz-fy)*p2dcssq
 	  ! 0 -1 +1
 	  
@@ -2173,41 +2602,53 @@
     endif
     if(lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(uh(i,j,k+1,idblock)*uh(i,j,k+1,idblock) + vh(i,j,k+1,idblock)*vh(i,j,k+1,idblock) + wh(i,j,k+1,idblock)*wh(i,j,k+1,idblock))
+      gii=gi
+      gjj=gj
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !6  0  0  +1
-	  udotc=wh(i,j,k+1,idblock)*onecssq
-	  f06(li,lj,lk+1)=p1*(rhoh(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq1*(qzz*pzzh(i,j,k+1,idblock)-cssq*(pxxh(i,j,k+1,idblock)+pyyh(i,j,k+1,idblock))) &
+	  udotc=wh(ii,jj,kk,iidblock)*onecssq
+	  f06(li,lj,lk+1)=p1*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq1*(qzz*pzzh(ii,jj,kk,iidblock)-cssq*(pxxh(ii,jj,kk,iidblock)+pyyh(ii,jj,kk,iidblock))) &
 	   - fz*p1dcssq
 	  ! 0  0 -1
 	  
 	  !16  +1  0 +1
-	  udotc=(uh(i,j,k+1,idblock)+wh(i,j,k+1,idblock))*onecssq
-	  f16(li,lj,lk+1)=p2*(rhoh(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k+1,idblock)+qzz*pzzh(i,j,k+1,idblock)-cssq*pyyh(i,j,k+1,idblock)+two*qxz_15_16*pxzh(i,j,k+1,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f16(li,lj,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_15_16*pxzh(ii,jj,kk,iidblock)) &
 	   - (fx+fz)*p2dcssq
 	  !-1  0  -1
       
       !18   -1   0  +1
-	  udotc=(-uh(i,j,k+1,idblock)+wh(i,j,k+1,idblock))*onecssq
-	  f18(li,lj,lk+1)=p2*(rhoh(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i,j,k+1,idblock)+qzz*pzzh(i,j,k+1,idblock)-cssq*pyyh(i,j,k+1,idblock)+two*qxz_17_18*pxzh(i,j,k+1,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f18(li,lj,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_17_18*pxzh(ii,jj,kk,iidblock)) &
 	   + (fx-fz)*p2dcssq
 	  !+1  0  -1
 	  
 	  !12  0  +1  +1
-	  udotc=(vh(i,j,k+1,idblock)+wh(i,j,k+1,idblock))*onecssq
-	  f12(li,lj,lk+1)=p2*(rhoh(i,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k+1,idblock)+qzz*pzzh(i,j,k+1,idblock)-cssq*pxxh(i,j,k+1,idblock)+two*qyz_11_12*pyzh(i,j,k+1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f12(li,lj,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_11_12*pyzh(ii,jj,kk,iidblock)) &
 	   - (fy+fz)*p2dcssq
 	  ! 0 -1 -1
 
 
 	  !13  0  -1   +1
-	  udotc=(vh(i,j,k+1,idblock)-wh(i,j,k+1,idblock))*onecssq
-	  f13(li,lj,lk+1)=p2*(rhoh(i,j,k+1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j,k+1,idblock)+qzz*pzzh(i,j,k+1,idblock)-cssq*pxxh(i,j,k+1,idblock)+two*qyz_13_14*pyzh(i,j,k+1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)-wh(ii,jj,kk,iidblock))*onecssq
+	  f13(li,lj,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_13_14*pyzh(ii,jj,kk,iidblock)) &
 	   + (fy-fz)*p2dcssq
 	  ! 0 +1 -1
     endif
@@ -2215,144 +2656,288 @@
     ! Halo edges
     if(li==1 .and. lj==1)then
       
-      uu=halfonecssq*(uh(i-1,j-1,k,idblock)*uh(i-1,j-1,k,idblock) + vh(i-1,j-1,k,idblock)*vh(i-1,j-1,k,idblock) + wh(i-1,j-1,k,idblock)*wh(i-1,j-1,k,idblock))
+      gii=gi-1
+      gjj=gj-1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !7 -1 -1  0
-	  udotc=(uh(i-1,j-1,k,idblock)+vh(i-1,j-1,k,idblock))*onecssq
-	  f07(li-1,lj-1,lk)=p2*(rhoh(i-1,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j-1,k,idblock)+qyy*pyyh(i-1,j-1,k,idblock)-cssq*pzzh(i-1,j-1,k,idblock)+two*qxy_7_8*pxyh(i-1,j-1,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f07(li-1,lj-1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_7_8*pxyh(ii,jj,kk,iidblock)) &
 	   + (fx+fy)*p2dcssq 
 	  !+1 +1  0
       
     endif
     if(li==1 .and. lj==TILE_DIMy_d)then
       
-      uu=halfonecssq*(uh(i-1,j+1,k,idblock)*uh(i-1,j+1,k,idblock) + vh(i-1,j+1,k,idblock)*vh(i-1,j+1,k,idblock) + wh(i-1,j+1,k,idblock)*wh(i-1,j+1,k,idblock))
+      gii=gi-1
+      gjj=gj+1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !9  -1 +1 0
-      udotc=(-uh(i-1,j+1,k,idblock)+vh(i-1,j+1,k,idblock))*onecssq
-	  f09(li-1,lj+1,lk)=p2*(rhoh(i-1,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j+1,k,idblock)+qyy*pyyh(i-1,j+1,k,idblock)-cssq*pzzh(i-1,j+1,k,idblock)+two*qxy_9_10*pxyh(i-1,j+1,k,idblock)) &
+      udotc=(-uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f09(li-1,lj+1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_9_10*pxyh(ii,jj,kk,iidblock)) &
 	   + (fx-fy)*p2dcssq
 	  !+1 -1  0
       
     endif
     if(li==1 .and. lk==1)then
       
-      uu=halfonecssq*(uh(i-1,j,k-1,idblock)*uh(i-1,j,k-1,idblock) + vh(i-1,j,k-1,idblock)*vh(i-1,j,k-1,idblock) + wh(i-1,j,k-1,idblock)*wh(i-1,j,k-1,idblock))
+      gii=gi-1
+      gjj=gj
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !15  -1  0 -1
-	  udotc=(uh(i-1,j,k-1,idblock)+wh(i-1,j,k-1,idblock))*onecssq
-	  f15(li-1,lj,lk-1)=p2*(rhoh(i-1,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k-1,idblock)+qzz*pzzh(i-1,j,k-1,idblock)-cssq*pyyh(i-1,j,k-1,idblock)+two*qxz_15_16*pxzh(i-1,j,k-1,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f15(li-1,lj,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_15_16*pxzh(ii,jj,kk,iidblock)) &
 	   + (fx+fz)*p2dcssq 
 	  !+1  0  +1
       
     endif
     if(li==1 .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(uh(i-1,j,k+1,idblock)*uh(i-1,j,k+1,idblock) + vh(i-1,j,k+1,idblock)*vh(i-1,j,k+1,idblock) + wh(i-1,j,k+1,idblock)*wh(i-1,j,k+1,idblock))
+      gii=gi-1
+      gjj=gj
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !18   -1   0  +1
-	  udotc=(-uh(i-1,j,k+1,idblock)+wh(i-1,j,k+1,idblock))*onecssq
-	  f18(li-1,lj,lk+1)=p2*(rhoh(i-1,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i-1,j,k+1,idblock)+qzz*pzzh(i-1,j,k+1,idblock)-cssq*pyyh(i-1,j,k+1,idblock)+two*qxz_17_18*pxzh(i-1,j,k+1,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f18(li-1,lj,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_17_18*pxzh(ii,jj,kk,iidblock)) &
 	   + (fx-fz)*p2dcssq
 	  !+1  0  -1
       
     endif
     if(li==TILE_DIMx_d .and. lj==1)then
       
-      uu=halfonecssq*(uh(i+1,j-1,k,idblock)*uh(i+1,j-1,k,idblock) + vh(i+1,j-1,k,idblock)*vh(i+1,j-1,k,idblock) + wh(i+1,j-1,k,idblock)*wh(i+1,j-1,k,idblock))
+      gii=gi+1
+      gjj=gj-1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !10   +1 -1  0
-	  udotc=(-uh(i+1,j-1,k,idblock)+vh(i+1,j-1,k,idblock))*onecssq
-	  f10(li+1,lj-1,lk)=p2*(rhoh(i+1,j-1,k,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j-1,k,idblock)+qyy*pyyh(i+1,j-1,k,idblock)-cssq*pzzh(i+1,j-1,k,idblock)+two*qxy_9_10*pxyh(i+1,j-1,k,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f10(li+1,lj-1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_9_10*pxyh(ii,jj,kk,iidblock)) &
 	   +(fy-fx)*p2dcssq
 	  !-1 +1  0
       
     endif
     if(li==TILE_DIMx_d .and. lj==TILE_DIMy_d)then
       
-      uu=halfonecssq*(uh(i+1,j+1,k,idblock)*uh(i+1,j+1,k,idblock) + vh(i+1,j+1,k,idblock)*vh(i+1,j+1,k,idblock) + wh(i+1,j+1,k,idblock)*wh(i+1,j+1,k,idblock))
+      gii=gi+1
+      gjj=gj+1
+      gkk=gk
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !8 +1 +1  0
-	  udotc=(uh(i+1,j+1,k,idblock)+vh(i+1,j+1,k,idblock))*onecssq
-	  f08(li+1,lj+1,lk)=p2*(rhoh(i+1,j+1,k,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j+1,k,idblock)+qyy*pyyh(i+1,j+1,k,idblock)-cssq*pzzh(i+1,j+1,k,idblock)+two*qxy_7_8*pxyh(i+1,j+1,k,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+vh(ii,jj,kk,iidblock))*onecssq
+	  f08(li+1,lj+1,lk)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qyy*pyyh(ii,jj,kk,iidblock)-cssq*pzzh(ii,jj,kk,iidblock)+two*qxy_7_8*pxyh(ii,jj,kk,iidblock)) &
 	   - (fx+fy)*p2dcssq
 	  !-1 -1  0
       
     endif
     if(li==TILE_DIMx_d .and. lk==1)then
       
-      uu=halfonecssq*(uh(i+1,j,k-1,idblock)*uh(i+1,j,k-1,idblock) + vh(i+1,j,k-1,idblock)*vh(i+1,j,k-1,idblock) + wh(i+1,j,k-1,idblock)*wh(i+1,j,k-1,idblock))
+      gii=gi+1
+      gjj=gj
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !17  +1  0 -1
-	  udotc=(-uh(i+1,j,k-1,idblock)+wh(i+1,j,k-1,idblock))*onecssq
-	  f17(li+1,lj,lk-1)=p2*(rhoh(i+1,j,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   + oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k-1,idblock)+qzz*pzzh(i+1,j,k-1,idblock)-cssq*pyyh(i+1,j,k-1,idblock)+two*qxz_17_18*pxzh(i+1,j,k-1,idblock)) &
+	  udotc=(-uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f17(li+1,lj,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   + oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_17_18*pxzh(ii,jj,kk,iidblock)) &
 	   +(fz-fx)*p2dcssq
 	  !-1  0  +1
       
     endif
     if(li==TILE_DIMx_d .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(uh(i+1,j,k+1,idblock)*uh(i+1,j,k+1,idblock) + vh(i+1,j,k+1,idblock)*vh(i+1,j,k+1,idblock) + wh(i+1,j,k+1,idblock)*wh(i+1,j,k+1,idblock))
+      gii=gi+1
+      gjj=gj
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !16  +1  0 +1
-	  udotc=(uh(i+1,j,k+1,idblock)+wh(i+1,j,k+1,idblock))*onecssq
-	  f16(li+1,lj,lk+1)=p2*(rhoh(i+1,j,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qxx*pxxh(i+1,j,k+1,idblock)+qzz*pzzh(i+1,j,k+1,idblock)-cssq*pyyh(i+1,j,k+1,idblock)+two*qxz_15_16*pxzh(i+1,j,k+1,idblock)) &
+	  udotc=(uh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f16(li+1,lj,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qxx*pxxh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pyyh(ii,jj,kk,iidblock)+two*qxz_15_16*pxzh(ii,jj,kk,iidblock)) &
 	   - (fx+fz)*p2dcssq
 	  !-1  0  -1
       
     endif
     if(lj==1 .and. lk==1)then
       
-      uu=halfonecssq*(uh(i,j-1,k-1,idblock)*uh(i,j-1,k-1,idblock) + vh(i,j-1,k-1,idblock)*vh(i,j-1,k-1,idblock) + wh(i,j-1,k-1,idblock)*wh(i,j-1,k-1,idblock))
+      gii=gi
+      gjj=gj-1
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !11  0  -1  -1
-	  udotc=(vh(i,j-1,k-1,idblock)+wh(i,j-1,k-1,idblock))*onecssq
-	  f11(li,lj-1,lk-1)=p2*(rhoh(i,j-1,k-1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k-1,idblock)+qzz*pzzh(i,j-1,k-1,idblock)-cssq*pxxh(i,j-1,k-1,idblock)+two*qyz_11_12*pyzh(i,j-1,k-1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f11(li,lj-1,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_11_12*pyzh(ii,jj,kk,iidblock)) &
 	   + (fy+fz)*p2dcssq
 	  ! 0 +1 +1
       
     endif
     if(lj==1 .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(uh(i,j-1,k+1,idblock)*uh(i,j-1,k+1,idblock) + vh(i,j-1,k+1,idblock)*vh(i,j-1,k+1,idblock) + wh(i,j-1,k+1,idblock)*wh(i,j-1,k+1,idblock))
+      gii=gi
+      gjj=gj-1
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !13  0  -1   +1
-	  udotc=(vh(i,j-1,k+1,idblock)-wh(i,j-1,k+1,idblock))*onecssq
-	  f13(li,lj-1,lk+1)=p2*(rhoh(i,j-1,k+1,idblock)+(-uu + half*udotc*udotc + udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j-1,k+1,idblock)+qzz*pzzh(i,j-1,k+1,idblock)-cssq*pxxh(i,j-1,k+1,idblock)+two*qyz_13_14*pyzh(i,j-1,k+1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)-wh(ii,jj,kk,iidblock))*onecssq
+	  f13(li,lj-1,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc + udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_13_14*pyzh(ii,jj,kk,iidblock)) &
 	   + (fy-fz)*p2dcssq
 	  ! 0 +1 -1
       
     endif
     if(lj==TILE_DIMy_d .and. lk==1)then
       
-      uu=halfonecssq*(uh(i,j+1,k-1,idblock)*uh(i,j+1,k-1,idblock) + vh(i,j+1,k-1,idblock)*vh(i,j+1,k-1,idblock) + wh(i,j+1,k-1,idblock)*wh(i,j+1,k-1,idblock))
+      gii=gi
+      gjj=gj+1
+      gkk=gk-1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !14  0  +1  -1
-	  udotc=(vh(i,j+1,k-1,idblock)-wh(i,j+1,k-1,idblock))*onecssq
-	  f14(li,lj+1,lk-1)=p2*(rhoh(i,j+1,k-1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k-1,idblock)+qzz*pzzh(i,j+1,k-1,idblock)-cssq*pxxh(i,j+1,k-1,idblock)+two*qyz_13_14*pyzh(i,j+1,k-1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)-wh(ii,jj,kk,iidblock))*onecssq
+	  f14(li,lj+1,lk-1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_13_14*pyzh(ii,jj,kk,iidblock)) &
 	   + (fz-fy)*p2dcssq
 	  ! 0 -1 +1
       
     endif
     if(lj==TILE_DIMy_d .and. lk==TILE_DIMz_d)then
       
-      uu=halfonecssq*(uh(i,j+1,k+1,idblock)*uh(i,j+1,k+1,idblock) + vh(i,j+1,k+1,idblock)*vh(i,j+1,k+1,idblock) + wh(i,j+1,k+1,idblock)*wh(i,j+1,k+1,idblock))
+      gii=gi
+      gjj=gj+1
+      gkk=gk+1
+      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      
+      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      
+      uu=halfonecssq*(uh(ii,jj,kk,iidblock)*uh(ii,jj,kk,iidblock) + vh(ii,jj,kk,iidblock)*vh(ii,jj,kk,iidblock) + wh(ii,jj,kk,iidblock)*wh(ii,jj,kk,iidblock))
       
       !12  0  +1  +1
-	  udotc=(vh(i,j+1,k+1,idblock)+wh(i,j+1,k+1,idblock))*onecssq
-	  f12(li,lj+1,lk+1)=p2*(rhoh(i,j+1,k+1,idblock)+(-uu + half*udotc*udotc - udotc)) &
-	   +oneminusomega*pi2cssq2*(qyy*pyyh(i,j+1,k+1,idblock)+qzz*pzzh(i,j+1,k+1,idblock)-cssq*pxxh(i,j+1,k+1,idblock)+two*qyz_11_12*pyzh(i,j+1,k+1,idblock)) &
+	  udotc=(vh(ii,jj,kk,iidblock)+wh(ii,jj,kk,iidblock))*onecssq
+	  f12(li,lj+1,lk+1)=p2*(rhoh(ii,jj,kk,iidblock)+(-uu + half*udotc*udotc - udotc)) &
+	   +oneminusomega*pi2cssq2*(qyy*pyyh(ii,jj,kk,iidblock)+qzz*pzzh(ii,jj,kk,iidblock)-cssq*pxxh(ii,jj,kk,iidblock)+two*qyz_11_12*pyzh(ii,jj,kk,iidblock)) &
 	   - (fy+fz)*p2dcssq
 	  ! 0 -1 -1
       
@@ -2363,64 +2948,208 @@
     if(isfluid(gi,gj,gk).eq.0)then
 #ifdef IFBC
           
-          if(isfluid(i+1,j,k-1).eq.-1)f18(li,lj,lk)=f17(li+1,lj,lk-1) !gpc 
-          if(isfluid(i-1,j,k+1).eq.-1)f17(li,lj,lk)=f18(li-1,lj,lk+1) !hpc
+          if(isfluid(gi+1,gj,gk-1).eq.-1)f18(li,lj,lk)=f17(li+1,lj,lk-1) !gpc 
+          if(isfluid(gi-1,gj,gk+1).eq.-1)f17(li,lj,lk)=f18(li-1,lj,lk+1) !hpc
 
-          if(isfluid(i-1,j,k-1).eq.-1)f16(li,lj,lk)=f15(li-1,lj,lk-1) !gpc 
-          if(isfluid(i+1,j,k+1).eq.-1)f15(li,lj,lk)=f16(li+1,lj,lk+1) !hpc
+          if(isfluid(gi-1,gj,gk-1).eq.-1)f16(li,lj,lk)=f15(li-1,lj,lk-1) !gpc 
+          if(isfluid(gi+1,gj,gk+1).eq.-1)f15(li,lj,lk)=f16(li+1,lj,lk+1) !hpc
 
-          if(isfluid(i,j-1,k+1).eq.-1)f14(li,lj,lk)=f13(li,lj-1,lk+1)!gpc 
-          if(isfluid(i,j+1,k-1).eq.-1)f13(li,lj,lk)=f14(li,lj+1,lk-1)!hpc
+          if(isfluid(gi,gj-1,gk+1).eq.-1)f14(li,lj,lk)=f13(li,lj-1,lk+1)!gpc 
+          if(isfluid(gi,gj+1,gk-1).eq.-1)f13(li,lj,lk)=f14(li,lj+1,lk-1)!hpc
         
-          if(isfluid(i,j-1,k-1).eq.-1)f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc
-          if(isfluid(i,j+1,k+1).eq.-1)f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
+          if(isfluid(gi,gj-1,gk-1).eq.-1)f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc
+          if(isfluid(gi,gj+1,gk+1).eq.-1)f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
 
-          if(isfluid(i-1,j+1,k).eq.-1)f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc  
-          if(isfluid(i+1,j-1,k).eq.-1)f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
+          if(isfluid(gi-1,gj+1,gk).eq.-1)f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc  
+          if(isfluid(gi+1,gj-1,gk).eq.-1)f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
 
-          if(isfluid(i-1,j-1,k).eq.-1)f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
-          if(isfluid(i+1,j+1,k).eq.-1)f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
+          if(isfluid(gi-1,gj-1,gk).eq.-1)f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
+          if(isfluid(gi+1,gj+1,gk).eq.-1)f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
 
-          if(isfluid(i,j,k-1).eq.-1)f06(li,lj,lk)=f05(li,lj,lk-1)!gpc
-          if(isfluid(i,j,k+1).eq.-1)f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
+          if(isfluid(gi,gj,gk-1).eq.-1)f06(li,lj,lk)=f05(li,lj,lk-1)!gpc
+          if(isfluid(gi,gj,gk+1).eq.-1)f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
 
-          if(isfluid(i,j-1,k).eq.-1)f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
-          if(isfluid(i,j+1,k).eq.-1)f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
+          if(isfluid(gi,gj-1,gk).eq.-1)f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
+          if(isfluid(gi,gj+1,gk).eq.-1)f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
 
-          if(isfluid(i-1,j,k).eq.-1)f02(li,lj,lk)=f01(li-1,lj,lk)!gpc
-          if(isfluid(i+1,j,k).eq.-1)f01(li,lj,lk)=f02(li+1,lj,lk)!hpc 
+          if(isfluid(gi-1,gj,gk).eq.-1)f02(li,lj,lk)=f01(li-1,lj,lk)!gpc
+          if(isfluid(gi+1,gj,gk).eq.-1)f01(li,lj,lk)=f02(li+1,lj,lk)!hpc 
           
 #else
           
-          f18(li,lj,lk)=f17(li+1,lj,lk-1) !gpc 
-          f17(li,lj,lk)=f18(li-1,lj,lk+1) !hpc
-
-          f16(li,lj,lk)=f15(li-1,lj,lk-1) !gpc 
-          f15(li,lj,lk)=f16(li+1,lj,lk+1) !hpc
-
-          f14(li,lj,lk)=f13(li,lj-1,lk+1)!gpc 
-          f13(li,lj,lk)=f14(li,lj+1,lk-1)!hpc
+        f01(li,lj,lk)=f02(li+1,lj,lk)!hpc 
+        f02(li,lj,lk)=f01(li-1,lj,lk)!gpc 
         
-          f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc 
-          f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
-
-          f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc 
-          f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
-
-          f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
-          f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
-
-          f06(li,lj,lk)=f05(li,lj,lk-1)!gpc 
-          f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
-
-          f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
-          f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
-
-          f02(li,lj,lk)=f01(li-1,lj,lk)!gpc 
-          f01(li,lj,lk)=f02(li+1,lj,lk)!hpc          
+        f03(li,lj,lk)=f04(li,lj+1,lk)!hpc 
+        f04(li,lj,lk)=f03(li,lj-1,lk)!gpc 
+        
+        f05(li,lj,lk)=f06(li,lj,lk+1)!hpc 
+        f06(li,lj,lk)=f05(li,lj,lk-1)!gpc 
+        
+        f07(li,lj,lk)=f08(li+1,lj+1,lk)!hpc
+        f08(li,lj,lk)=f07(li-1,lj-1,lk)!gpc 
+        
+        f09(li,lj,lk)=f10(li+1,lj-1,lk)!hpc
+        f10(li,lj,lk)=f09(li-1,lj+1,lk)!gpc 
+        
+        f11(li,lj,lk)=f12(li,lj+1,lk+1)!hpc
+        f12(li,lj,lk)=f11(li,lj-1,lk-1)!gpc 
+        
+        f13(li,lj,lk)=f14(li,lj+1,lk-1)!hpc
+        f14(li,lj,lk)=f13(li,lj-1,lk+1)!gpc 
+        
+        f15(li,lj,lk)=f16(li+1,lj,lk+1) !hpc
+        f16(li,lj,lk)=f15(li-1,lj,lk-1) !gpc 
+        
+        f17(li,lj,lk)=f18(li-1,lj,lk+1) !hpc
+        f18(li,lj,lk)=f17(li+1,lj,lk-1) !gpc       
 
 #endif
     endif
+    
+    ! Halo Faces
+    if(li==1)then
+      if(isfluid(gi-1,gj,gk).eq.0)then
+        f01(li-1,lj,lk)=f02(li,lj,lk)!hpc 
+        
+        f07(li-1,lj,lk)=f08(li,lj+1,lk)!hpc
+        
+        f09(li-1,lj,lk)=f10(li,lj-1,lk)!hpc
+        
+        f15(li-1,lj,lk)=f16(li,lj,lk+1) !hpc
+
+        f18(li-1,lj,lk)=f17(li,lj,lk-1) !gpc 
+      endif
+    endif
+    if(li==TILE_DIMx_d)then
+      if(isfluid(gi+1,gj,gk).eq.0)then
+        f02(li+1,lj,lk)=f01(li,lj,lk)!gpc 
+        
+        f08(li+1,lj,lk)=f07(li,lj-1,lk)!gpc 
+        
+        f10(li+1,lj,lk)=f09(li,lj+1,lk)!gpc 
+        
+        f16(li+1,lj,lk)=f15(li,lj,lk-1) !gpc 
+        
+        f17(li+1,lj,lk)=f18(li,lj,lk+1) !hpc 
+      endif
+    endif
+
+    if(lj==1)then
+      if(isfluid(gi,gj-1,gk).eq.0)then
+        f03(li,lj-1,lk)=f04(li,lj,lk)!hpc 
+        
+        f07(li,lj-1,lk)=f08(li+1,lj,lk)!hpc
+        
+        f10(li,lj-1,lk)=f09(li-1,lj,lk)!gpc 
+        
+        f11(li,lj-1,lk)=f12(li,lj,lk+1)!hpc
+        
+        f13(li,lj-1,lk)=f14(li,lj,lk-1)!hpc    
+      endif
+    endif
+    if(lj==TILE_DIMy_d)then
+      if(isfluid(gi,gj+1,gk).eq.0)then
+        f04(li,lj+1,lk)=f03(li,lj,lk)!gpc 
+        
+        f08(li,lj+1,lk)=f07(li-1,lj,lk)!gpc 
+        
+        f09(li,lj+1,lk)=f10(li+1,lj,lk)!hpc
+        
+        f12(li,lj+1,lk)=f11(li,lj,lk-1)!gpc 
+        
+        f14(li,lj+1,lk)=f13(li,lj,lk+1)!gpc   
+      endif
+    endif
+
+    if(lk==1)then
+      if(isfluid(gi,gj,gk-1).eq.0)then
+        f05(li,lj,lk-1)=f06(li,lj,lk)!hpc 
+        
+        f11(li,lj,lk-1)=f12(li,lj+1,lk)!hpc
+        
+        f14(li,lj,lk-1)=f13(li,lj-1,lk)!gpc 
+        
+        f15(li,lj,lk-1)=f16(li+1,lj,lk) !hpc
+        
+        f17(li,lj,lk-1)=f18(li-1,lj,lk) !hpc
+      endif
+    endif
+    if(lk==TILE_DIMz_d)then
+      if(isfluid(gi,gj,gk+1).eq.0)then
+        f06(li,lj,lk+1)=f05(li,lj,lk)!gpc 
+        
+        f12(li,lj,lk+1)=f11(li,lj-1,lk)!gpc 
+        
+        f13(li,lj,lk+1)=f14(li,lj+1,lk)!hpc
+        
+        f16(li,lj,lk+1)=f15(li-1,lj,lk) !gpc 
+        
+        f18(li,lj,lk+1)=f17(li+1,lj,lk) !gpc 
+      endif
+    endif
+
+    ! Halo edges
+    if(li==1 .and. lj==1)then
+      if(isfluid(gi-1,gj-1,gk).eq.0)then
+        f07(li-1,lj-1,lk)=f08(li,lj,lk)!hpc
+      endif
+    endif
+    if(li==1 .and. lj==TILE_DIMy_d)then
+      if(isfluid(gi-1,gj+1,gk).eq.0)then
+        f09(li-1,lj+1,lk)=f10(li,lj,lk)!hpc
+      endif
+    endif
+    if(li==1 .and. lk==1)then
+      if(isfluid(gi-1,gj,gk-1).eq.0)then
+        f15(li-1,lj,lk-1)=f16(li,lj,lk) !hpc
+      endif
+    endif
+    if(li==1 .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi-1,gj,gk+1).eq.0)then
+        f18(li-1,lj,lk+1)=f17(li,lj,lk) !gpc    
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lj==1)then
+      if(isfluid(gi+1,gj-1,gk).eq.0)then
+        f10(li+1,lj-1,lk)=f09(li,lj,lk)!gpc 
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lj==TILE_DIMy_d)then
+      if(isfluid(gi+1,gj+1,gk).eq.0)then
+        f08(li+1,lj+1,lk)=f07(li,lj,lk)!gpc 
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lk==1)then
+      if(isfluid(gi+1,gj,gk-1).eq.0)then
+        f17(li+1,lj,lk-1)=f18(li,lj,lk) !hpc
+      endif
+    endif
+    if(li==TILE_DIMx_d .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi+1,gj,gk+1).eq.0)then
+        f16(li+1,lj,lk+1)=f15(li,lj,lk) !gpc 
+      endif
+    endif
+    if(lj==1 .and. lk==1)then
+      if(isfluid(gi,gj-1,gk-1).eq.0)then
+        f11(li,lj-1,lk-1)=f12(li,lj,lk)!hpc
+      endif
+    endif
+    if(lj==1 .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi,gj-1,gk+1).eq.0)then
+        f13(li,lj-1,lk+1)=f14(li,lj,lk)!hpc
+      endif
+    endif
+    if(lj==TILE_DIMy_d .and. lk==1)then
+      if(isfluid(gi,gj+1,gk-1).eq.0)then
+        f14(li,lj+1,lk-1)=f13(li,lj,lk)!gpc 
+      endif
+    endif
+    if(lj==TILE_DIMy_d .and. lk==TILE_DIMz_d)then
+      if(isfluid(gi,gj+1,gk+1).eq.0)then
+        f12(li,lj+1,lk+1)=f11(li,lj,lk)!gpc 
+      endif
+    endif      
     
     call syncthreads
     
@@ -2433,14 +3162,14 @@
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)+ &
      f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	rho(i,j,k,idblock)=udotc
+	rho(i,j,k,myblock)=udotc
 	
 	udotc=f01(li-1,lj,lk)-f02(li+1,lj,lk)+  &
      f07(li-1,lj-1,lk)-f08(li+1,lj+1,lk)+ &
      f09(li-1,lj+1,lk)-f10(li+1,lj-1,lk)+ &
      f15(li-1,lj,lk-1)-f16(li+1,lj,lk+1)- &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	u(i,j,k,idblock)=udotc
+	u(i,j,k,myblock)=udotc
 	
 	
 	udotc=f03(li,lj-1,lk)-f04(li,lj+1,lk)+ &
@@ -2448,159 +3177,160 @@
      f09(li-1,lj+1,lk)+f10(li+1,lj-1,lk)+ &
      f11(li,lj-1,lk-1)-f12(li,lj+1,lk+1)+ &
      f13(li,lj-1,lk+1)-f14(li,lj+1,lk-1)
-	v(i,j,k,idblock)=udotc
+	v(i,j,k,myblock)=udotc
 	
 	udotc=f05(li,lj,lk-1)-f06(li,lj,lk+1)+  &
      f11(li,lj-1,lk-1)-f12(li,lj+1,lk+1)- &
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)+ &
      f15(li-1,lj,lk-1)-f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)-f18(li-1,lj,lk+1)
-	w(i,j,k,idblock)=udotc
+	w(i,j,k,myblock)=udotc
 	
 	udotc=f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f07(li-1,lj-1,lk)+f08(li+1,lj+1,lk)+ &
      f09(li-1,lj+1,lk)+f10(li+1,lj-1,lk)+ &
      f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	pxx(i,j,k,idblock)=udotc
+	pxx(i,j,k,myblock)=udotc
 	
 	udotc=f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
      f07(li-1,lj-1,lk)+f08(li+1,lj+1,lk)+ &
      f09(li-1,lj+1,lk)+f10(li+1,lj-1,lk)+ &
      f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)+ &
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)
-	pyy(i,j,k,idblock)=udotc
+	pyy(i,j,k,myblock)=udotc
 	
 	udotc=f05(li,lj,lk-1)+f06(li,lj,lk+1)+  &
      f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)+ &
      f13(li,lj-1,lk+1)+f14(li,lj+1,lk-1)+ &
      f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)+ &
      f17(li+1,lj,lk-1)+f18(li-1,lj,lk+1)
-	pzz(i,j,k,idblock)=udotc
+	pzz(i,j,k,myblock)=udotc
 	
 	udotc=f07(li-1,lj-1,lk)+f08(li+1,lj+1,lk)- &
      f09(li-1,lj+1,lk)-f10(li+1,lj-1,lk)
-	pxy(i,j,k,idblock)=udotc
+	pxy(i,j,k,myblock)=udotc
 	
 	udotc=f15(li-1,lj,lk-1)+f16(li+1,lj,lk+1)- &
      f17(li+1,lj,lk-1)-f18(li-1,lj,lk+1)
-	pxz(i,j,k,idblock)=udotc
+	pxz(i,j,k,myblock)=udotc
 	
 	udotc=f11(li,lj-1,lk-1)+f12(li,lj+1,lk+1)- &
      f13(li,lj-1,lk+1)-f14(li,lj+1,lk-1)
-	pyz(i,j,k,idblock)=udotc
-    
+	pyz(i,j,k,myblock)=udotc
+     
 #ifdef PRESSCORR
+
 	call syncthreads
 	
-	uu=halfonecssq*(u(i,j,k,idblock)*u(i,j,k,idblock) + v(i,j,k,idblock)*v(i,j,k,idblock) + w(i,j,k,idblock)*w(i,j,k,idblock))
+	uu=halfonecssq*(u(i,j,k,myblock)*u(i,j,k,myblock) + v(i,j,k,myblock)*v(i,j,k,myblock) + w(i,j,k,myblock)*w(i,j,k,myblock))
     
 	!1 -1  0  0
-	udotc=u(i,j,k,idblock)*onecssq
+	udotc=u(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f01(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp + udotc))
+	f01(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp + udotc))
 	!+1  0  0
 
 
 	!2 +1  0  0
-	f02(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp - udotc))
+	f02(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp - udotc))
 	!-1  0  0
 
     		
 	!3 0 -1  0
-	udotc=v(i,j,k,idblock)*onecssq
+	udotc=v(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f03(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp + udotc))
+	f03(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp + udotc))
 	! 0 +1  0
 
 	
 	!4  0 +1  0
-	f04(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp - udotc))
+	f04(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp - udotc))
 	! 0 -1  0
 
 	
 	!5  0  0 -1
-	udotc=w(i,j,k,idblock)*onecssq
+	udotc=w(i,j,k,myblock)*onecssq
 	temp = -uu + half*udotc*udotc
-	f05(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp + udotc))
+	f05(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp + udotc))
 	! 0  0 +1
 
 
 	!6  0  0  +1
-	f06(li,lj,lk)=p1*(rho(i,j,k,idblock)+(temp - udotc))
+	f06(li,lj,lk)=p1*(rho(i,j,k,myblock)+(temp - udotc))
 	! 0  0 -1
 
     	
 	!7 -1 -1  0
-	udotc=(u(i,j,k,idblock)+v(i,j,k,idblock))*onecssq
+	udotc=(u(i,j,k,myblock)+v(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f07(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc))
+	f07(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc))
 	!+1 +1  0
 
 	
 	!8 +1 +1  0
-	f08(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc))
+	f08(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc))
 	!-1 -1  0
 
 	
 	!10   +1 -1  0
-	udotc=(-u(i,j,k,idblock)+v(i,j,k,idblock))*onecssq
+	udotc=(-u(i,j,k,myblock)+v(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f10(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc))
+	f10(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc))
 	!-1 +1  0
 
 	
 	!9  -1 +1 0
-	f09(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc))
+	f09(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc))
 	!+1 -1  0
 
 		
 
 	!15  -1  0 -1
-	udotc=(u(i,j,k,idblock)+w(i,j,k,idblock))*onecssq
+	udotc=(u(i,j,k,myblock)+w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f15(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc))
+	f15(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc))
 	!+1  0  +1
 
 
 	!16  +1  0 +1
-	f16(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc))
+	f16(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc))
 	!-1  0  -1
 
 
 	!17  +1  0 -1
-	udotc=(-u(i,j,k,idblock)+w(i,j,k,idblock))*onecssq
+	udotc=(-u(i,j,k,myblock)+w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f17(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc))
+	f17(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc))
 	!-1  0  +1
 
 
 	!18   -1   0  +1
-	f18(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc))
+	f18(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc))
 	!+1  0  -1
 
 
 	!11  0  -1  -1
-	udotc=(v(i,j,k,idblock)+w(i,j,k,idblock))*onecssq
+	udotc=(v(i,j,k,myblock)+w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f11(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc))
+	f11(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc))
 	! 0 +1 +1
 
 	
 	!12  0  +1  +1
-	f12(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc))
+	f12(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc))
 	! 0 -1 -1
 
 
 	!13  0  -1   +1
-	udotc=(v(i,j,k,idblock)-w(i,j,k,idblock))*onecssq
+	udotc=(v(i,j,k,myblock)-w(i,j,k,myblock))*onecssq
 	temp = -uu + half*udotc*udotc
-	f13(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp + udotc))
+	f13(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp + udotc))
 	! 0 +1 -1
 
 	
 	!14  0  +1  -1
-	f14(li,lj,lk)=p2*(rho(i,j,k,idblock)+(temp - udotc))
+	f14(li,lj,lk)=p2*(rho(i,j,k,myblock)+(temp - udotc))
 	! 0 -1 +1
 	
 	udotc=f01(li,lj,lk)+f02(li,lj,lk)+  &
@@ -2608,37 +3338,38 @@
      f09(li,lj,lk)+f10(li,lj,lk)+ &
      f15(li,lj,lk)+f16(li,lj,lk)+ &
      f17(li,lj,lk)+f18(li,lj,lk)
-	pxx(i,j,k,idblock)=pxx(i,j,k,idblock)-udotc
+	pxx(i,j,k,myblock)=pxx(i,j,k,myblock)-udotc
 	
 	udotc=f03(li,lj,lk)+f04(li,lj,lk)+  &
      f07(li,lj,lk)+f08(li,lj,lk)+ &
      f09(li,lj,lk)+f10(li,lj,lk)+ &
      f11(li,lj,lk)+f12(li,lj,lk)+ &
      f13(li,lj,lk)+f14(li,lj,lk)
-	pyy(i,j,k,idblock)=pyy(i,j,k,idblock)-udotc
+	pyy(i,j,k,myblock)=pyy(i,j,k,myblock)-udotc
 	
 	udotc=f05(li,lj,lk)+f06(li,lj,lk)+  &
      f11(li,lj,lk)+f12(li,lj,lk)+ &
      f13(li,lj,lk)+f14(li,lj,lk)+ &
      f15(li,lj,lk)+f16(li,lj,lk)+ &
      f17(li,lj,lk)+f18(li,lj,lk)
-	pzz(i,j,k,idblock)=pzz(i,j,k,idblock)-udotc
+	pzz(i,j,k,myblock)=pzz(i,j,k,myblock)-udotc
 	
 	udotc=f07(li,lj,lk)+f08(li,lj,lk)- &
      f09(li,lj,lk)-f10(li,lj,lk)
-	pxy(i,j,k,idblock)=pxy(i,j,k,idblock)-udotc
+	pxy(i,j,k,myblock)=pxy(i,j,k,myblock)-udotc
 	
 	udotc=f15(li,lj,lk)+f16(li,lj,lk)- &
      f17(li,lj,lk)-f18(li,lj,lk)
-	pxz(i,j,k,idblock)=pxz(i,j,k,idblock)-udotc
+	pxz(i,j,k,myblock)=pxz(i,j,k,myblock)-udotc
 	
 	udotc=f11(li,lj,lk)+f12(li,lj,lk)- &
      f13(li,lj,lk)-f14(li,lj,lk)
-	pyz(i,j,k,idblock)=pyz(i,j,k,idblock)-udotc
+	pyz(i,j,k,myblock)=pyz(i,j,k,myblock)-udotc
 	
-	    
+#endif
+    
     return
-#endif	
+ 
   end subroutine streamcoll_bc_shared_flop
   
  end module streamcoll_bc_kernels

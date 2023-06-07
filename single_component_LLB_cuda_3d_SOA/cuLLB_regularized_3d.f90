@@ -59,7 +59,7 @@ program lb_openacc
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
-        lpbc=.false.
+        lpbc=.true.
         lprint=.false.
         lvtk=.false.
         lasync=.false.
@@ -145,6 +145,7 @@ program lb_openacc
         TILE_DIM_d=TILE_DIM
         nxblock_d=nxblock
         nxyblock_d=nxblock*nyblock
+        nblocks_d=nblocks
         
 !        allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
 !        allocate(pxx(0:nx+1,0:ny+1,0:nz+1),pxy(0:nx+1,0:ny+1,0:nz+1),pxz(0:nx+1,0:ny+1,0:nz+1),pyy(0:nx+1,0:ny+1,0:nz+1))
@@ -320,7 +321,7 @@ program lb_openacc
         endif
       endif
     endif
-      
+    
     !*************************************time loop************************  
     call cpu_time(ts1)
     istat = cudaEventRecord(startEvent,0)
@@ -330,9 +331,11 @@ program lb_openacc
         !******************************************call other bcs************************
         if(lpbc)then      
             !periodic along x 
-            call pbc_edge_x<<<dimGridx,dimBlock2,0,stream1>>>()
+            call pbc_side_x<<<dimGridx,dimBlock2,0,stream1>>>()
             !periodic along x 
-            call pbc_edge_y<<<dimGridy,dimBlock2,0,stream1>>>()
+            call pbc_side_y<<<dimGridy,dimBlock2,0,stream1>>>()
+            
+            call pbc_edge_z<<<(nz+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
 	    endif
@@ -398,9 +401,10 @@ program lb_openacc
         !******************************************call other bcs************************
         if(lpbc)then      
             !periodic along x 
-            call pbc_edge_x_flop<<<dimGridx,dimBlock2,0,stream1>>>()
+            call pbc_side_x_flop<<<dimGridx,dimBlock2,0,stream1>>>()
             !periodic along x 
-            call pbc_edge_y_flop<<<dimGridy,dimBlock2,0,stream1>>>()
+            call pbc_side_y_flop<<<dimGridy,dimBlock2,0,stream1>>>()
+            call pbc_edge_z_flop<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
 	    endif

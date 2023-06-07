@@ -145,7 +145,7 @@
 
  end subroutine store_print_flop
  
- attributes(global) subroutine pbc_edge_x()
+ attributes(global) subroutine pbc_side_x()
 	  
 	integer :: j,k
 	
@@ -179,9 +179,9 @@
 	  
     return
 		  
-  end subroutine pbc_edge_x
+  end subroutine pbc_side_x
   
-  attributes(global) subroutine pbc_edge_x_flop()
+  attributes(global) subroutine pbc_side_x_flop()
 	  
 	integer :: j,k
 	
@@ -215,9 +215,137 @@
 	  
     return
 		  
+  end subroutine pbc_side_x_flop
+  
+  attributes(global) subroutine pbc_edge_x()
+      
+      integer :: i, l,m
+      integer, parameter :: j=1
+      integer, parameter :: k=1
+      
+      
+      i = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+
+      if (i>nx_d) return
+      
+      rho(i,1-j,1-k) = rho(i,ny_d+1-j,nz_d+1-k)
+      rho(i,1-j,nz_d+k) = rho(i,ny_d+1-j,k)
+      rho(i,ny_d+j,1-k) = rho(i,j,nz_d+1-k)
+      rho(i,ny_d+j,nz_d+k) = rho(i, j, k)
+      
+      u(i,1-j,1-k) = u(i,ny_d+1-j,nz_d+1-k)
+      u(i,1-j,nz_d+k) = u(i,ny_d+1-j,k)
+      u(i,ny_d+j,1-k) = u(i,j,nz_d+1-k)
+      u(i,ny_d+j,nz_d+k) = u(i, j, k)
+      
+      v(i,1-j,1-k) = v(i,ny_d+1-j,nz_d+1-k)
+      v(i,1-j,nz_d+k) = v(i,ny_d+1-j,k)
+      v(i,ny_d+j,1-k) = v(i,j,nz_d+1-k)
+      v(i,ny_d+j,nz_d+k) = v(i, j, k)
+      
+      w(i,1-j,1-k) = w(i,ny_d+1-j,nz_d+1-k)
+      w(i,1-j,nz_d+k) = w(i,ny_d+1-j,k)
+      w(i,ny_d+j,1-k) = w(i,j,nz_d+1-k)
+      w(i,ny_d+j,nz_d+k) = w(i, j, k)
+      
+      pxx(i,1-j,1-k) = pxx(i,ny_d+1-j,nz_d+1-k)
+      pxx(i,1-j,nz_d+k) = pxx(i,ny_d+1-j,k)
+      pxx(i,ny_d+j,1-k) = pxx(i,j,nz_d+1-k)
+      pxx(i,ny_d+j,nz_d+k) = pxx(i, j, k)
+      
+      pyy(i,1-j,1-k) = pyy(i,ny_d+1-j,nz_d+1-k)
+      pyy(i,1-j,nz_d+k) = pyy(i,ny_d+1-j,k)
+      pyy(i,ny_d+j,1-k) = pyy(i,j,nz_d+1-k)
+      pyy(i,ny_d+j,nz_d+k) = pyy(i, j, k)
+      
+      pzz(i,1-j,1-k) = pzz(i,ny_d+1-j,nz_d+1-k)
+      pzz(i,1-j,nz_d+k) = pzz(i,ny_d+1-j,k)
+      pzz(i,ny_d+j,1-k) = pzz(i,j,nz_d+1-k)
+      pzz(i,ny_d+j,nz_d+k) = pzz(i, j, k)
+      
+      pxy(i,1-j,1-k) = pxy(i,ny_d+1-j,nz_d+1-k)
+      pxy(i,1-j,nz_d+k) = pxy(i,ny_d+1-j,k)
+      pxy(i,ny_d+j,1-k) = pxy(i,j,nz_d+1-k)
+      pxy(i,ny_d+j,nz_d+k) = pxy(i, j, k)
+      
+      pxz(i,1-j,1-k) = pxz(i,ny_d+1-j,nz_d+1-k)
+      pxz(i,1-j,nz_d+k) = pxz(i,ny_d+1-j,k)
+      pxz(i,ny_d+j,1-k) = pxz(i,j,nz_d+1-k)
+      pxz(i,ny_d+j,nz_d+k) = pxz(i, j, k)
+      
+      pyz(i,1-j,1-k) = pyz(i,ny_d+1-j,nz_d+1-k)
+      pyz(i,1-j,nz_d+k) = pyz(i,ny_d+1-j,k)
+      pyz(i,ny_d+j,1-k) = pyz(i,j,nz_d+1-k)
+      pyz(i,ny_d+j,nz_d+k) = pyz(i, j, k)
+
+        
+  end subroutine pbc_edge_x
+  
+  attributes(global) subroutine pbc_edge_x_flop()
+      
+      integer :: i, l,m
+      integer, parameter :: j=1
+      integer, parameter :: k=1
+      
+      
+      i = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+
+      if (i>nx_d) return
+      
+      rhoh(i,1-j,1-k) = rhoh(i,ny_d+1-j,nz_d+1-k)
+      rhoh(i,1-j,nz_d+k) = rhoh(i,ny_d+1-j,k)
+      rhoh(i,ny_d+j,1-k) = rhoh(i,j,nz_d+1-k)
+      rhoh(i,ny_d+j,nz_d+k) = rhoh(i, j, k)
+      
+      uh(i,1-j,1-k) = uh(i,ny_d+1-j,nz_d+1-k)
+      uh(i,1-j,nz_d+k) = uh(i,ny_d+1-j,k)
+      uh(i,ny_d+j,1-k) = uh(i,j,nz_d+1-k)
+      uh(i,ny_d+j,nz_d+k) = uh(i, j, k)
+      
+      vh(i,1-j,1-k) = vh(i,ny_d+1-j,nz_d+1-k)
+      vh(i,1-j,nz_d+k) = vh(i,ny_d+1-j,k)
+      vh(i,ny_d+j,1-k) = vh(i,j,nz_d+1-k)
+      vh(i,ny_d+j,nz_d+k) = vh(i, j, k)
+      
+      wh(i,1-j,1-k) = wh(i,ny_d+1-j,nz_d+1-k)
+      wh(i,1-j,nz_d+k) = wh(i,ny_d+1-j,k)
+      wh(i,ny_d+j,1-k) = wh(i,j,nz_d+1-k)
+      wh(i,ny_d+j,nz_d+k) = wh(i, j, k)
+      
+      pxxh(i,1-j,1-k) = pxxh(i,ny_d+1-j,nz_d+1-k)
+      pxxh(i,1-j,nz_d+k) = pxxh(i,ny_d+1-j,k)
+      pxxh(i,ny_d+j,1-k) = pxxh(i,j,nz_d+1-k)
+      pxxh(i,ny_d+j,nz_d+k) = pxxh(i, j, k)
+      
+      pyyh(i,1-j,1-k) = pyyh(i,ny_d+1-j,nz_d+1-k)
+      pyyh(i,1-j,nz_d+k) = pyyh(i,ny_d+1-j,k)
+      pyyh(i,ny_d+j,1-k) = pyyh(i,j,nz_d+1-k)
+      pyyh(i,ny_d+j,nz_d+k) = pyyh(i, j, k)
+      
+      pzzh(i,1-j,1-k) = pzzh(i,ny_d+1-j,nz_d+1-k)
+      pzzh(i,1-j,nz_d+k) = pzzh(i,ny_d+1-j,k)
+      pzzh(i,ny_d+j,1-k) = pzzh(i,j,nz_d+1-k)
+      pzzh(i,ny_d+j,nz_d+k) = pzzh(i, j, k)
+      
+      pxyh(i,1-j,1-k) = pxyh(i,ny_d+1-j,nz_d+1-k)
+      pxyh(i,1-j,nz_d+k) = pxyh(i,ny_d+1-j,k)
+      pxyh(i,ny_d+j,1-k) = pxyh(i,j,nz_d+1-k)
+      pxyh(i,ny_d+j,nz_d+k) = pxyh(i, j, k)
+      
+      pxzh(i,1-j,1-k) = pxzh(i,ny_d+1-j,nz_d+1-k)
+      pxzh(i,1-j,nz_d+k) = pxzh(i,ny_d+1-j,k)
+      pxzh(i,ny_d+j,1-k) = pxzh(i,j,nz_d+1-k)
+      pxzh(i,ny_d+j,nz_d+k) = pxzh(i, j, k)
+      
+      pyzh(i,1-j,1-k) = pyzh(i,ny_d+1-j,nz_d+1-k)
+      pyzh(i,1-j,nz_d+k) = pyzh(i,ny_d+1-j,k)
+      pyzh(i,ny_d+j,1-k) = pyzh(i,j,nz_d+1-k)
+      pyzh(i,ny_d+j,nz_d+k) = pyzh(i, j, k)
+
+        
   end subroutine pbc_edge_x_flop
 
-  attributes(global) subroutine pbc_edge_y()
+  attributes(global) subroutine pbc_side_y()
 	
 	implicit none
 	integer :: i,k
@@ -252,9 +380,9 @@
 	  
     return
 
-  end subroutine pbc_edge_y
+  end subroutine pbc_side_y
   
-  attributes(global) subroutine pbc_edge_y_flop()
+  attributes(global) subroutine pbc_side_y_flop()
 	
 	implicit none
 	
@@ -290,6 +418,134 @@
 	  
     return
 
+  end subroutine pbc_side_y_flop
+  
+  attributes(global) subroutine pbc_edge_y()
+    
+      integer :: j, l,m
+      integer, parameter :: k=1
+      integer, parameter :: i=1
+      
+      j = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+
+      if (j>ny_d) return
+
+
+      rho(1-i,j,1-k) = rho(nx_d+1-i,j, nz_d+1-k)
+      rho(1-i,j,nz_d+k) = rho(nx_d+1-i,j,  k)
+      rho(nx_d+i,j,1-k) = rho( i,j, nz_d+1-k)
+      rho(nx_d+i,j,nz_d+k) = rho( i,j,  k)
+      
+      u(1-i,j,1-k) = u(nx_d+1-i,j, nz_d+1-k)
+      u(1-i,j,nz_d+k) = u(nx_d+1-i,j,  k)
+      u(nx_d+i,j,1-k) = u( i,j, nz_d+1-k)
+      u(nx_d+i,j,nz_d+k) = u( i,j,  k)
+      
+      v(1-i,j,1-k) = v(nx_d+1-i,j, nz_d+1-k)
+      v(1-i,j,nz_d+k) = v(nx_d+1-i,j,  k)
+      v(nx_d+i,j,1-k) = v( i,j, nz_d+1-k)
+      v(nx_d+i,j,nz_d+k) = v( i,j,  k)
+      
+      w(1-i,j,1-k) = w(nx_d+1-i,j, nz_d+1-k)
+      w(1-i,j,nz_d+k) = w(nx_d+1-i,j,  k)
+      w(nx_d+i,j,1-k) = w( i,j, nz_d+1-k)
+      w(nx_d+i,j,nz_d+k) = w( i,j,  k)
+      
+      pxx(1-i,j,1-k) = pxx(nx_d+1-i,j, nz_d+1-k)
+      pxx(1-i,j,nz_d+k) = pxx(nx_d+1-i,j,  k)
+      pxx(nx_d+i,j,1-k) = pxx( i,j, nz_d+1-k)
+      pxx(nx_d+i,j,nz_d+k) = pxx( i,j,  k)
+      
+      pyy(1-i,j,1-k) = pyy(nx_d+1-i,j, nz_d+1-k)
+      pyy(1-i,j,nz_d+k) = pyy(nx_d+1-i,j,  k)
+      pyy(nx_d+i,j,1-k) = pyy( i,j, nz_d+1-k)
+      pyy(nx_d+i,j,nz_d+k) = pyy( i,j,  k)
+      
+      pzz(1-i,j,1-k) = pzz(nx_d+1-i,j, nz_d+1-k)
+      pzz(1-i,j,nz_d+k) = pzz(nx_d+1-i,j,  k)
+      pzz(nx_d+i,j,1-k) = pzz( i,j, nz_d+1-k)
+      pzz(nx_d+i,j,nz_d+k) = pzz( i,j,  k)
+      
+      pxy(1-i,j,1-k) = pxy(nx_d+1-i,j, nz_d+1-k)
+      pxy(1-i,j,nz_d+k) = pxy(nx_d+1-i,j,  k)
+      pxy(nx_d+i,j,1-k) = pxy( i,j, nz_d+1-k)
+      pxy(nx_d+i,j,nz_d+k) = pxy( i,j,  k)
+      
+      pxz(1-i,j,1-k) = pxz(nx_d+1-i,j, nz_d+1-k)
+      pxz(1-i,j,nz_d+k) = pxz(nx_d+1-i,j,  k)
+      pxz(nx_d+i,j,1-k) = pxz( i,j, nz_d+1-k)
+      pxz(nx_d+i,j,nz_d+k) = pxz( i,j,  k)
+      
+      pyz(1-i,j,1-k) = pyz(nx_d+1-i,j, nz_d+1-k)
+      pyz(1-i,j,nz_d+k) = pyz(nx_d+1-i,j,  k)
+      pyz(nx_d+i,j,1-k) = pyz( i,j, nz_d+1-k)
+      pyz(nx_d+i,j,nz_d+k) = pyz( i,j,  k)
+      
+      
+  end subroutine pbc_edge_y
+  
+  attributes(global) subroutine pbc_edge_y_flop()
+    
+      integer :: j, l,m
+      integer, parameter :: k=1
+      integer, parameter :: i=1
+      
+      j = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+
+      if (j>ny_d) return
+
+
+      rhoh(1-i,j,1-k) = rhoh(nx_d+1-i,j, nz_d+1-k)
+      rhoh(1-i,j,nz_d+k) = rhoh(nx_d+1-i,j,  k)
+      rhoh(nx_d+i,j,1-k) = rhoh( i,j, nz_d+1-k)
+      rhoh(nx_d+i,j,nz_d+k) = rhoh( i,j,  k)
+      
+      uh(1-i,j,1-k) = uh(nx_d+1-i,j, nz_d+1-k)
+      uh(1-i,j,nz_d+k) = uh(nx_d+1-i,j,  k)
+      uh(nx_d+i,j,1-k) = uh( i,j, nz_d+1-k)
+      uh(nx_d+i,j,nz_d+k) = uh( i,j,  k)
+      
+      vh(1-i,j,1-k) = vh(nx_d+1-i,j, nz_d+1-k)
+      vh(1-i,j,nz_d+k) = vh(nx_d+1-i,j,  k)
+      vh(nx_d+i,j,1-k) = vh( i,j, nz_d+1-k)
+      vh(nx_d+i,j,nz_d+k) = vh( i,j,  k)
+      
+      wh(1-i,j,1-k) = wh(nx_d+1-i,j, nz_d+1-k)
+      wh(1-i,j,nz_d+k) = wh(nx_d+1-i,j,  k)
+      wh(nx_d+i,j,1-k) = wh( i,j, nz_d+1-k)
+      wh(nx_d+i,j,nz_d+k) = wh( i,j,  k)
+      
+      pxxh(1-i,j,1-k) = pxxh(nx_d+1-i,j, nz_d+1-k)
+      pxxh(1-i,j,nz_d+k) = pxxh(nx_d+1-i,j,  k)
+      pxxh(nx_d+i,j,1-k) = pxxh( i,j, nz_d+1-k)
+      pxxh(nx_d+i,j,nz_d+k) = pxxh( i,j,  k)
+      
+      pyyh(1-i,j,1-k) = pyyh(nx_d+1-i,j, nz_d+1-k)
+      pyyh(1-i,j,nz_d+k) = pyyh(nx_d+1-i,j,  k)
+      pyyh(nx_d+i,j,1-k) = pyyh( i,j, nz_d+1-k)
+      pyyh(nx_d+i,j,nz_d+k) = pyyh( i,j,  k)
+      
+      pzzh(1-i,j,1-k) = pzzh(nx_d+1-i,j, nz_d+1-k)
+      pzzh(1-i,j,nz_d+k) = pzzh(nx_d+1-i,j,  k)
+      pzzh(nx_d+i,j,1-k) = pzzh( i,j, nz_d+1-k)
+      pzzh(nx_d+i,j,nz_d+k) = pzzh( i,j,  k)
+      
+      pxyh(1-i,j,1-k) = pxyh(nx_d+1-i,j, nz_d+1-k)
+      pxyh(1-i,j,nz_d+k) = pxyh(nx_d+1-i,j,  k)
+      pxyh(nx_d+i,j,1-k) = pxyh( i,j, nz_d+1-k)
+      pxyh(nx_d+i,j,nz_d+k) = pxyh( i,j,  k)
+      
+      pxzh(1-i,j,1-k) = pxzh(nx_d+1-i,j, nz_d+1-k)
+      pxzh(1-i,j,nz_d+k) = pxzh(nx_d+1-i,j,  k)
+      pxzh(nx_d+i,j,1-k) = pxzh( i,j, nz_d+1-k)
+      pxzh(nx_d+i,j,nz_d+k) = pxzh( i,j,  k)
+      
+      pyzh(1-i,j,1-k) = pyzh(nx_d+1-i,j, nz_d+1-k)
+      pyzh(1-i,j,nz_d+k) = pyzh(nx_d+1-i,j,  k)
+      pyzh(nx_d+i,j,1-k) = pyzh( i,j, nz_d+1-k)
+      pyzh(nx_d+i,j,nz_d+k) = pyzh( i,j,  k)
+      
+      
   end subroutine pbc_edge_y_flop
   
   attributes(global) subroutine streamcoll_bulk()
@@ -3229,9 +3485,14 @@ program lb_openacc
         !******************************************call other bcs************************
         if(lpbc)then      
             !periodic along x 
-            call pbc_edge_x<<<dimGridx,dimBlock2,0,stream1>>>()
+            call pbc_side_x<<<dimGridx,dimBlock2,0,stream1>>>()
             !periodic along x 
-            call pbc_edge_y<<<dimGridy,dimBlock2,0,stream1>>>()
+            call pbc_side_y<<<dimGridy,dimBlock2,0,stream1>>>()
+            
+            !call pbc_edge_x<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
+            
+            !call pbc_edge_y<<<(ny+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
+            
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
 	    endif
@@ -3298,9 +3559,14 @@ program lb_openacc
         !******************************************call other bcs************************
         if(lpbc)then      
             !periodic along x 
-            call pbc_edge_x_flop<<<dimGridx,dimBlock2,0,stream1>>>()
+            call pbc_side_x_flop<<<dimGridx,dimBlock2,0,stream1>>>()
             !periodic along x 
-            call pbc_edge_y_flop<<<dimGridy,dimBlock2,0,stream1>>>()
+            call pbc_side_y_flop<<<dimGridy,dimBlock2,0,stream1>>>()
+            
+            !call pbc_edge_x_flop<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
+            
+            !call pbc_edge_y_flop<<<(ny+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
+            
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
 	    endif

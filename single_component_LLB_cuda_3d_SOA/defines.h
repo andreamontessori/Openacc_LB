@@ -1,3 +1,3 @@
 #define noUSESHARE
-#define noPRESSCORR
+#define PRESSCORR
 #define noIFBC
