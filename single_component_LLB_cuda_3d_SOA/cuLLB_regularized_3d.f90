@@ -87,6 +87,8 @@ program lb_openacc
         dimGridhalo  = dim3((nx+2+TILE_DIMx-1)/TILE_DIMx,(ny+2+TILE_DIMy-1)/TILE_DIMy,(nz+2+TILE_DIMz-1)/TILE_DIMz)
         dimBlockhalo = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
         
+        dimBlockshared = dim3(TILE_DIMx+2, TILE_DIMy+2, TILE_DIMz+2)
+        
         
         dimGridx  = dim3((ny+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimGridy  = dim3((nx+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
@@ -386,7 +388,11 @@ program lb_openacc
         
         !***********************************collision + no slip + forcing: fused implementation*********
 #ifdef ONLYBULK
+#ifdef HALOSHARED  
+        call streamcoll_bulk_shared_halo<<dimGrid,dimBlockshared,mshared,stream1>>>()
+#else
         call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
+#endif
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
@@ -455,8 +461,12 @@ program lb_openacc
         
         
         !***********************************collision + no slip + forcing: fused implementation*********
-#ifdef ONLYBULK        
+#ifdef ONLYBULK     
+#ifdef HALOSHARED  
+        call streamcoll_bulk_shared_halo_flop<<dimGrid,dimBlockshared,mshared,stream1>>>()
+#else
         call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+#endif
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)

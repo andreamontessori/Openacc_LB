@@ -49,7 +49,7 @@
     type (cudaDeviceProp) :: prop
     type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
     type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2, &
-     dimGridhalo,dimBlockhalo
+     dimGridhalo,dimBlockhalo,dimGridshared,dimBlockshared
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
     

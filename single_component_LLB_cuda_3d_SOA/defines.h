@@ -2,3 +2,4 @@
 #define PRESSCORR
 #define noIFBC
 #define ONLYBULK
+#define HALOSHARED
