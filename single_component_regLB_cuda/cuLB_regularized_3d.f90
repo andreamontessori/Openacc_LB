@@ -1487,7 +1487,10 @@ program lb_openacc
     do step=1,nsteps 
         !***********************************moments collision bbck + forcing************************ 
 
-        !call moments<<<dimGrid,dimBlock,0,stream1>>>()
+        call moments<<<dimGrid,dimBlock,0,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after moments', step)
         
         !***********************************PRINT************************
         if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
