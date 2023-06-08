@@ -1,4 +1,6 @@
 #define noUSESHARE
+#define ONLYBULK
+#define noPRESSCORR
  module mycuda
    
     use cudafor
@@ -35,7 +37,8 @@
     integer(kind=cuda_Stream_Kind) :: stream1,stream2
     type (cudaDeviceProp) :: prop
     type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
-    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2
+    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2, &
+     dimGridhalo,dimBlockhalo
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
     
@@ -84,6 +87,46 @@
     return
 
  end subroutine setup_system
+ 
+ attributes(global) subroutine setup_system_halo(rhos,vxs,vys,vzs)
+    
+    real(kind=db), value :: rhos,vxs,vys,vzs
+    
+    integer :: i,j,k
+          
+            
+	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x -1
+	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y -1
+	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z -1
+	
+	if(i>nx_d .or. j>ny_d .or. k>nz_d)return
+	
+	
+	u(i,j,k)=vxs
+	v(i,j,k)=vys
+	w(i,j,k)=vzs
+	rho(i,j,k)=rhos
+	pxx(i,j,k)=0.0_db
+	pxy(i,j,k)=0.0_db
+	pxz(i,j,k)=0.0_db
+	pyy(i,j,k)=0.0_db
+	pyz(i,j,k)=0.0_db
+	pzz(i,j,k)=0.0_db
+	
+	uh(i,j,k)=vxs
+	vh(i,j,k)=vys
+	wh(i,j,k)=vzs
+	rhoh(i,j,k)=rhos
+	pxxh(i,j,k)=0.0_db
+	pxyh(i,j,k)=0.0_db
+	pxzh(i,j,k)=0.0_db
+	pyyh(i,j,k)=0.0_db
+	pyzh(i,j,k)=0.0_db
+	pzzh(i,j,k)=0.0_db
+    
+    return
+
+ end subroutine setup_system_halo
  
  attributes(global) subroutine store_print()
 	  
@@ -984,7 +1027,109 @@
 	pxyh(i,j,k)=temp_pxy
 	pxzh(i,j,k)=temp_pxz
 	pyzh(i,j,k)=temp_pyz
-    
+#ifdef ONLYBULK	
+#ifdef PRESSCORR	
+	uu=0.5_db*(uh(i,j,k)*uh(i,j,k) + vh(i,j,k)*vh(i,j,k) + wh(i,j,k)*wh(i,j,k))/cssq
+	!1-2
+	udotc=uh(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=feq
+	feq=p1*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+
+	!3-4
+	udotc=vh(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rhoh(i,j,k)+(temp + udotc))
+	temp_pyy=feq
+	feq=p1*(rhoh(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	!5-6
+	udotc=wh(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rhoh(i,j,k)+(temp + udotc))
+	temp_pzz=feq
+	feq=p1*(rhoh(i,j,k)+(temp - udotc))
+	temp_pzz=temp_pzz+feq
+	!7-8
+	udotc=(uh(i,j,k)+vh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy+feq
+	!10-9
+	udotc=(-uh(i,j,k)+vh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	!11-12
+	udotc=(vh(i,j,k)+wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz+feq
+	!13-14
+	udotc=(vh(i,j,k)-wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	!15-16
+	udotc=(uh(i,j,k)+wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz+feq
+	!17-18
+	udotc=(-uh(i,j,k)+wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	!ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+	
+	pxxh(i,j,k)=pxxh(i,j,k)-temp_pxx
+	pyyh(i,j,k)=pyyh(i,j,k)-temp_pyy
+	pzzh(i,j,k)=pzzh(i,j,k)-temp_pzz
+	pxyh(i,j,k)=pxyh(i,j,k)-temp_pxy
+	pxzh(i,j,k)=pxzh(i,j,k)-temp_pxz
+	pyzh(i,j,k)=pyzh(i,j,k)-temp_pyz
+#endif    
+#endif
     return
 	
   end subroutine streamcoll_bulk
@@ -1425,7 +1570,111 @@
 	pxy(i,j,k)=temp_pxy
 	pxz(i,j,k)=temp_pxz
 	pyz(i,j,k)=temp_pyz
+#ifdef ONLYBULK	
+#ifdef PRESSCORR	
     
+    uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
+	!1-2
+	udotc=u(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=feq
+	feq=p1*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+
+	!3-4
+	udotc=v(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rho(i,j,k)+(temp + udotc))
+	temp_pyy=feq
+	feq=p1*(rho(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	!5-6
+	udotc=w(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rho(i,j,k)+(temp + udotc))
+	temp_pzz=feq
+	feq=p1*(rho(i,j,k)+(temp - udotc))
+	temp_pzz=temp_pzz+feq
+	!7-8
+	udotc=(u(i,j,k)+v(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy+feq
+	!10-9
+	udotc=(-u(i,j,k)+v(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	!11-12
+	udotc=(v(i,j,k)+w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz+feq
+	!13-14
+	udotc=(v(i,j,k)-w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	!15-16
+	udotc=(u(i,j,k)+w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz+feq
+	!17-18
+	udotc=(-u(i,j,k)+w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	!ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+	
+	pxx(i,j,k)=pxx(i,j,k)-temp_pxx
+	pyy(i,j,k)=pyy(i,j,k)-temp_pyy
+	pzz(i,j,k)=pzz(i,j,k)-temp_pzz
+	pxy(i,j,k)=pxy(i,j,k)-temp_pxy
+	pxz(i,j,k)=pxz(i,j,k)-temp_pxz
+	pyz(i,j,k)=pyz(i,j,k)-temp_pyz
+    
+#endif  
+#endif  
     return
 	
   end subroutine streamcoll_bulk_flop
@@ -1864,7 +2113,108 @@
 	pxyh(i,j,k)=temp_pxy
 	pxzh(i,j,k)=temp_pxz
 	pyzh(i,j,k)=temp_pyz
+	
+#ifdef PRESSCORR	
+	uu=0.5_db*(uh(i,j,k)*uh(i,j,k) + vh(i,j,k)*vh(i,j,k) + wh(i,j,k)*wh(i,j,k))/cssq
+	!1-2
+	udotc=uh(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=feq
+	feq=p1*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
 
+	!3-4
+	udotc=vh(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rhoh(i,j,k)+(temp + udotc))
+	temp_pyy=feq
+	feq=p1*(rhoh(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	!5-6
+	udotc=wh(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rhoh(i,j,k)+(temp + udotc))
+	temp_pzz=feq
+	feq=p1*(rhoh(i,j,k)+(temp - udotc))
+	temp_pzz=temp_pzz+feq
+	!7-8
+	udotc=(uh(i,j,k)+vh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy+feq
+	!10-9
+	udotc=(-uh(i,j,k)+vh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	!11-12
+	udotc=(vh(i,j,k)+wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz+feq
+	!13-14
+	udotc=(vh(i,j,k)-wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	!15-16
+	udotc=(uh(i,j,k)+wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz+feq
+	!17-18
+	udotc=(-uh(i,j,k)+wh(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rhoh(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	feq=p2*(rhoh(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	!ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
+	
+	pxxh(i,j,k)=pxxh(i,j,k)-temp_pxx
+	pyyh(i,j,k)=pyyh(i,j,k)-temp_pyy
+	pzzh(i,j,k)=pzzh(i,j,k)-temp_pzz
+	pxyh(i,j,k)=pxyh(i,j,k)-temp_pxy
+	pxzh(i,j,k)=pxzh(i,j,k)-temp_pxz
+	pyzh(i,j,k)=pyzh(i,j,k)-temp_pyz
+#endif    
     
     return
     
@@ -2304,7 +2654,109 @@
 	pxy(i,j,k)=temp_pxy
 	pxz(i,j,k)=temp_pxz
 	pyz(i,j,k)=temp_pyz
+#ifdef PRESSCORR	
+    
+    uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
+	!1-2
+	udotc=u(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=feq
+	feq=p1*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+
+	!3-4
+	udotc=v(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rho(i,j,k)+(temp + udotc))
+	temp_pyy=feq
+	feq=p1*(rho(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	!5-6
+	udotc=w(i,j,k)/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p1*(rho(i,j,k)+(temp + udotc))
+	temp_pzz=feq
+	feq=p1*(rho(i,j,k)+(temp - udotc))
+	temp_pzz=temp_pzz+feq
+	!7-8
+	udotc=(u(i,j,k)+v(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy+feq
+	!10-9
+	udotc=(-u(i,j,k)+v(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pyy=temp_pyy+feq
+	temp_pxy=temp_pxy-feq
+	!11-12
+	udotc=(v(i,j,k)+w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz+feq
+	!13-14
+	udotc=(v(i,j,k)-w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pyy=temp_pyy+feq
+	temp_pzz=temp_pzz+feq
+	temp_pyz=temp_pyz-feq
+	!15-16
+	udotc=(u(i,j,k)+w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz+feq
+	!17-18
+	udotc=(-u(i,j,k)+w(i,j,k))/cssq
+	temp = -uu + 0.5_db*udotc*udotc
+	feq=p2*(rho(i,j,k)+(temp + udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	feq=p2*(rho(i,j,k)+(temp - udotc))
+	temp_pxx=temp_pxx+feq
+	temp_pzz=temp_pzz+feq
+	temp_pxz=temp_pxz-feq
+	!ex=(/0, 1, -1, 0,  0,  0,  0,  1,  -1,  1,  -1,  0,   0,  0,   0,  1,  -1,  -1,   1/)
+	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
+	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
 	
+	pxx(i,j,k)=pxx(i,j,k)-temp_pxx
+	pyy(i,j,k)=pyy(i,j,k)-temp_pyy
+	pzz(i,j,k)=pzz(i,j,k)-temp_pzz
+	pxy(i,j,k)=pxy(i,j,k)-temp_pxy
+	pxz(i,j,k)=pxz(i,j,k)-temp_pxz
+	pyz(i,j,k)=pyz(i,j,k)-temp_pyz
+    
+#endif  	
 	return
   
   end subroutine streamcoll_bc_flop
@@ -3312,6 +3764,9 @@ program lb_openacc
         dimGridy  = dim3((nx+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimBlock2 = dim3(TILE_DIM, TILE_DIM, 1)
         
+        dimGridhalo  = dim3((nx+2+TILE_DIMx-1)/TILE_DIMx,(ny+2+TILE_DIMy-1)/TILE_DIMy,(nz+2+TILE_DIMz-1)/TILE_DIMz)
+        dimBlockhalo = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
+        
         allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
         allocate(pxx(0:nx+1,0:ny+1,0:nz+1),pxy(0:nx+1,0:ny+1,0:nz+1),pxz(0:nx+1,0:ny+1,0:nz+1),pyy(0:nx+1,0:ny+1,0:nz+1))
         allocate(pyz(0:nx+1,0:ny+1,0:nz+1),pzz(0:nx+1,0:ny+1,0:nz+1))
@@ -3386,9 +3841,11 @@ program lb_openacc
         
 
     !*************************************initial conditions ************************    
-    
+#ifdef ONLYBULK
+    call setup_system_halo<<<dimGridhalo,dimBlockhalo>>>(1.0_db,0.0_db,0.0_db,0.0_db)
+#else    
     call setup_system<<<dimGrid,dimBlock>>>(1.0_db,0.0_db,0.0_db,0.0_db)
-        
+#endif   
         
     !*************************************check data ************************ 
 	istat = cudaGetDeviceCount(ngpus)
@@ -3543,21 +4000,23 @@ program lb_openacc
         call streamcoll_bulk<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
-        
         call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
 
         !********************************close to boundary conditions no slip everywhere********************************!
-        
+#ifndef ONLYBULK        
         call streamcoll_bc<<<dimGrid,dimBlock,0,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
-        
+        call abortOnLastErrorAndSync('after streamcoll_bc', istep)
+#endif        
         
         !***********************************correct pressor*********
+#ifndef PRESSCORR
         call correct_pressure<<<dimGrid,dimBlock,0,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
-        
+        call abortOnLastErrorAndSync('after correct_pressure', istep)
+#endif
         
         !flop
         istep=step+1
@@ -3618,20 +4077,22 @@ program lb_openacc
         call streamcoll_bulk_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
         
         !********************************close to boundary conditions no slip everywhere********************************!
-        
+#ifndef ONLYBULK           
         call streamcoll_bc_flop<<<dimGrid,dimBlock,0,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
-        
-        
+        call abortOnLastErrorAndSync('after streamcoll_bc_flop', istep)
+#endif        
         !***********************************correct pressor*********
+#ifndef PRESSCORR
         call correct_pressure_flop<<<dimGrid,dimBlock,0,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
-        
-        
+        call abortOnLastErrorAndSync('after correct_pressure_flop', istep)
+#endif        
     enddo 
     
     istat = cudaEventRecord(stopEvent, 0)

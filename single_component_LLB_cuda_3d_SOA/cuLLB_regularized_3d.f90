@@ -389,7 +389,7 @@ program lb_openacc
         !***********************************collision + no slip + forcing: fused implementation*********
 #ifdef ONLYBULK
 #ifdef HALOSHARED  
-        call streamcoll_bulk_shared_halo<<dimGrid,dimBlockshared,mshared,stream1>>>()
+        call streamcoll_bulk_shared_halo<<<dimGrid,dimBlockshared,mshared,stream1>>>()
 #else
         call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
 #endif
@@ -463,7 +463,7 @@ program lb_openacc
         !***********************************collision + no slip + forcing: fused implementation*********
 #ifdef ONLYBULK     
 #ifdef HALOSHARED  
-        call streamcoll_bulk_shared_halo_flop<<dimGrid,dimBlockshared,mshared,stream1>>>()
+        call streamcoll_bulk_shared_halo_flop<<<dimGrid,dimBlockshared,mshared,stream1>>>()
 #else
         call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
 #endif
