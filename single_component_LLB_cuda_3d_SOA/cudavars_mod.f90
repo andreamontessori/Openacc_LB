@@ -48,7 +48,8 @@
     integer(kind=cuda_Stream_Kind) :: stream1,stream2
     type (cudaDeviceProp) :: prop
     type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
-    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2
+    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2, &
+     dimGridhalo,dimBlockhalo
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
     
@@ -116,6 +117,63 @@
     return
 
  end subroutine setup_system
+ 
+ attributes(global) subroutine setup_system_halo(rhos,vxs,vys,vzs)
+    
+    real(kind=db), value :: rhos,vxs,vys,vzs
+    real :: mytest
+    
+    !integer :: i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
+    integer :: i,j,k,gi,gj,gk,idblock       
+            
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x -1
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y -1
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z -1
+	
+	if(gi>nx_d .or. gj>ny_d .or. gk>nz_d)return
+	
+	i=threadIdx%x
+	j=threadIdx%y
+	k=threadIdx%z
+	
+	!xblock=(i+TILE_DIMx_d-1)/TILE_DIMx_d
+    !yblock=(j+TILE_DIMy_d-1)/TILE_DIMy_d
+    !zblock=(k+TILE_DIMz_d-1)/TILE_DIMz_d
+	!idblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+	!ii=i-xblock*TILE_DIMx_d+TILE_DIMx_d
+    !jj=j-yblock*TILE_DIMy_d+TILE_DIMy_d
+    !kk=k-zblock*TILE_DIMz_d+TILE_DIMz_d
+    !if(ii/=threadIdx%x .or. jj/=threadIdx%y .or. kk/=threadIdx%z)write(*,*)'cazzo1'
+    !if(xblock/=(blockIdx%x) .or. yblock/=(blockIdx%y) .or. zblock/=(blockIdx%z))write(*,*)'cazzo2'
+	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	
+	mytest=rhos!real(gi**3+gj**3+gk**3)
+	
+	u(i,j,k,idblock)=vxs
+	v(i,j,k,idblock)=vys
+	w(i,j,k,idblock)=vzs
+	rho(i,j,k,idblock)=mytest!rhos
+	pxx(i,j,k,idblock)=zero
+	pxy(i,j,k,idblock)=zero
+	pxz(i,j,k,idblock)=zero
+	pyy(i,j,k,idblock)=zero
+	pyz(i,j,k,idblock)=zero
+	pzz(i,j,k,idblock)=zero
+	
+	uh(i,j,k,idblock)=vxs
+	vh(i,j,k,idblock)=vys
+	wh(i,j,k,idblock)=vzs
+	rhoh(i,j,k,idblock)=mytest!rhos
+	pxxh(i,j,k,idblock)=zero
+	pxyh(i,j,k,idblock)=zero
+	pxzh(i,j,k,idblock)=zero
+	pyyh(i,j,k,idblock)=zero
+	pyzh(i,j,k,idblock)=zero
+	pzzh(i,j,k,idblock)=zero
+    
+    return
+
+ end subroutine setup_system_halo
  
  attributes(global) subroutine store_print()
 	

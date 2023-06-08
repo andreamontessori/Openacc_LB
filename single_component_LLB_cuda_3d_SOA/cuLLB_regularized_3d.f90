@@ -83,6 +83,11 @@ program lb_openacc
         dimGrid  = dim3(nx/TILE_DIMx, ny/TILE_DIMy, nz/TILE_DIMz)
         dimBlock = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
         
+        
+        dimGridhalo  = dim3((nx+2+TILE_DIMx-1)/TILE_DIMx,(ny+2+TILE_DIMy-1)/TILE_DIMy,(nz+2+TILE_DIMz-1)/TILE_DIMz)
+        dimBlockhalo = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
+        
+        
         dimGridx  = dim3((ny+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimGridy  = dim3((nx+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimBlock2 = dim3(TILE_DIM, TILE_DIM, 1)
@@ -221,8 +226,11 @@ program lb_openacc
         
 
     !*************************************initial conditions ************************    
-    
+#ifdef ONLYBULK
+    call setup_system_halo<<<dimGridhalo,dimBlockhalo>>>(one,zero,zero,zero)
+#else
     call setup_system<<<dimGrid,dimBlock>>>(one,zero,zero,zero)
+#endif
     istat = cudaDeviceSynchronize
     call abortOnLastErrorAndSync('after setup_system', 0)
     
@@ -377,18 +385,18 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-!        call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
-!        istat = cudaEventRecord(dummyEvent1, stream1)
-!        istat = cudaEventSynchronize(dummyEvent1)
-!        call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
-
+#ifdef ONLYBULK
+        call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
+#else
         !********************************close to boundary conditions no slip everywhere********************************!
-        
         call streamcoll_bc_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bc', istep)
-        
+#endif        
         !***********************************correct pressor*********
 #ifndef PRESSCORR
         call correct_pressure<<<dimGrid,dimBlock,0,stream1>>>()
@@ -447,19 +455,18 @@ program lb_openacc
         
         
         !***********************************collision + no slip + forcing: fused implementation*********
-        
-!        call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
-!        istat = cudaEventRecord(dummyEvent1, stream1)
-!        istat = cudaEventSynchronize(dummyEvent1)
-!        call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
-        
-        !********************************close to boundary conditions no slip everywhere********************************!
-        
+#ifdef ONLYBULK        
+        call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
+#else  
+        !********************************close to boundary conditions no slip everywhere********************************! 
         call streamcoll_bc_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bc_flop', istep)
-        
+#endif
         !***********************************correct pressor*********
 #ifndef PRESSCORR
         call correct_pressure_flop<<<dimGrid,dimBlock,0,stream1>>>()
