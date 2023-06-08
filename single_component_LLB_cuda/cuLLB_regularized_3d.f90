@@ -3418,6 +3418,11 @@ program lb_openacc
 	write(6,*) 'available gpus',ngpus
 	write(6,*) 'my ID gpu',devNum
 	write(6,*) '*******************************************'
+	write(6,*) 'TILE_DIMx',TILE_DIMx
+    write(6,*) 'TILE_DIMy',TILE_DIMy
+    write(6,*) 'TILE_DIMz',TILE_DIMz
+    write(6,*) 'TILE_DIM ',TILE_DIM
+	write(6,*) '*******************************************'
 	
 	
 	
