@@ -137,7 +137,7 @@
 	        
 	        idblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
               
-              
+
             if(isfluid_d(gi,gj,gk).ne.1)return
 
             pxx_d(i,j,k,idblock)=zero
@@ -600,7 +600,7 @@
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
           f18_d(ii,jj,kk,iidblock)=f17_d(i,j,k,myblock) !gpc 
-          
+          return
           gii=gi-1
           gjj=gj
           gkk=gk+1
@@ -1811,9 +1811,9 @@ program lb_openacc
         fy=zero*10.0**(-5)
         fz=zero*10.0**(-5)
         
-        TILE_DIMx=128
-        TILE_DIMy=2
-        TILE_DIMz=1
+        TILE_DIMx=8
+        TILE_DIMy=4
+        TILE_DIMz=4
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
           write(*,*) 'nx must be a multiple of TILE_DIM'
@@ -1883,8 +1883,8 @@ program lb_openacc
         fz_d=fz
         omega_d=omega
         oneminusomega_d=oneminusomega
-        nxblock_d=nxblock
-        nxyblock_d=nxblock*nyblock
+        nxblock_d=nxblock-1
+        nxyblock_d=(nxblock-1)*(nyblock-1)
         nblocks_d=nblocks
         
         allocate(isfluid_d(1:nx_d,1:ny_d,1:nz_d))
@@ -1910,6 +1910,8 @@ program lb_openacc
     !*************************************initial conditions ************************    
         
         call setup_pops<<<dimGrid,dimBlock>>>()
+        call abortOnLastErrorAndSync('after setup_pops', step)
+        istat = cudaDeviceSynchronize
         
         if(lprint)then
           allocate(rhoprint(1:nx,1:ny,1:nz),velprint(3,1:nx,1:ny,1:nz))
@@ -1976,7 +1978,9 @@ program lb_openacc
     iframe=0
     if(lprint)then
       call moments<<<dimGrid,dimBlock,0,stream1>>>()
-      
+      istat = cudaEventRecord(dummyEvent1, stream1)
+      istat = cudaEventSynchronize(dummyEvent1)
+      call abortOnLastErrorAndSync('after moments', step)
       
       
       call store_print<<<dimGrid,dimBlock,0,stream1>>>()
@@ -1998,7 +2002,7 @@ program lb_openacc
         endif
       endif
     endif
-    
+
     !*************************************time loop************************  
     call cpu_time(ts1)
     istat = cudaEventRecord(startEvent,0)
@@ -2062,7 +2066,7 @@ program lb_openacc
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after bcs_no_slip', step)
-        
+       stop 
         
         !******************************************call other bcs************************
             !periodic along x

@@ -1312,8 +1312,8 @@ program lb_openacc
         fy=zero*10.0**(-5)
         fz=zero*10.0**(-5)
         
-        TILE_DIMx=128
-        TILE_DIMy=2
+        TILE_DIMx=256
+        TILE_DIMy=1
         TILE_DIMz=1
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
