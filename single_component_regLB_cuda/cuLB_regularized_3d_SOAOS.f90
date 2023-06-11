@@ -55,7 +55,8 @@
       real(kind=db), allocatable, dimension(:,:,:,:), device :: f10_d,f11_d,f12_d,f13_d,f14_d,f15_d,f16_d,f17_d,f18_d
       real(kind=db), allocatable, dimension(:,:,:), device :: rhoprint_d
       real(kind=db), allocatable, dimension(:,:,:,:), device :: velprint_d
-      type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2
+      type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2, &
+       dimGridhalo,dimBlockhalo
    
       contains
       
@@ -84,14 +85,14 @@
           
             
             gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	        gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	        gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	        
+            gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
+            gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	
 	        i=threadIdx%x
 	        j=threadIdx%y
 	        k=threadIdx%z
 	        
-	        idblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+	        idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
             
             !write(*,*)i,j,p_d(0)*myrho_d
             
@@ -117,6 +118,49 @@
      
 
       end subroutine setup_pops
+      
+      attributes(global) subroutine setup_pops_halo()
+      
+            integer :: i,j,k
+            integer :: gi,gj,gk,idblock
+          
+            
+            gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x -1
+            gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y -1
+            gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z -1
+	
+            if(gi>nx_d .or. gj>ny_d .or. gk>nz_d)return
+	
+            i=threadIdx%x
+            j=threadIdx%y
+            k=threadIdx%z
+	        
+            idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+            
+            !write(*,*)i,j,p_d(0)*myrho_d
+            
+            f0_d(i,j,k,idblock)=p0*myrho_d
+            f1_d(i,j,k,idblock)=p1*myrho_d
+            f2_d(i,j,k,idblock)=p1*myrho_d
+            f3_d(i,j,k,idblock)=p1*myrho_d
+            f4_d(i,j,k,idblock)=p1*myrho_d
+            f5_d(i,j,k,idblock)=p1*myrho_d
+            f6_d(i,j,k,idblock)=p1*myrho_d
+            f7_d(i,j,k,idblock)=p2*myrho_d
+            f8_d(i,j,k,idblock)=p2*myrho_d
+            f9_d(i,j,k,idblock)=p2*myrho_d
+            f10_d(i,j,k,idblock)=p2*myrho_d
+            f11_d(i,j,k,idblock)=p2*myrho_d
+            f12_d(i,j,k,idblock)=p2*myrho_d
+            f13_d(i,j,k,idblock)=p2*myrho_d
+            f14_d(i,j,k,idblock)=p2*myrho_d
+            f15_d(i,j,k,idblock)=p2*myrho_d
+            f16_d(i,j,k,idblock)=p2*myrho_d
+            f17_d(i,j,k,idblock)=p2*myrho_d
+            f18_d(i,j,k,idblock)=p2*myrho_d
+     
+
+      end subroutine setup_pops_halo
   
       attributes(global) subroutine moments()
           
@@ -130,12 +174,12 @@
             gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	        gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
 	        gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	        
+	
 	        i=threadIdx%x
-	        j=threadIdx%y
-	        k=threadIdx%z
-	        
-	        idblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+            j=threadIdx%y
+            k=threadIdx%z
+	
+            idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
               
 
             if(isfluid_d(gi,gj,gk).ne.1)return
@@ -260,15 +304,17 @@
             integer :: gii,gjj,gkk,xblock,yblock,zblock,iidblock,ii,jj,kk
           
             
+    
             gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	        gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
 	        gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	        
+	
 	        i=threadIdx%x
 	        j=threadIdx%y
 	        k=threadIdx%z
-	        
-	        myblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+	
+	        myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+            
               
             if(isfluid_d(gi,gj,gk).ne.1)return
               
@@ -285,7 +331,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -302,7 +348,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -317,7 +363,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -334,7 +380,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -349,7 +395,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -366,7 +412,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -381,7 +427,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -398,7 +444,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -413,7 +459,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -430,7 +476,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -445,7 +491,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -462,7 +508,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -477,7 +523,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -494,7 +540,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -509,7 +555,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -526,7 +572,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -541,7 +587,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -558,7 +604,7 @@
             xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
             yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
             zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-            iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+            iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
             ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
             jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
             kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -574,16 +620,16 @@
           integer :: gi,gj,gk,myblock
           integer :: gii,gjj,gkk,xblock,yblock,zblock,iidblock,ii,jj,kk
           
-          
-          gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+	      
+	      gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	      gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
 	      gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	        
+	
 	      i=threadIdx%x
 	      j=threadIdx%y
 	      k=threadIdx%z
-	        
-	      myblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+	
+	      myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
         
           
           !write(*,*)i,j,p_d(0)*myrho_d
@@ -595,7 +641,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -607,7 +653,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -619,7 +665,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -631,7 +677,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -643,7 +689,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -655,7 +701,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -667,7 +713,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -679,7 +725,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -691,7 +737,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -703,7 +749,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -715,7 +761,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -727,7 +773,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -739,7 +785,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -751,7 +797,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -763,7 +809,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -775,7 +821,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -787,7 +833,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
@@ -799,7 +845,7 @@
           xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
           yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
           zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-          iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
           ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
           jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
           kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d 
@@ -832,10 +878,10 @@
           gio=nx_d
 	      gie=2
 	      xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-          idblocko1=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          idblocko1=xblocko+yblock*nxblock_d+zblock*nxyblock_d+1
             
           xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-	      idblocke1=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	      idblocke1=xblocke+yblock*nxblock_d+zblock*nxyblock_d+1
 	
 	      io1=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
 	      ie1=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
@@ -843,10 +889,10 @@
 	      gio=1
 	      gie=nx_d-1
 	      xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-          idblocko2=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          idblocko2=xblocko+yblock*nxblock_d+zblock*nxyblock_d+1
             
           xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-	      idblocke2=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	      idblocke2=xblocke+yblock*nxblock_d+zblock*nxyblock_d+1
 	
 	      io2=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
 	      ie2=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
@@ -952,10 +998,10 @@
 	      gje=2
 	
 	      yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-          idblocko1=(xblock-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          idblocko1=xblock+yblocko*nxblock_d+zblock*nxyblock_d+1
     
           yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-	      idblocke1=(xblock-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	      idblocke1=xblock+yblocke*nxblock_d+zblock*nxyblock_d+1
 	      
 	      jo1=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
 	      je1=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
@@ -964,10 +1010,10 @@
 	      gje=ny_d-1
 	
 	      yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-          idblocko2=(xblock-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+          idblocko2=xblock+yblocko*nxblock_d+zblock*nxyblock_d+1
     
           yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-	      idblocke2=(xblock-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	      idblocke2=xblock+yblocke*nxblock_d+zblock*nxyblock_d+1
 	      
 	      jo2=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
 	      je2=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
@@ -1057,16 +1103,16 @@
           integer :: i,j,k
           integer :: gi,gj,gk,idblock
           
-            
-          gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+          
+	      gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	      gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
 	      gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	        
+	
 	      i=threadIdx%x
 	      j=threadIdx%y
 	      k=threadIdx%z
-	        
-	      idblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+	
+	      idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
           
           
           !write(*,*)i,j,p_d(0)*myrho_d
@@ -1830,15 +1876,24 @@ program lb_openacc
         dimGrid  = dim3(nx/TILE_DIMx, ny/TILE_DIMy, nz/TILE_DIMz)
         dimBlock = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
         
+        dimGridhalo  = dim3((nx+2+TILE_DIMx-1)/TILE_DIMx,(ny+2+TILE_DIMy-1)/TILE_DIMy,(nz+2+TILE_DIMz-1)/TILE_DIMz)
+        dimBlockhalo = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
+        
         dimGridx  = dim3((ny+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimGridy  = dim3((nx+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimBlock2 = dim3(TILE_DIM, TILE_DIM, 1)
         
-        nxblock=nx/TILE_DIMx
-        nyblock=ny/TILE_DIMx
-        nzblock=nz/TILE_DIMz
+        !plus 2 for the halo forward and backward
+        nxblock=nx/TILE_DIMx +2
+        nyblock=ny/TILE_DIMy +2
+        nzblock=nz/TILE_DIMz +2
         
         nblocks=nxblock*nyblock*nzblock
+        
+        write(6,*)'nx,ny,nz',nx,ny,nz
+        write(6,*)'TILE_DIMx,TILE_DIMy,TILE_DIMz',TILE_DIMx,TILE_DIMy,TILE_DIMz
+        write(6,*)'nxblock,nyblock,nzblock',nxblock,nyblock,nzblock
+        write(6,*)'nblocks',nblocks
 
         !allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         !allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))
@@ -1883,8 +1938,8 @@ program lb_openacc
         fz_d=fz
         omega_d=omega
         oneminusomega_d=oneminusomega
-        nxblock_d=nxblock-1
-        nxyblock_d=(nxblock-1)*(nyblock-1)
+        nxblock_d=nxblock
+        nxyblock_d=nxblock*nyblock
         nblocks_d=nblocks
         
         allocate(isfluid_d(1:nx_d,1:ny_d,1:nz_d))
@@ -1909,7 +1964,8 @@ program lb_openacc
         istat = cudaDeviceSynchronize
     !*************************************initial conditions ************************    
         
-        call setup_pops<<<dimGrid,dimBlock>>>()
+        !call setup_pops<<<dimGrid,dimBlock>>>()
+        call setup_pops_halo<<<dimGridhalo,dimBlockhalo>>>()
         call abortOnLastErrorAndSync('after setup_pops', step)
         istat = cudaDeviceSynchronize
         
@@ -1949,6 +2005,8 @@ program lb_openacc
         write(6,*) 'TILE_DIMy',TILE_DIMy
         write(6,*) 'TILE_DIMz',TILE_DIMz
         write(6,*) 'TILE_DIM ',TILE_DIM
+        write(6,*)'nxblock,nyblock,nzblock',nxblock,nyblock,nzblock
+        write(6,*)'nblocks',nblocks
 	    write(6,*) '*******************************************'
         
         istat = cudaGetDeviceProperties(prop, 0)
