@@ -2124,7 +2124,6 @@ program lb_openacc
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after bcs_no_slip', step)
-       stop 
         
         !******************************************call other bcs************************
             !periodic along x
