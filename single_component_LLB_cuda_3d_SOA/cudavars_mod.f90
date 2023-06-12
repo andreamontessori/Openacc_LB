@@ -126,9 +126,9 @@
     !integer :: i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
     integer :: i,j,k,gi,gj,gk,idblock       
             
-	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x -1
-	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y -1
-	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z -1
+	gi = (blockIdx%x-2) * TILE_DIMx_d + threadIdx%x
+	gj = (blockIdx%y-2) * TILE_DIMy_d + threadIdx%y
+	gk = (blockIdx%z-2) * TILE_DIMz_d + threadIdx%z
 	
 	if(gi>nx_d .or. gj>ny_d .or. gk>nz_d)return
 	
@@ -145,7 +145,7 @@
     !kk=k-zblock*TILE_DIMz_d+TILE_DIMz_d
     !if(ii/=threadIdx%x .or. jj/=threadIdx%y .or. kk/=threadIdx%z)write(*,*)'cazzo1'
     !if(xblock/=(blockIdx%x) .or. yblock/=(blockIdx%y) .or. zblock/=(blockIdx%z))write(*,*)'cazzo2'
-	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	idblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
 	
 	mytest=rhos!real(gi**3+gj**3+gk**3)
 	

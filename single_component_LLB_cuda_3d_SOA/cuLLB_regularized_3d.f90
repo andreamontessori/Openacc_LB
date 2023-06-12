@@ -51,21 +51,21 @@ program lb_openacc
 
 
     !*******************************user parameters and allocations**************************m
-        nx=256
-        ny=256
-        nz=256
+        nx=128
+        ny=128
+        nz=128
         nsteps=1000
         stamp=100
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
         lpbc=.true.
-        lprint=.false.
-        lvtk=.false.
+        lprint=.true.
+        lvtk=.true.
         lasync=.false.
         
         TILE_DIMx=8
-        TILE_DIMy=8
+        TILE_DIMy=4
         TILE_DIMz=4
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
