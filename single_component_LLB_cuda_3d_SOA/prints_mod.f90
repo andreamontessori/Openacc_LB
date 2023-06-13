@@ -31,18 +31,6 @@
   
   contains
   
-  function coordblock(idblock,nxblock,nyblock)
-  !return block coordinate from id block (idblock start from 1 so we apply minus 1)
-   implicit none
-   integer, intent(in) :: idblock,nxblock,nyblock
-   integer, dimension(3) :: coordblock
-   
-   coordblock(3)=(idblock-1)/(nxblock*nyblock)
-   coordblock(2)=((idblock-1)-coordblock(3)*(nxblock*nyblock))/nxblock
-   coordblock(1)=(idblock-1)-coordblock(3)*(nxblock*nyblock)-coordblock(2)*nxblock
-    
-  end function coordblock
-  
   subroutine header_vtk(nx,ny,nz,mystring500,namevar,extent,ncomps,iinisub,iend,myoffset, &
    new_myoffset,indent)
   

@@ -17,22 +17,23 @@
 	  
 	if (gj>ny_d .or. gk>nz_d)return
 	
-	yblock=(gj+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
-    j=gj-yblock*TILE_DIMy_d+TILE_DIMy_d
-    k=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
+	yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    
+    j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
 	
 	gio=nx_d
 	gie=0
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-    idblocko=xblocko+yblock*nxblock_d+zblock*nxyblock_d+1
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-	idblocke=xblocke+yblock*nxblock_d+zblock*nxyblock_d+1
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-	ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
+	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
     
 	  
 	rho(ie,j,k,idblocke)=rho(io,j,k,idblocko)
@@ -49,14 +50,14 @@
 	gio=1
 	gie=nx_d+1
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-    idblocko=xblocko+yblock*nxblock_d+zblock*nxyblock_d+1
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-	idblocke=xblocke+yblock*nxblock_d+zblock*nxyblock_d+1
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-	ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
+	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	
 	rho(ie,j,k,idblocke)=rho(io,j,k,idblocko)
 	u(ie,j,k,idblocke)=u(io,j,k,idblocko)
@@ -83,22 +84,23 @@
 	  
 	if (gj>ny_d .or. gk>nz_d)return
 	
-	yblock=(gj+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
-    j=gj-yblock*TILE_DIMy_d+TILE_DIMy_d
-    k=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
+	yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    
+    j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
 	
 	gio=nx_d
 	gie=0
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-    idblocko=xblocko+yblock*nxblock_d+zblock*nxyblock_d+1
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-	idblocke=xblocke+yblock*nxblock_d+zblock*nxyblock_d+1
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-	ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
+	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
     
 	  
 	rhoh(ie,j,k,idblocke)=rhoh(io,j,k,idblocko)
@@ -115,14 +117,14 @@
 	gio=1
 	gie=nx_d+1
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-    idblocko=xblocko+yblock*nxblock_d+zblock*nxyblock_d+1
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-	idblocke=xblocke+yblock*nxblock_d+zblock*nxyblock_d+1
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-	ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
+	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	
 	rhoh(ie,j,k,idblocke)=rhoh(io,j,k,idblocko)
 	uh(ie,j,k,idblocke)=uh(io,j,k,idblocko)
@@ -148,26 +150,26 @@
 	  
 	if (gi>nx_d)return
 	
-	xblock=(gi+TILE_DIMx_d-1)/TILE_DIMx_d
-	i=gi-xblock*TILE_DIMx_d+TILE_DIMx_d
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	i=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
 	
 	gjo=ny_d
 	gje=0
 	gko=nz_d
 	gke=0
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+    yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rho(i,je,ke,idblocke)=rho(i,jo,ko,idblocko)
 	u(i,je,ke,idblocke)=u(i,jo,ko,idblocko)
@@ -185,18 +187,18 @@
 	gko=1
 	gke=nz_d+1
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rho(i,je,ke,idblocke)=rho(i,jo,ko,idblocko)
 	u(i,je,ke,idblocke)=u(i,jo,ko,idblocko)
@@ -214,18 +216,18 @@
 	gko=1
 	gke=nz_d+1
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rho(i,je,ke,idblocke)=rho(i,jo,ko,idblocko)
 	u(i,je,ke,idblocke)=u(i,jo,ko,idblocko)
@@ -243,18 +245,18 @@
 	gko=nz_d
 	gke=0
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rho(i,je,ke,idblocke)=rho(i,jo,ko,idblocko)
 	u(i,je,ke,idblocke)=u(i,jo,ko,idblocko)
@@ -281,26 +283,26 @@
 	  
 	if (gi>nx_d)return
 	
-	xblock=(gi+TILE_DIMx_d-1)/TILE_DIMx_d
-	i=gi-xblock*TILE_DIMx_d+TILE_DIMx_d
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	i=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
 	
 	gjo=ny_d
 	gje=0
 	gko=nz_d
 	gke=0
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rhoh(i,je,ke,idblocke)=rhoh(i,jo,ko,idblocko)
 	uh(i,je,ke,idblocke)=uh(i,jo,ko,idblocko)
@@ -318,18 +320,18 @@
 	gko=1
 	gke=nz_d+1
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rhoh(i,je,ke,idblocke)=rhoh(i,jo,ko,idblocko)
 	uh(i,je,ke,idblocke)=uh(i,jo,ko,idblocko)
@@ -347,18 +349,18 @@
 	gko=1
 	gke=nz_d+1
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rhoh(i,je,ke,idblocke)=rhoh(i,jo,ko,idblocko)
 	uh(i,je,ke,idblocke)=uh(i,jo,ko,idblocko)
@@ -376,18 +378,18 @@
 	gko=nz_d
 	gke=0
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocko=(gko+TILE_DIMz_d-1)/TILE_DIMz_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	ko=gko-zblocko*TILE_DIMz_d+TILE_DIMz_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocko=(gko+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+    ko=gko-zblocko*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblocke=(gke+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
+    ke=gke-zblocke*TILE_DIMz_d+2*TILE_DIMz_d
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblocke=(gke+TILE_DIMz_d-1)/TILE_DIMz_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
-	ke=gke-zblocke*TILE_DIMz_d+TILE_DIMz_d
-    
-    idblocko=xblock+yblocko*nxblock_d+zblocko*nxyblock_d+1
-	idblocke=xblock+yblocke*nxblock_d+zblocke*nxyblock_d+1
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
+    idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
 	rhoh(i,je,ke,idblocke)=rhoh(i,jo,ko,idblocko)
 	uh(i,je,ke,idblocke)=uh(i,jo,ko,idblocko)
@@ -415,22 +417,22 @@
 
 	if (gi>nx_d .or. gk>nz_d)return
 	
-	xblock=(gi+TILE_DIMx_d-1)/TILE_DIMx_d
-    zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
-    i=gi-xblock*TILE_DIMx_d+TILE_DIMx_d
-    k=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    i=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
     
     gjo=ny_d
 	gje=0
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    idblocko=xblock+yblocko*nxblock_d+zblock*nxyblock_d+1
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-	idblocke=xblock+yblocke*nxblock_d+zblock*nxyblock_d+1
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
+	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
 	rho(i,je,k,idblocke)=rho(i,jo,k,idblocko)
 	u(i,je,k,idblocke)=u(i,jo,k,idblocko)
@@ -446,14 +448,14 @@
 	gjo=1
 	gje=ny_d+1
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    idblocko=xblock+yblocko*nxblock_d+zblock*nxyblock_d+1
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-	idblocke=xblock+yblocke*nxblock_d+zblock*nxyblock_d+1
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
+	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
 	rho(i,je,k,idblocke)=rho(i,jo,k,idblocko)
 	u(i,je,k,idblocke)=u(i,jo,k,idblocko)
@@ -481,22 +483,22 @@
 
 	if (gi>nx_d .or. gk>nz_d)return
 	
-	xblock=(gi+TILE_DIMx_d-1)/TILE_DIMx_d
-    zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
-    i=gi-xblock*TILE_DIMx_d+TILE_DIMx_d
-    k=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    i=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
     
     gjo=ny_d
 	gje=0
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    idblocko=xblock+yblocko*nxblock_d+zblock*nxyblock_d+1
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-	idblocke=xblock+yblocke*nxblock_d+zblock*nxyblock_d+1
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
+	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
 	rhoh(i,je,k,idblocke)=rhoh(i,jo,k,idblocko)
 	uh(i,je,k,idblocke)=uh(i,jo,k,idblocko)
@@ -512,14 +514,14 @@
 	gjo=1
 	gje=ny_d+1
 	
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
-    idblocko=xblock+yblocko*nxblock_d+zblock*nxyblock_d+1
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-	idblocke=xblock+yblocke*nxblock_d+zblock*nxyblock_d+1
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMy_d
-	je=gje-yblocke*TILE_DIMy_d+TILE_DIMy_d
+	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
+	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
 	rhoh(i,je,k,idblocke)=rhoh(i,jo,k,idblocko)
 	uh(i,je,k,idblocke)=uh(i,jo,k,idblocko)
@@ -545,29 +547,30 @@
 	  
 	if (gk>nz_d)return
 	
-	zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
-	k=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
+	
 	
 	gio=nx_d
 	gie=0
 	gjo=ny_d
 	gje=0
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+    xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
+    
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
 	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rho(ie,je,k,idblocke)=rho(io,jo,k,idblocko)
 	u(ie,je,k,idblocke)=u(io,jo,k,idblocko)
@@ -585,22 +588,21 @@
 	gjo=1
 	gje=ny_d+1
 	
-	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
-	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
     
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rho(ie,je,k,idblocke)=rho(io,jo,k,idblocko)
 	u(ie,je,k,idblocke)=u(io,jo,k,idblocko)
@@ -618,21 +620,21 @@
 	gjo=ny_d
 	gje=0
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
+    
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
 	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rho(ie,je,k,idblocke)=rho(io,jo,k,idblocko)
 	u(ie,je,k,idblocke)=u(io,jo,k,idblocko)
@@ -650,21 +652,21 @@
 	gjo=1
 	gje=ny_d+1
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
+    
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
 	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rho(ie,je,k,idblocke)=rho(io,jo,k,idblocko)
 	u(ie,je,k,idblocke)=u(io,jo,k,idblocko)
@@ -691,29 +693,29 @@
 	  
 	if (gk>nz_d)return
 	
-	zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
-	k=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
 	
 	gio=nx_d
 	gie=0
 	gjo=ny_d
 	gje=0
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
+    
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
 	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rhoh(ie,je,k,idblocke)=rhoh(io,jo,k,idblocko)
 	uh(ie,je,k,idblocke)=uh(io,jo,k,idblocko)
@@ -731,22 +733,21 @@
 	gjo=1
 	gje=ny_d+1
 	
-	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
-	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
     
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rhoh(ie,je,k,idblocke)=rhoh(io,jo,k,idblocko)
 	uh(ie,je,k,idblocke)=uh(io,jo,k,idblocko)
@@ -764,21 +765,21 @@
 	gjo=ny_d
 	gje=0
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
+    
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
 	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rhoh(ie,je,k,idblocke)=rhoh(io,jo,k,idblocko)
 	uh(ie,je,k,idblocke)=uh(io,jo,k,idblocko)
@@ -796,21 +797,21 @@
 	gjo=1
 	gje=ny_d+1
 	
-	xblocko=(gio+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblocko=(gjo+TILE_DIMy_d-1)/TILE_DIMy_d
+	xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblocko=(gjo+2*TILE_DIMy_d-1)/TILE_DIMy_d
     
-    io=gio-xblocko*TILE_DIMx_d+TILE_DIMx_d
-    jo=gjo-yblocko*TILE_DIMy_d+TILE_DIMx_d
+    io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+    jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMx_d
+    
+    xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblocke=(gje+2*TILE_DIMy_d-1)/TILE_DIMy_d
 	
-    xblocke=(gie+TILE_DIMx_d-1)/TILE_DIMx_d
-    yblocke=(gje+TILE_DIMy_d-1)/TILE_DIMy_d
-    
-    ie=gie-xblocke*TILE_DIMx_d+TILE_DIMx_d
-    je=gje-yblocke*TILE_DIMy_d+TILE_DIMx_d
+    ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+    je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMx_d
 	
     
-    idblocko=xblocko+yblocko*nxblock_d+zblock*nxyblock_d+1
-	idblocke=xblocke+yblocke*nxblock_d+zblock*nxyblock_d+1
+	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	rhoh(ie,je,k,idblocke)=rhoh(io,jo,k,idblocko)
 	uh(ie,je,k,idblocke)=uh(io,jo,k,idblocko)

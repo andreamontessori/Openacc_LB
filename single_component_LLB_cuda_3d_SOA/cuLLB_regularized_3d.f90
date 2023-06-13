@@ -4,8 +4,7 @@ program lb_openacc
     
     use cudavars
     use pbc_kernels
-    use streamcoll_bulk_kernels
-    use streamcoll_bc_kernels
+    use streamcoll_kernels
     use correct_press_kernels
     use prints
     
@@ -41,7 +40,8 @@ program lb_openacc
     real(kind=db) :: time
     
     integer :: mshared
-    integer :: nxblock,nyblock,nzblock,nblocks,idblock,xblock,yblock,zblock,ciao(3)
+    integer :: nxblock,nyblock,nzblock,nblocks,idblock,xblock,yblock,zblock,nxyblock
+    integer :: ciao(3)
     
        
     nlinks=18 !pari!
@@ -64,7 +64,7 @@ program lb_openacc
         lvtk=.true.
         lasync=.false.
         
-        TILE_DIMx=8
+        TILE_DIMx=4
         TILE_DIMy=4
         TILE_DIMz=4
         TILE_DIM=16
@@ -83,8 +83,7 @@ program lb_openacc
         dimGrid  = dim3(nx/TILE_DIMx, ny/TILE_DIMy, nz/TILE_DIMz)
         dimBlock = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
         
-        
-        dimGridhalo  = dim3((nx+2+TILE_DIMx-1)/TILE_DIMx,(ny+2+TILE_DIMy-1)/TILE_DIMy,(nz+2+TILE_DIMz-1)/TILE_DIMz)
+        dimGridhalo  = dim3((nx+TILE_DIMx-1)/TILE_DIMx+2,(ny+TILE_DIMy-1)/TILE_DIMy+2,(nz+TILE_DIMz-1)/TILE_DIMz+2)
         dimBlockhalo = dim3(TILE_DIMx, TILE_DIMy, TILE_DIMz)
         
         dimBlockshared = dim3(TILE_DIMx+2, TILE_DIMy+2, TILE_DIMz+2)
@@ -98,6 +97,8 @@ program lb_openacc
         nyblock=ny/TILE_DIMy +2
         nzblock=nz/TILE_DIMz +2
         
+        nxyblock=nxblock*nyblock
+        
         nblocks=nxblock*nyblock*nzblock
         
         write(6,*)'nx,ny,nz',nx,ny,nz
@@ -108,19 +109,19 @@ program lb_openacc
 #if 0   
        k=1
        j=1   
-        do k=0,nz+1
-        do j=0,ny+1
-        do i=0,nx+1
-          xblock=(i+TILE_DIMx-1)/TILE_DIMx
-          yblock=(j+TILE_DIMy-1)/TILE_DIMy
-          zblock=(k+TILE_DIMz-1)/TILE_DIMz
+        do k=1-TILE_DIMz,nz+TILE_DIMz
+        do j=1-TILE_DIMy,ny+TILE_DIMy
+        do i=1-TILE_DIMx,nx+TILE_DIMx
+          xblock=(i+2*TILE_DIMx-1)/TILE_DIMx
+          yblock=(j+2*TILE_DIMy-1)/TILE_DIMy
+          zblock=(k+2*TILE_DIMz-1)/TILE_DIMz
           !idblock start from 1
-          idblock=xblock+yblock*nxblock+zblock*(nxblock*nyblock)+1
+          idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*(nxblock*nyblock)+1
           !return coord of block from its id
           ciao=coordblock(idblock,nxblock,nyblock)
-          ii=i-xblock*TILE_DIMx+TILE_DIMx
-          jj=j-yblock*TILE_DIMy+TILE_DIMy
-          kk=k-zblock*TILE_DIMz+TILE_DIMz
+          ii=i-xblock*TILE_DIMx+2*TILE_DIMx
+          jj=j-yblock*TILE_DIMy+2*TILE_DIMy
+          kk=k-zblock*TILE_DIMz+2*TILE_DIMz
           write(6,'(10i4)')i,j,k,xblock,yblock,zblock,i-xblock*TILE_DIMx+TILE_DIMx, &
            j-yblock*TILE_DIMy+TILE_DIMy,k-zblock*TILE_DIMz+TILE_DIMz
           if(xblock/=ciao(1) .or. yblock/=ciao(2) .or. zblock/=ciao(3) .or. idblock>nblocks)then
@@ -151,7 +152,7 @@ program lb_openacc
         TILE_DIMz_d=TILE_DIMz
         TILE_DIM_d=TILE_DIM
         nxblock_d=nxblock
-        nxyblock_d=nxblock*nyblock
+        nxyblock_d=nxyblock
         nblocks_d=nblocks
         
 !        allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
@@ -188,7 +189,7 @@ program lb_openacc
         endif
         
     !*****************************************geometry************************
-        h_isfluid=0
+        h_isfluid=3
         h_isfluid(1:nx,1:ny,1:nz)=1
 !        h_isfluid=1
 !        h_isfluid(1,:,:)=0 !left
@@ -199,9 +200,29 @@ program lb_openacc
 !        h_isfluid(:,:,nz)=0 !top
         if(lpbc)then
           h_isfluid=1
-          h_isfluid(:,:,0)=0 !bottom
-          h_isfluid(:,:,nz+1)=0 !top
+          h_isfluid(:,:,0)=3 !bottom
+          h_isfluid(:,:,nz+1)=3 !top
         endif
+        do k=0,nz+1
+	      do j=0,ny+1
+		    do i=0,nx+1
+			  if(h_isfluid(i,j,k).eq.1)then
+			    do ll=1,npops
+				  ii=i+ex(ll)
+			      jj=j+ey(ll)
+				  kk=k+ez(ll) 
+				  if(ii.ge.0 .and. ii.le.nx+1 .and. jj.ge.0 .and. jj.le.ny+1 .and. kk.ge.0 .and. kk.le.nz+1)then
+				    if(h_isfluid(ii,jj,kk).eq.3)then
+					  h_isfluid(i,j,k)=0
+					endif
+				  endif
+				enddo
+			  endif
+			  
+		    enddo
+		  enddo
+	    enddo
+	    
         do k=1,nz
 	      do j=1,ny
 		    do i=1,nx
@@ -228,11 +249,9 @@ program lb_openacc
         
 
     !*************************************initial conditions ************************    
-#ifdef ONLYBULK
+    
     call setup_system_halo<<<dimGridhalo,dimBlockhalo>>>(one,zero,zero,zero)
-#else
-    call setup_system<<<dimGrid,dimBlock>>>(one,zero,zero,zero)
-#endif
+    
     istat = cudaDeviceSynchronize
     call abortOnLastErrorAndSync('after setup_system', 0)
     
@@ -387,22 +406,18 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-#ifdef ONLYBULK
+        !********************************close to boundary conditions no slip everywhere********************************!
 #ifdef HALOSHARED  
-        call streamcoll_bulk_shared_halo<<<dimGrid,dimBlockshared,mshared,stream1>>>()
+        call streamcoll_shared_halo<<<dimGrid,dimBlockshared,mshared,stream1>>>()
 #else
-        call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
+        call streamcoll_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
 #endif
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
-#else
-        !********************************close to boundary conditions no slip everywhere********************************!
-        call streamcoll_bc_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
-        istat = cudaEventRecord(dummyEvent1, stream1)
-        istat = cudaEventSynchronize(dummyEvent1)
-        call abortOnLastErrorAndSync('after streamcoll_bc', istep)
-#endif        
+        !istat = cudaDeviceSynchronize
+        !stop
+        
         !***********************************correct pressor*********
 #ifndef PRESSCORR
         call correct_pressure<<<dimGrid,dimBlock,0,stream1>>>()
@@ -461,22 +476,16 @@ program lb_openacc
         
         
         !***********************************collision + no slip + forcing: fused implementation*********
-#ifdef ONLYBULK     
+        !********************************close to boundary conditions no slip everywhere********************************! 
 #ifdef HALOSHARED  
-        call streamcoll_bulk_shared_halo_flop<<<dimGrid,dimBlockshared,mshared,stream1>>>()
+        call streamcoll_shared_halo_flop<<<dimGrid,dimBlockshared,mshared,stream1>>>()
 #else
-        call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+        call streamcoll_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
 #endif
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
-#else  
-        !********************************close to boundary conditions no slip everywhere********************************! 
-        call streamcoll_bc_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
-        istat = cudaEventRecord(dummyEvent1, stream1)
-        istat = cudaEventSynchronize(dummyEvent1)
-        call abortOnLastErrorAndSync('after streamcoll_bc_flop', istep)
-#endif
+
         !***********************************correct pressor*********
 #ifndef PRESSCORR
         call correct_pressure_flop<<<dimGrid,dimBlock,0,stream1>>>()
@@ -511,9 +520,18 @@ program lb_openacc
     call print_memory_registration_gpu(6,'DEVICE memory occupied at the end', &
      'total DEVICE memory',mymemory,totmemory)
 
-
-  
-
-  
+    contains
     
+    function coordblock(idblock)
+    !return block coordinate from id block (idblock start from 1 so we apply minus 1)
+     implicit none
+     integer, intent(in) :: idblock
+     integer, dimension(3) :: coordblock
+   
+     coordblock(3)=(idblock-1)/nxyblock +1
+     coordblock(2)=((idblock-1)-(coordblock(3)-1)*nxyblock)/nxblock +1
+     coordblock(1)=(idblock-1)-(coordblock(3)-1)*nxyblock-(coordblock(2)-1)*nxblock +1
+      
+    end function coordblock
+
 end program

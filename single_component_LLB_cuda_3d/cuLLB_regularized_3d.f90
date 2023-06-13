@@ -51,17 +51,17 @@ program lb_openacc
 
 
     !*******************************user parameters and allocations**************************m
-        nx=256
-        ny=256
-        nz=256
+        nx=128
+        ny=128
+        nz=128
         nsteps=1000
         stamp=100
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
         lpbc=.true.
-        lprint=.false.
-        lvtk=.false.
+        lprint=.true.
+        lvtk=.true.
         lasync=.false.
         
         TILE_DIMx=8
@@ -313,10 +313,10 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-!        call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
-!        istat = cudaEventRecord(dummyEvent1, stream1)
-!        istat = cudaEventSynchronize(dummyEvent1)
-!        call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
+        !call streamcoll_bulk_shared<<<dimGrid,dimBlock,mshared,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
 
         !********************************close to boundary conditions no slip everywhere********************************!
         
@@ -383,10 +383,10 @@ program lb_openacc
         
         !***********************************collision + no slip + forcing: fused implementation*********
         
-!        call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
-!        istat = cudaEventRecord(dummyEvent1, stream1)
-!        istat = cudaEventSynchronize(dummyEvent1)
-!        call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
+        !call streamcoll_bulk_shared_flop<<<dimGrid,dimBlock,mshared,stream1>>>()
+        istat = cudaEventRecord(dummyEvent1, stream1)
+        istat = cudaEventSynchronize(dummyEvent1)
+        call abortOnLastErrorAndSync('after streamcoll_bulk_flop', istep)
         
         !********************************close to boundary conditions no slip everywhere********************************!
         
