@@ -118,7 +118,7 @@ program lb_openacc
           !idblock start from 1
           idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*(nxblock*nyblock)+1
           !return coord of block from its id
-          ciao=coordblock(idblock,nxblock,nyblock)
+          ciao=coordblock(idblock)
           ii=i-xblock*TILE_DIMx+2*TILE_DIMx
           jj=j-yblock*TILE_DIMy+2*TILE_DIMy
           kk=k-zblock*TILE_DIMz+2*TILE_DIMz
@@ -133,7 +133,42 @@ program lb_openacc
         enddo
         
 #endif        
+#if 1   
+       k=1
+       j=1   
+        do k=1-TILE_DIMz,nz+TILE_DIMz
+        do j=1-TILE_DIMy,ny+TILE_DIMy
+        do i=1-TILE_DIMx,nx+TILE_DIMx
+          xblock=(i+2*TILE_DIMx-1)/TILE_DIMx
+          yblock=(j+2*TILE_DIMy-1)/TILE_DIMy
+          zblock=(k+2*TILE_DIMz-1)/TILE_DIMz
+          !idblock start from 1
+          idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*(nxblock*nyblock)+1
+          !return coord of block from its id
+          ciao=coordblock(idblock)
+          ii=i-xblock*TILE_DIMx+2*TILE_DIMx
+          jj=j-yblock*TILE_DIMy+2*TILE_DIMy
+          kk=k-zblock*TILE_DIMz+2*TILE_DIMz
+          write(6,'(10i4)')i,j,k,xblock,yblock,zblock,idblock
+          if(xblock/=ciao(1) .or. yblock/=ciao(2) .or. zblock/=ciao(3) .or. idblock>nblocks)then
+            write(6,*)'cazzo',ciao(1),xblock
+            stop
+          endif
+           call setup_system_halo2<<<dimGridhalo,dimBlockhalo>>>(1.0,0.0,0.0,0.0,idblock,i,j,k,ii,jj,kk)
+           istat = cudaDeviceSynchronize
+           if(i<0)cycle
+           if(i>nx)cycle
+           if(j<0)cycle
+           if(j>ny)cycle
+           if(k<0)cycle
+           if(k>nz)cycle
+           call setup_system_bulk2<<<dimGrid,dimBlock>>>(1.0,0.0,0.0,0.0,idblock,i,j,k,ii,jj,kk)
+           istat = cudaDeviceSynchronize
+        enddo
+        enddo
+        enddo
         
+#endif             
     
         
        

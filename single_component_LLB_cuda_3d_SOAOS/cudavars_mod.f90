@@ -80,15 +80,6 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
-	!xblock=(i+TILE_DIMx_d-1)/TILE_DIMx_d
-    !yblock=(j+TILE_DIMy_d-1)/TILE_DIMy_d
-    !zblock=(k+TILE_DIMz_d-1)/TILE_DIMz_d
-	!idblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
-	!ii=i-xblock*TILE_DIMx_d+TILE_DIMx_d
-    !jj=j-yblock*TILE_DIMy_d+TILE_DIMy_d
-    !kk=k-zblock*TILE_DIMz_d+TILE_DIMz_d
-    !if(ii/=threadIdx%x .or. jj/=threadIdx%y .or. kk/=threadIdx%z)write(*,*)'cazzo1'
-    !if(xblock/=(blockIdx%x) .or. yblock/=(blockIdx%y) .or. zblock/=(blockIdx%z))write(*,*)'cazzo2'
 	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	
 	mytest=rhos!real(gi**3+gj**3+gk**3)
@@ -125,30 +116,24 @@
     real(kind=db), value :: rhos,vxs,vys,vzs
     real :: mytest
     
-    !integer :: i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
-    integer :: i,j,k,gi,gj,gk,idblock       
+    integer :: ii,jj,kk,xblock,yblock,zblock,idblock
+    integer :: i,j,k,gi,gj,gk       
             
 	gi = (blockIdx%x-2) * TILE_DIMx_d + threadIdx%x
 	gj = (blockIdx%y-2) * TILE_DIMy_d + threadIdx%y
 	gk = (blockIdx%z-2) * TILE_DIMz_d + threadIdx%z
 	
-	
-	if(gi>nx_d .or. gj>ny_d .or. gk>nz_d)return
-	
 	i=threadIdx%x
 	j=threadIdx%y
 	k=threadIdx%z
 	
-	!xblock=(i+TILE_DIMx_d-1)/TILE_DIMx_d
-    !yblock=(j+TILE_DIMy_d-1)/TILE_DIMy_d
-    !zblock=(k+TILE_DIMz_d-1)/TILE_DIMz_d
-	!idblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
-	!ii=i-xblock*TILE_DIMx_d+TILE_DIMx_d
-    !jj=j-yblock*TILE_DIMy_d+TILE_DIMy_d
-    !kk=k-zblock*TILE_DIMz_d+TILE_DIMz_d
-    !if(ii/=threadIdx%x .or. jj/=threadIdx%y .or. kk/=threadIdx%z)write(*,*)'cazzo1'
-    !if(xblock/=(blockIdx%x) .or. yblock/=(blockIdx%y) .or. zblock/=(blockIdx%z))write(*,*)'cazzo2'
 	idblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+	
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+	
+	!if(gi==6)write(*,*)'cazzo',gi,gj,gk,idblock
 	
 	mytest=rhos!real(gi**3+gj**3+gk**3)
 	
@@ -181,6 +166,68 @@
 
  end subroutine setup_system_halo
  
+ attributes(global) subroutine setup_system_halo2(rhos,vxs,vys,vzs,idblock,ii,jj,kk,iii,jjj,kkk)
+    
+    real(kind=db), value :: rhos,vxs,vys,vzs
+    integer, value ::idblock,ii,jj,kk,iii,jjj,kkk
+    real :: mytest
+    
+    integer :: i,j,k,gi,gj,gk,myblock,coordblock_d(3)       
+            
+	gi = (blockIdx%x-2) * TILE_DIMx_d + threadIdx%x
+	gj = (blockIdx%y-2) * TILE_DIMy_d + threadIdx%y
+	gk = (blockIdx%z-2) * TILE_DIMz_d + threadIdx%z
+	
+	i=threadIdx%x
+	j=threadIdx%y
+	k=threadIdx%z
+	
+	myblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+	
+	if(gi==ii .and. gj==jj .and. gk==kk)then
+	coordblock_d(3)=(idblock-1)/nxyblock_d+1
+    coordblock_d(2)=((idblock-1)-(coordblock_d(3)-1)*nxyblock_d)/nxblock_d +1
+    coordblock_d(1)=(idblock-1)-(coordblock_d(3)-1)*nxyblock_d-(coordblock_d(2)-1)*nxblock_d+1
+	write(*,*)ii,jj,kk
+	  if(idblock .ne. myblock)write(*,*)'SONO CAZZI',idblock,myblock
+  	  if(i .ne. iii)write(*,*)'SONO CAZZI',idblock,myblock
+  	  if(j .ne. jjj)write(*,*)'SONO CAZZI',idblock,myblock
+  	  if(k .ne. kkk)write(*,*)'SONO CAZZI',idblock,myblock
+	endif
+	
+ end subroutine setup_system_halo2
+ 
+ attributes(global) subroutine setup_system_bulk2(rhos,vxs,vys,vzs,idblock,ii,jj,kk,iii,jjj,kkk)
+    
+    real(kind=db), value :: rhos,vxs,vys,vzs
+    integer, value ::idblock,ii,jj,kk,iii,jjj,kkk
+    real :: mytest
+    
+    integer :: i,j,k,gi,gj,gk,myblock,coordblock_d(3)       
+            
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	
+	i=threadIdx%x
+	j=threadIdx%y
+	k=threadIdx%z
+	
+	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	
+	if(gi==ii .and. gj==jj .and. gk==kk)then
+	coordblock_d(3)=(myblock-1)/nxyblock_d+1
+    coordblock_d(2)=((myblock-1)-(coordblock_d(3)-1)*nxyblock_d)/nxblock_d +1
+    coordblock_d(1)=(myblock-1)-(coordblock_d(3)-1)*nxyblock_d-(coordblock_d(2)-1)*nxblock_d+1
+	write(*,*)ii,jj,kk
+	  if(idblock .ne. myblock)write(*,*)'SONO CAZZI2',idblock,myblock
+  	  if(i .ne. iii)write(*,*)'SONO CAZZI2',idblock,myblock
+  	  if(j .ne. jjj)write(*,*)'SONO CAZZI2',idblock,myblock
+  	  if(k .ne. kkk)write(*,*)'SONO CAZZI2',idblock,myblock
+	endif
+	
+ end subroutine setup_system_bulk2
+ 
  attributes(global) subroutine store_print()
 	
 	integer :: i,j,k,gi,gj,gk,idblock,ii,jj,kk  ,xblock,yblock,zblock,idblocko
@@ -195,17 +242,18 @@
 	k=threadIdx%z
 	
 	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
-	
-	xblock=(gi+TILE_DIMx_d-1)/TILE_DIMx_d
-	yblock=(gj+TILE_DIMy_d-1)/TILE_DIMy_d
-    zblock=(gk+TILE_DIMz_d-1)/TILE_DIMz_d
-    ii=gi-xblock*TILE_DIMx_d+TILE_DIMx_d
-    jj=gj-yblock*TILE_DIMy_d+TILE_DIMy_d
-    kk=gk-zblock*TILE_DIMz_d+TILE_DIMz_d
     
-    idblocko=xblock+yblock*nxblock_d+zblock*nxyblock_d-1
+    !xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    !yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    !zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    
+    !ii=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+    !jj=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+    !kk=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
+    
+    !idblocko=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	mytest=real(gi**3+gj**3+gk**3)
+	!mytest=real(gi**3+gj**3+gk**3)
 	
 	!if(rho(ii,jj,kk,idblocko).ne. mytest)write(*,*)'cazzo'
 	  

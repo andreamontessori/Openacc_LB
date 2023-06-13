@@ -1,5 +1,5 @@
 #include "defines.h"
- module streamcoll_bulk_kernels
+ module streamcoll_kernels
  
   use cudavars
   
@@ -7,967 +7,7 @@
   
   contains
   
-  attributes(global) subroutine streamcoll_bulk()
-	
-	implicit none  
-	  
-    integer :: i,j,k
-    integer :: idblock=1
-	real(kind=db) :: uu,udotc,temp
-	real(kind=db) :: temp_pop,temp_rho,temp_u,temp_v,temp_w
-	real(kind=db) :: temp_pxx,temp_pyy,temp_pzz,temp_pxy,temp_pxz,temp_pyz
-#ifdef USESHARE 
-    integer :: li,lj,lk
-	real(kind=db), shared :: loc_rho(0:TILE_DIMx_d+1,0:TILE_DIMy_d+1,0:TILE_DIMz_d+1)
-#endif
-		  
-	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-		  
-	!if(isfluid(i,j,k).ne.1)return
-#ifdef USESHARE  	
-	li = threadIdx%x
-    lj = threadIdx%y
-    lk = threadIdx%z
-    
-    loc_rho(li,lj,lk) = hfields(i,j,k,1,idblock)
-
-    ! Halo Faces
-    if(li==1)then
-      loc_rho(li-1,lj,lk) = hfields(i-1,j,k,1,idblock)
-    endif
-    if(li==TILE_DIMx_d)then
-      loc_rho(li+1,lj,lk) = hfields(i+1,j,k,1,idblock)
-    endif
-
-    if(lj==1)then
-      loc_rho(li,lj-1,lk) = hfields(i,j-1,k,1,idblock)
-    endif
-    if(lj==TILE_DIMy_d)then
-      loc_rho(li,lj+1,lk) = hfields(i,j+1,k,1,idblock)
-    endif
-
-    if(lk==1)then
-      loc_rho(li,lj,lk-1) = hfields(i,j,k-1,1,idblock)
-    endif
-    if(lk==TILE_DIMz_d)then
-      loc_rho(li,lj,lk+1) = hfields(i,j,k+1,1,idblock)
-    endif
-
-    ! Halo edges
-    if(li==1 .and. lj==1)then
-      loc_rho(li-1,lj-1,lk) = hfields(i-1,j-1,k,1,idblock)
-    endif
-    if(li==1 .and. lj==TILE_DIMy_d)then
-      loc_rho(li-1,lj+1,lk) = hfields(i-1,j+1,k,1,idblock)
-    endif
-    if(li==1 .and. lk==1)then
-      loc_rho(li-1,lj,lk-1) = hfields(i-1,j,k-1,1,idblock)
-    endif
-    if(li==1 .and. lk==TILE_DIMz_d)then
-      loc_rho(li-1,lj,lk+1) = hfields(i-1,j,k+1,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lj==1)then
-      loc_rho(li+1,lj-1,lk) = hfields(i+1,j-1,k,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lj==TILE_DIMy_d)then
-      loc_rho(li+1,lj+1,lk) = hfields(i+1,j+1,k,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lk==1)then
-      loc_rho(li+1,lj,lk-1) = hfields(i+1,j,k-1,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lk==TILE_DIMz_d)then
-      loc_rho(li+1,lj,lk+1) = hfields(i+1,j,k+1,1,idblock)
-    endif
-    if(lj==1 .and. lk==1)then
-      loc_rho(li,lj-1,lk-1) = hfields(i,j-1,k-1,1,idblock)
-    endif
-    if(lj==1 .and. lk==TILE_DIMz_d)then
-      loc_rho(li,lj-1,lk+1) = hfields(i,j-1,k+1,1,idblock)
-    endif
-    if(lj==TILE_DIMy_d .and. lk==1)then
-      loc_rho(li,lj+1,lk-1) = hfields(i,j+1,k-1,1,idblock)
-    endif
-    if(lj==TILE_DIMy_d .and. lk==TILE_DIMz_d)then
-      loc_rho(li,lj+1,lk+1) = hfields(i,j+1,k+1,1,idblock)
-    endif      
-
-    call syncthreads
-#endif
-    
-    uu=halfonecssq*(hfields(i,j,k,2,idblock)*hfields(i,j,k,2,idblock) &
-    + hfields(i,j,k,3,idblock)*hfields(i,j,k,3,idblock) + hfields(i,j,k,4,idblock)*hfields(i,j,k,4,idblock))
-	!0
-#ifdef USESHARE 
-    temp_pop=p0*(loc_rho(li,lj,lk)-uu)
-#else
-	temp_pop=p0*(hfields(i,j,k,1,idblock)-uu)
-#endif
-	temp_rho=temp_pop + oneminusomega*pi2cssq0*(&
-	-cssq*(hfields(i,j,k,6,idblock)+hfields(i,j,k,4,idblock)+hfields(i,j,k,7,idblock)))
-    
-	!1
-	uu=halfonecssq*(hfields(i-1,j,k,2,idblock)*hfields(i-1,j,k,2,idblock) &
-	+ hfields(i-1,j,k,3,idblock)*hfields(i-1,j,k,3,idblock) + hfields(i-1,j,k,4,idblock)*hfields(i-1,j,k,4,idblock))
-	udotc=hfields(i-1,j,k,2,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rho(li-1,lj,lk)+(temp + udotc))
-#else
-	temp_pop=p1*(hfields(i-1,j,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qxx*hfields(i-1,j,k,5,idblock) &
-	-cssq*(hfields(i-1,j,k,6,idblock)+hfields(i-1,j,k,7,idblock)))
-	temp_pop=temp_pop + fx*p1dcssq
-	!+1  0  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_pop
-	temp_pxx=temp_pop
-
-	!2
-	uu=halfonecssq*(hfields(i+1,j,k,2,idblock)*hfields(i+1,j,k,2,idblock) &
-	+ hfields(i+1,j,k,3,idblock)*hfields(i+1,j,k,3,idblock) + hfields(i+1,j,k,4,idblock)*hfields(i+1,j,k,4,idblock))
-	udotc=hfields(i+1,j,k,2,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rho(li+1,lj,lk)+(temp - udotc))
-#else
-	temp_pop=p1*(hfields(i+1,j,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qxx*hfields(i+1,j,k,5,idblock) &
-	-cssq*(hfields(i+1,j,k,6,idblock)+hfields(i+1,j,k,7,idblock)))
-	temp_pop=temp_pop - fx*p1dcssq
-	!-1  0  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-    		
-	!3
-	uu=halfonecssq*(hfields(i,j-1,k,2,idblock)*hfields(i,j-1,k,2,idblock) &
-	+ hfields(i,j-1,k,3,idblock)*hfields(i,j-1,k,3,idblock) + hfields(i,j-1,k,4,idblock)*hfields(i,j-1,k,4,idblock))
-	udotc=hfields(i,j-1,k,3,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rho(li,lj-1,lk)+(temp + udotc))
-#else
-	temp_pop=p1*(hfields(i,j-1,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qyy*hfields(i,j-1,k,6,idblock) &
-	-cssq*(hfields(i,j-1,k,5,idblock)+hfields(i,j-1,k,7,idblock)))
-	temp_pop=temp_pop + fy*p1dcssq
-	! 0 +1  0
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_pop
-	temp_pyy=temp_pop
-	
-	!4
-	uu=halfonecssq*(hfields(i,j+1,k,2,idblock)*hfields(i,j+1,k,2,idblock) &
-	+ hfields(i,j+1,k,3,idblock)*hfields(i,j+1,k,3,idblock) + hfields(i,j+1,k,4,idblock)*hfields(i,j+1,k,4,idblock))
-	udotc=hfields(i,j+1,k,3,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rho(li,lj+1,lk)+(temp - udotc))
-#else
-	temp_pop=p1*(hfields(i,j+1,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qyy*hfields(i,j+1,k,6,idblock) &
-	-cssq*(hfields(i,j+1,k,5,idblock)+hfields(i,j+1,k,7,idblock)))
-	temp_pop=temp_pop - fy*p1dcssq
-	! 0 -1  0
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	
-	!5 -1
-	uu=halfonecssq*(hfields(i,j,k-1,2,idblock)*hfields(i,j,k-1,2,idblock) &
-	+ hfields(i,j,k-1,3,idblock)*hfields(i,j,k-1,3,idblock) + hfields(i,j,k-1,4,idblock)*hfields(i,j,k-1,4,idblock))
-	udotc=hfields(i,j,k-1,4,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rho(li,lj,lk-1)+(temp + udotc))
-#else
-	temp_pop=p1*(hfields(i,j,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qzz*hfields(i,j,k-1,7,idblock) &
-	-cssq*(hfields(i,j,k-1,5,idblock)+hfields(i,j,k-1,6,idblock)))
-	temp_pop=temp_pop + fz*p1dcssq
-	! 0  0 +1
-	temp_rho=temp_rho+temp_pop
-	temp_w=temp_pop
-	temp_pzz=temp_pop
-
-	!6 +1
-	uu=halfonecssq*(hfields(i,j,k+1,2,idblock)*hfields(i,j,k+1,2,idblock) &
-	+ hfields(i,j,k+1,3,idblock)*hfields(i,j,k+1,3,idblock) + hfields(i,j,k+1,4,idblock)*hfields(i,j,k+1,4,idblock))
-	udotc=hfields(i,j,k+1,4,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rho(li,lj,lk+1)+(temp - udotc))
-#else
-	temp_pop=p1*(hfields(i,j,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qzz*hfields(i,j,k+1,7,idblock) &
-	-cssq*(hfields(i,j,k+1,5,idblock)+hfields(i,j,k+1,6,idblock)))
-	temp_pop=temp_pop - fz*p1dcssq
-	! 0  0 -1
-	temp_rho=temp_rho+temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pzz=temp_pzz+temp_pop
-    	
-	!7
-	uu=halfonecssq*(hfields(i-1,j-1,k,2,idblock)*hfields(i-1,j-1,k,2,idblock) &
-	+ hfields(i-1,j-1,k,3,idblock)*hfields(i-1,j-1,k,3,idblock) + hfields(i-1,j-1,k,4,idblock)*hfields(i-1,j-1,k,4,idblock))
-	udotc=(hfields(i-1,j-1,k,2,idblock)+hfields(i-1,j-1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li-1,lj-1,lk)+(temp + udotc))
-#else
-	temp_pop=p2*(hfields(i-1,j-1,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i-1,j-1,k,5,idblock)+qyy*hfields(i-1,j-1,k,6,idblock)&
-	 -cssq*hfields(i-1,j-1,k,7,idblock)+two*qxy_7_8*hfields(i-1,j-1,k,8,idblock))
-	temp_pop=temp_pop + (fx+fy)*p2dcssq 
-	!+1 +1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_v=temp_v+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pop
-	
-	!8
-	uu=halfonecssq*(hfields(i+1,j+1,k,2,idblock)*hfields(i+1,j+1,k,2,idblock) &
-	+ hfields(i+1,j+1,k,3,idblock)*hfields(i+1,j+1,k,3,idblock) + hfields(i+1,j+1,k,4,idblock)*hfields(i+1,j+1,k,4,idblock))
-	udotc=(hfields(i+1,j+1,k,2,idblock)+hfields(i+1,j+1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li+1,lj+1,lk)+(temp - udotc))
-#else
-	temp_pop=p2*(hfields(i+1,j+1,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i+1,j+1,k,5,idblock)+qyy*hfields(i+1,j+1,k,6,idblock) &
-	-cssq*hfields(i+1,j+1,k,7,idblock)+two*qxy_7_8*hfields(i+1,j+1,k,8,idblock))
-	temp_pop=temp_pop - (fx+fy)*p2dcssq
-	!-1 -1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_v=temp_v-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pxy+temp_pop
-	
-	!10   +1 -1
-	uu=halfonecssq*(hfields(i+1,j-1,k,2,idblock)*hfields(i+1,j-1,k,2,idblock) &
-	+ hfields(i+1,j-1,k,3,idblock)*hfields(i+1,j-1,k,3,idblock) + hfields(i+1,j-1,k,4,idblock)*hfields(i+1,j-1,k,4,idblock))
-	udotc=(-hfields(i+1,j-1,k,2,idblock)+hfields(i+1,j-1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li+1,lj-1,lk)+(temp + udotc))
-#else
-	temp_pop=p2*(hfields(i+1,j-1,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i+1,j-1,k,5,idblock)+qyy*hfields(i+1,j-1,k,6,idblock) &
-	-cssq*hfields(i+1,j-1,k,7,idblock)+two*qxy_9_10*hfields(i+1,j-1,k,8,idblock))
-	temp_pop=temp_pop +(fy-fx)*p2dcssq
-	!-1 +1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_v=temp_v+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pxy-temp_pop
-	
-	!9  -1 +1
-	uu=halfonecssq*(hfields(i-1,j+1,k,2,idblock)*hfields(i-1,j+1,k,2,idblock) &
-	+ hfields(i-1,j+1,k,3,idblock)*hfields(i-1,j+1,k,3,idblock) + hfields(i-1,j+1,k,4,idblock)*hfields(i-1,j+1,k,4,idblock))
-	udotc=(-hfields(i-1,j+1,k,2,idblock)+hfields(i-1,j+1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li-1,lj+1,lk)+(temp - udotc))
-#else
-	temp_pop=p2*(hfields(i-1,j+1,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i-1,j+1,k,5,idblock)+qyy*hfields(i-1,j+1,k,6,idblock) &
-	-cssq*hfields(i-1,j+1,k,7,idblock)+two*qxy_9_10*hfields(i-1,j+1,k,8,idblock))
-	temp_pop=temp_pop + (fx-fy)*p2dcssq
-	!+1 -1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pxy-temp_pop
-		
-
-	!15  -1  -1
-	uu=halfonecssq*(hfields(i-1,j,k-1,2,idblock)*hfields(i-1,j,k-1,2,idblock) &
-	+ hfields(i-1,j,k-1,3,idblock)*hfields(i-1,j,k-1,3,idblock) + hfields(i-1,j,k-1,4,idblock)*hfields(i-1,j,k-1,4,idblock))
-	udotc=(hfields(i-1,j,k-1,2,idblock)+hfields(i-1,j,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li-1,lj,lk-1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfields(i-1,j,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i-1,j,k-1,5,idblock)+qzz*hfields(i-1,j,k-1,7,idblock) &
-	-cssq*hfields(i-1,j,k-1,6,idblock)+two*qxz_15_16*hfields(i-1,j,k-1,9,idblock))
-	temp_pop=temp_pop + (fx+fz)*p2dcssq 
-
-	!+1  0  +1
-	
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pop
-
-	!16  +1  +1
-	uu=halfonecssq*(hfields(i+1,j,k+1,2,idblock)*hfields(i+1,j,k+1,2,idblock) &
-	+ hfields(i+1,j,k+1,3,idblock)*hfields(i+1,j,k+1,3,idblock) + hfields(i+1,j,k+1,4,idblock)*hfields(i+1,j,k+1,4,idblock))
-	udotc=(hfields(i+1,j,k+1,2,idblock)+hfields(i+1,j,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li+1,lj,lk+1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfields(i+1,j,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i+1,j,k+1,5,idblock)+qzz*hfields(i+1,j,k+1,7,idblock) &
-	-cssq*hfields(i+1,j,k+1,6,idblock)+two*qxz_15_16*hfields(i+1,j,k+1,9,idblock))
-	temp_pop=temp_pop - (fx+fz)*p2dcssq
-	!-1  0  -1
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pxz+temp_pop
-
-	!17  +1   -1
-	uu=halfonecssq*(hfields(i+1,j,k-1,2,idblock)*hfields(i+1,j,k-1,2,idblock) &
-	+ hfields(i+1,j,k-1,3,idblock)*hfields(i+1,j,k-1,3,idblock) + hfields(i+1,j,k-1,4,idblock)*hfields(i+1,j,k-1,4,idblock))
-	udotc=(-hfields(i+1,j,k-1,2,idblock)+hfields(i+1,j,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li+1,lj,lk-1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfields(i+1,j,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i+1,j,k-1,5,idblock)+qzz*hfields(i+1,j,k-1,7,idblock)&
-	-cssq*hfields(i+1,j,k-1,6,idblock)+two*qxz_17_18*hfields(i+1,j,k-1,9,idblock))
-	temp_pop=temp_pop +(fz-fx)*p2dcssq
-	!-1  0  +1
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pxz-temp_pop
-
-	!18   -1   +1
-	uu=halfonecssq*(hfields(i-1,j,k+1,2,idblock)*hfields(i-1,j,k+1,2,idblock) &
-	+ hfields(i-1,j,k+1,3,idblock)*hfields(i-1,j,k+1,3,idblock) + hfields(i-1,j,k+1,4,idblock)*hfields(i-1,j,k+1,4,idblock))
-	udotc=(-hfields(i-1,j,k+1,2,idblock)+hfields(i-1,j,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li-1,lj,lk+1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfields(i-1,j,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfields(i-1,j,k+1,5,idblock)+qzz*hfields(i-1,j,k+1,7,idblock) &
-	-cssq*hfields(i-1,j,k+1,6,idblock)+two*qxz_17_18*hfields(i-1,j,k+1,9,idblock))
-	temp_pop=temp_pop + (fx-fz)*p2dcssq
-	!+1  0  -1
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pxz-temp_pop
-
-	!11  -1  -1
-	uu=halfonecssq*(hfields(i,j-1,k-1,2,idblock)*hfields(i,j-1,k-1,2,idblock) &
-	+ hfields(i,j-1,k-1,3,idblock)*hfields(i,j-1,k-1,3,idblock) + hfields(i,j-1,k-1,4,idblock)*hfields(i,j-1,k-1,4,idblock))
-	udotc=(hfields(i,j-1,k-1,3,idblock)+hfields(i,j-1,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li,lj-1,lk-1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfields(i,j-1,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfields(i,j-1,k-1,6,idblock)+qzz*hfields(i,j-1,k-1,7,idblock) &
-	-cssq*hfields(i,j-1,k-1,5,idblock)+two*qyz_11_12*hfields(i,j-1,k-1,10,idblock))
-	temp_pop=temp_pop + (fy+fz)*p2dcssq
-	! 0 +1 +1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v+temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pop
-	
-	!12   +1  +1
-	uu=halfonecssq*(hfields(i,j+1,k+1,2,idblock)*hfields(i,j+1,k+1,2,idblock) &
-	+ hfields(i,j+1,k+1,3,idblock)*hfields(i,j+1,k+1,3,idblock) + hfields(i,j+1,k+1,4,idblock)*hfields(i,j+1,k+1,4,idblock))
-	udotc=(hfields(i,j+1,k+1,3,idblock)+hfields(i,j+1,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li,lj+1,lk+1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfields(i,j+1,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfields(i,j+1,k+1,6,idblock)+qzz*hfields(i,j+1,k+1,7,idblock) &
-	-cssq*hfields(i,j+1,k+1,5,idblock)+two*qyz_11_12*hfields(i,j+1,k+1,10,idblock))
-	temp_pop=temp_pop - (fy+fz)*p2dcssq
-	! 0 -1 -1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pyz+temp_pop
-
-	!13   -1   +1
-	uu=halfonecssq*(hfields(i,j-1,k+1,2,idblock)*hfields(i,j-1,k+1,2,idblock) &
-	+ hfields(i,j-1,k+1,3,idblock)*hfields(i,j-1,k+1,3,idblock) + hfields(i,j-1,k+1,4,idblock)*hfields(i,j-1,k+1,4,idblock))
-	udotc=(hfields(i,j-1,k+1,3,idblock)-hfields(i,j-1,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li,lj-1,lk+1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfields(i,j-1,k+1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfields(i,j-1,k+1,6,idblock)+qzz*hfields(i,j-1,k+1,7,idblock)&
-	-cssq*hfields(i,j-1,k+1,5,idblock)+two*qyz_13_14*hfields(i,j-1,k+1,10,idblock))
-	temp_pop=temp_pop + (fy-fz)*p2dcssq
-	! 0 +1 -1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v+temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pyz-temp_pop
-	
-	!14  +1 -1
-	uu=halfonecssq*(hfields(i,j+1,k-1,2,idblock)*hfields(i,j+1,k-1,2,idblock) &
-	+ hfields(i,j+1,k-1,3,idblock)*hfields(i,j+1,k-1,3,idblock) + hfields(i,j+1,k-1,4,idblock)*hfields(i,j+1,k-1,4,idblock))
-	udotc=(hfields(i,j+1,k-1,3,idblock)-hfields(i,j+1,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rho(li,lj+1,lk-1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfields(i,j+1,k-1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfields(i,j+1,k-1,6,idblock)+qzz*hfields(i,j+1,k-1,7,idblock) &
-	-cssq*hfields(i,j+1,k-1,5,idblock)+two*qyz_13_14*hfields(i,j+1,k-1,10,idblock))
-	temp_pop=temp_pop + (fz-fy)*p2dcssq
-	! 0 -1 +1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pyz-temp_pop
-     	
-	hfieldsh(i,j,k,1,idblock)=temp_rho
-	
-	hfieldsh(i,j,k,2,idblock)=temp_u
-	hfieldsh(i,j,k,3,idblock)=temp_v
-	hfieldsh(i,j,k,4,idblock)=temp_w
-	
-	hfieldsh(i,j,k,5,idblock)=temp_pxx
-	hfieldsh(i,j,k,6,idblock)=temp_pyy
-	hfieldsh(i,j,k,7,idblock)=temp_pzz
-	hfieldsh(i,j,k,8,idblock)=temp_pxy
-	hfieldsh(i,j,k,9,idblock)=temp_pxz
-	hfieldsh(i,j,k,10,idblock)=temp_pyz
-    
-    return
-	
-  end subroutine streamcoll_bulk
-  
-  attributes(global) subroutine streamcoll_bulk_flop()
-	
-	implicit none  
-	  
-    integer :: i,j,k
-    integer :: idblock=1
-	real(kind=db) :: uu,udotc,temp
-	real(kind=db) :: temp_pop,temp_rho,temp_u,temp_v,temp_w
-	real(kind=db) :: temp_pxx,temp_pyy,temp_pzz,temp_pxy,temp_pxz,temp_pyz
-#ifdef USESHARE 
-    integer :: li,lj,lk
-	real(kind=db), shared :: loc_rhoh(0:TILE_DIMx_d+1,0:TILE_DIMy_d+1,0:TILE_DIMz_d+1)
-#endif
-		  
-	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-		  
-	!if(isfluid(i,j,k).ne.1)return
-#ifdef USESHARE	
-	li = threadIdx%x
-    lj = threadIdx%y
-    lk = threadIdx%z
-    
-    loc_rhoh(li,lj,lk) = hfieldsh(i,j,k,1,idblock)
-
-    ! Halo Faces
-    if(li==1)then
-      loc_rhoh(li-1,lj,lk) = hfieldsh(i-1,j,k,1,idblock)
-    endif
-    if(li==TILE_DIMx_d)then
-      loc_rhoh(li+1,lj,lk) = hfieldsh(i+1,j,k,1,idblock)
-    endif
-
-    if(lj==1)then
-      loc_rhoh(li,lj-1,lk) = hfieldsh(i,j-1,k,1,idblock)
-    endif
-    if(lj==TILE_DIMy_d)then
-      loc_rhoh(li,lj+1,lk) = hfieldsh(i,j+1,k,1,idblock)
-    endif
-
-    if(lk==1)then
-      loc_rhoh(li,lj,lk-1) = hfieldsh(i,j,k-1,1,idblock)
-    endif
-    if(lk==TILE_DIMz_d)then
-      loc_rhoh(li,lj,lk+1) = hfieldsh(i,j,k+1,1,idblock)
-    endif
-
-    ! Halo edges
-    if(li==1 .and. lj==1)then
-      loc_rhoh(li-1,lj-1,lk) = hfieldsh(i-1,j-1,k,1,idblock)
-    endif
-    if(li==1 .and. lj==TILE_DIMy_d)then
-      loc_rhoh(li-1,lj+1,lk) = hfieldsh(i-1,j+1,k,1,idblock)
-    endif
-    if(li==1 .and. lk==1)then
-      loc_rhoh(li-1,lj,lk-1) = hfieldsh(i-1,j,k-1,1,idblock)
-    endif
-    if(li==1 .and. lk==TILE_DIMz_d)then
-      loc_rhoh(li-1,lj,lk+1) = hfieldsh(i-1,j,k+1,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lj==1)then
-      loc_rhoh(li+1,lj-1,lk) = hfieldsh(i+1,j-1,k,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lj==TILE_DIMy_d)then
-      loc_rhoh(li+1,lj+1,lk) = hfieldsh(i+1,j+1,k,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lk==1)then
-      loc_rhoh(li+1,lj,lk-1) = hfieldsh(i+1,j,k-1,1,idblock)
-    endif
-    if(li==TILE_DIMx_d .and. lk==TILE_DIMz_d)then
-      loc_rhoh(li+1,lj,lk+1) = hfieldsh(i+1,j,k+1,1,idblock)
-    endif
-    if(lj==1 .and. lk==1)then
-      loc_rhoh(li,lj-1,lk-1) = hfieldsh(i,j-1,k-1,1,idblock)
-    endif
-    if(lj==1 .and. lk==TILE_DIMz_d)then
-      loc_rhoh(li,lj-1,lk+1) = hfieldsh(i,j-1,k+1,1,idblock)
-    endif
-    if(lj==TILE_DIMy_d .and. lk==1)then
-      loc_rhoh(li,lj+1,lk-1) = hfieldsh(i,j+1,k-1,1,idblock)
-    endif
-    if(lj==TILE_DIMy_d .and. lk==TILE_DIMz_d)then
-      loc_rhoh(li,lj+1,lk+1) = hfieldsh(i,j+1,k+1,1,idblock)
-    endif      
-
-    call syncthreads
-#endif
-    
-    uu=halfonecssq*(hfieldsh(i,j,k,2,idblock)*hfieldsh(i,j,k,2,idblock) &
-    + hfieldsh(i,j,k,3,idblock)*hfieldsh(i,j,k,3,idblock) + hfieldsh(i,j,k,4,idblock)*hfieldsh(i,j,k,4,idblock))
-	!0
-#ifdef USESHARE 
-    temp_pop=p0*(loc_rhoh(li,lj,lk)-uu)
-#else
-	temp_pop=p0*(hfieldsh(i,j,k,1,idblock)-uu)
-#endif
-	temp_rho=temp_pop + oneminusomega*pi2cssq0*(&
-	-cssq*(hfieldsh(i,j,k,6,idblock)+hfieldsh(i,j,k,5,idblock)+hfieldsh(i,j,k,7,idblock)))
-    
-	!1
-	uu=halfonecssq*(hfieldsh(i-1,j,k,2,idblock)*hfieldsh(i-1,j,k,2,idblock) &
-	+ hfieldsh(i-1,j,k,3,idblock)*hfieldsh(i-1,j,k,3,idblock) + hfieldsh(i-1,j,k,4,idblock)*hfieldsh(i-1,j,k,4,idblock))
-	udotc=hfieldsh(i-1,j,k,2,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rhoh(li-1,lj,lk)+(temp + udotc))
-#else
-	temp_pop=p1*(hfieldsh(i-1,j,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qxx*hfieldsh(i-1,j,k,5,idblock) &
-	-cssq*(hfieldsh(i-1,j,k,6,idblock)+hfieldsh(i-1,j,k,7,idblock)))
-	temp_pop=temp_pop + fx*p1dcssq
-	!+1  0  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_pop
-	temp_pxx=temp_pop
-
-	!2
-	uu=halfonecssq*(hfieldsh(i+1,j,k,2,idblock)*hfieldsh(i+1,j,k,2,idblock) &
-	+ hfieldsh(i+1,j,k,3,idblock)*hfieldsh(i+1,j,k,3,idblock) + hfieldsh(i+1,j,k,4,idblock)*hfieldsh(i+1,j,k,4,idblock))
-	udotc=hfieldsh(i+1,j,k,2,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rhoh(li+1,lj,lk)+(temp - udotc))
-#else
-	temp_pop=p1*(hfieldsh(i+1,j,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qxx*hfieldsh(i+1,j,k,5,idblock) &
-	-cssq*(hfieldsh(i+1,j,k,6,idblock)+hfieldsh(i+1,j,k,7,idblock)))
-	temp_pop=temp_pop - fx*p1dcssq
-	!-1  0  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-    		
-	!3
-	uu=halfonecssq*(hfieldsh(i,j-1,k,2,idblock)*hfieldsh(i,j-1,k,2,idblock) &
-	+ hfieldsh(i,j-1,k,3,idblock)*hfieldsh(i,j-1,k,3,idblock) + hfieldsh(i,j-1,k,4,idblock)*hfieldsh(i,j-1,k,4,idblock))
-	udotc=hfieldsh(i,j-1,k,3,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rhoh(li,lj-1,lk)+(temp + udotc))
-#else
-	temp_pop=p1*(hfieldsh(i,j-1,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qyy*hfieldsh(i,j-1,k,6,idblock) &
-	-cssq*(hfieldsh(i,j-1,k,5,idblock)+hfieldsh(i,j-1,k,7,idblock)))
-	temp_pop=temp_pop + fy*p1dcssq
-	! 0 +1  0
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_pop
-	temp_pyy=temp_pop
-	
-	!4
-	uu=halfonecssq*(hfieldsh(i,j+1,k,2,idblock)*hfieldsh(i,j+1,k,2,idblock) &
-	+ hfieldsh(i,j+1,k,3,idblock)*hfieldsh(i,j+1,k,3,idblock) + hfieldsh(i,j+1,k,4,idblock)*hfieldsh(i,j+1,k,4,idblock))
-	udotc=hfieldsh(i,j+1,k,3,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rhoh(li,lj+1,lk)+(temp - udotc))
-#else
-	temp_pop=p1*(hfieldsh(i,j+1,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qyy*hfieldsh(i,j+1,k,6,idblock) &
-	-cssq*(hfieldsh(i,j+1,k,5,idblock)+hfieldsh(i,j+1,k,7,idblock)))
-	temp_pop=temp_pop - fy*p1dcssq
-	! 0 -1  0
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	
-	!5 -1
-	uu=halfonecssq*(hfieldsh(i,j,k-1,2,idblock)*hfieldsh(i,j,k-1,2,idblock) &
-	+ hfieldsh(i,j,k-1,3,idblock)*hfieldsh(i,j,k-1,3,idblock) + hfieldsh(i,j,k-1,4,idblock)*hfieldsh(i,j,k-1,4,idblock))
-	udotc=hfieldsh(i,j,k-1,4,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rhoh(li,lj,lk-1)+(temp + udotc))
-#else
-	temp_pop=p1*(hfieldsh(i,j,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qzz*hfieldsh(i,j,k-1,7,idblock) &
-	-cssq*(hfieldsh(i,j,k-1,5,idblock)+hfieldsh(i,j,k-1,6,idblock)))
-	temp_pop=temp_pop + fz*p1dcssq
-	! 0  0 +1
-	temp_rho=temp_rho+temp_pop
-	temp_w=temp_pop
-	temp_pzz=temp_pop
-	
-	!6 +1
-	uu=halfonecssq*(hfieldsh(i,j,k+1,2,idblock)*hfieldsh(i,j,k+1,2,idblock) &
-	+ hfieldsh(i,j,k+1,3,idblock)*hfieldsh(i,j,k+1,3,idblock) + hfieldsh(i,j,k+1,4,idblock)*hfieldsh(i,j,k+1,4,idblock))
-	udotc=hfieldsh(i,j,k+1,4,idblock)*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p1*(loc_rhoh(li,lj,lk+1)+(temp - udotc))
-#else
-	temp_pop=p1*(hfieldsh(i,j,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq1*(qzz*hfieldsh(i,j,k+1,7,idblock) &
-	-cssq*(hfieldsh(i,j,k+1,5,idblock)+hfieldsh(i,j,k+1,6,idblock)))
-	temp_pop=temp_pop - fz*p1dcssq
-	! 0  0 -1
-	temp_rho=temp_rho+temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	
-	!7
-	uu=halfonecssq*(hfieldsh(i-1,j-1,k,2,idblock)*hfieldsh(i-1,j-1,k,2,idblock) &
-	+ hfieldsh(i-1,j-1,k,3,idblock)*hfieldsh(i-1,j-1,k,3,idblock) + hfieldsh(i-1,j-1,k,4,idblock)*hfieldsh(i-1,j-1,k,4,idblock))
-	udotc=(hfieldsh(i-1,j-1,k,2,idblock)+hfieldsh(i-1,j-1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li-1,lj-1,lk)+(temp + udotc))
-#else
-	temp_pop=p2*(hfieldsh(i-1,j-1,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i-1,j-1,k,5,idblock)+qyy*hfieldsh(i-1,j-1,k,6,idblock) &
-	-cssq*hfieldsh(i-1,j-1,k,7,idblock)+two*qxy_7_8*hfieldsh(i-1,j-1,k,8,idblock))
-	temp_pop=temp_pop + (fx+fy)*p2dcssq 
-	!+1 +1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_v=temp_v+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pop
-	
-	!8
-	uu=halfonecssq*(hfieldsh(i+1,j+1,k,2,idblock)*hfieldsh(i+1,j+1,k,2,idblock) &
-	+ hfieldsh(i+1,j+1,k,3,idblock)*hfieldsh(i+1,j+1,k,3,idblock) + hfieldsh(i+1,j+1,k,4,idblock)*hfieldsh(i+1,j+1,k,4,idblock))
-	udotc=(hfieldsh(i+1,j+1,k,2,idblock)+hfieldsh(i+1,j+1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li+1,lj+1,lk)+(temp - udotc))
-#else
-	temp_pop=p2*(hfieldsh(i+1,j+1,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i+1,j+1,k,5,idblock)+qyy*hfieldsh(i+1,j+1,k,6,idblock) &
-	-cssq*hfieldsh(i+1,j+1,k,7,idblock)+two*qxy_7_8*hfieldsh(i+1,j+1,k,8,idblock))
-	temp_pop=temp_pop - (fx+fy)*p2dcssq
-	!-1 -1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_v=temp_v-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pxy+temp_pop
-	
-	!10   +1 -1
-	uu=halfonecssq*(hfieldsh(i+1,j-1,k,2,idblock)*hfieldsh(i+1,j-1,k,2,idblock) &
-	+ hfieldsh(i+1,j-1,k,3,idblock)*hfieldsh(i+1,j-1,k,3,idblock) + hfieldsh(i+1,j-1,k,4,idblock)*hfieldsh(i+1,j-1,k,4,idblock))
-	udotc=(-hfieldsh(i+1,j-1,k,2,idblock)+hfieldsh(i+1,j-1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li+1,lj-1,lk)+(temp + udotc))
-#else
-	temp_pop=p2*(hfieldsh(i+1,j-1,k,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i+1,j-1,k,5,idblock)+qyy*hfieldsh(i+1,j-1,k,6,idblock) &
-	-cssq*hfieldsh(i+1,j-1,k,7,idblock)+two*qxy_9_10*hfieldsh(i+1,j-1,k,8,idblock))
-	temp_pop=temp_pop +(fy-fx)*p2dcssq
-	!-1 +1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_v=temp_v+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pxy-temp_pop
-	
-	!9  -1 +1
-	uu=halfonecssq*(hfieldsh(i-1,j+1,k,2,idblock)*hfieldsh(i-1,j+1,k,2,idblock) &
-	+ hfieldsh(i-1,j+1,k,3,idblock)*hfieldsh(i-1,j+1,k,3,idblock) + hfieldsh(i-1,j+1,k,4,idblock)*hfieldsh(i-1,j+1,k,4,idblock))
-	udotc=(-hfieldsh(i-1,j+1,k,2,idblock)+hfieldsh(i-1,j+1,k,3,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li-1,lj+1,lk)+(temp - udotc))
-#else
-	temp_pop=p2*(hfieldsh(i-1,j+1,k,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i-1,j+1,k,5,idblock)+qyy*hfieldsh(i-1,j+1,k,6,idblock) &
-	-cssq*hfieldsh(i-1,j+1,k,7,idblock)+two*qxy_9_10*hfieldsh(i-1,j+1,k,8,idblock))
-	temp_pop=temp_pop + (fx-fy)*p2dcssq
-	!+1 -1  0
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pxy=temp_pxy-temp_pop
-		
-
-	!15  -1  -1
-	uu=halfonecssq*(hfieldsh(i-1,j,k-1,2,idblock)*hfieldsh(i-1,j,k-1,2,idblock) &
-	+ hfieldsh(i-1,j,k-1,3,idblock)*hfieldsh(i-1,j,k-1,3,idblock) + hfieldsh(i-1,j,k-1,4,idblock)*hfieldsh(i-1,j,k-1,4,idblock))
-	udotc=(hfieldsh(i-1,j,k-1,2,idblock)+hfieldsh(i-1,j,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li-1,lj,lk-1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfieldsh(i-1,j,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i-1,j,k-1,5,idblock)+qzz*hfieldsh(i-1,j,k-1,7,idblock) &
-	-cssq*hfieldsh(i-1,j,k-1,6,idblock)+two*qxz_15_16*hfieldsh(i-1,j,k-1,9,idblock))
-	temp_pop=temp_pop + (fx+fz)*p2dcssq 
-
-	!+1  0  +1
-	
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pop
-
-	!16  +1  +1
-	uu=halfonecssq*(hfieldsh(i+1,j,k+1,2,idblock)*hfieldsh(i+1,j,k+1,2,idblock) &
-	+ hfieldsh(i+1,j,k+1,3,idblock)*hfieldsh(i+1,j,k+1,3,idblock) + hfieldsh(i+1,j,k+1,4,idblock)*hfieldsh(i+1,j,k+1,4,idblock))
-	udotc=(hfieldsh(i+1,j,k+1,2,idblock)+hfieldsh(i+1,j,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li+1,lj,lk+1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfieldsh(i+1,j,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i+1,j,k+1,5,idblock)+qzz*hfieldsh(i+1,j,k+1,7,idblock) &
-	-cssq*hfieldsh(i+1,j,k+1,6,idblock)+two*qxz_15_16*hfieldsh(i+1,j,k+1,9,idblock))
-	temp_pop=temp_pop - (fx+fz)*p2dcssq
-	!-1  0  -1
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pxz+temp_pop
-
-	!17  +1   -1
-	uu=halfonecssq*(hfieldsh(i+1,j,k-1,2,idblock)*hfieldsh(i+1,j,k-1,2,idblock) &
-	+ hfieldsh(i+1,j,k-1,3,idblock)*hfieldsh(i+1,j,k-1,3,idblock) + hfieldsh(i+1,j,k-1,4,idblock)*hfieldsh(i+1,j,k-1,4,idblock))
-	udotc=(-hfieldsh(i+1,j,k-1,2,idblock)+hfieldsh(i+1,j,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li+1,lj,lk-1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfieldsh(i+1,j,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i+1,j,k-1,5,idblock)+qzz*hfieldsh(i+1,j,k-1,7,idblock) &
-	-cssq*hfieldsh(i+1,j,k-1,6,idblock)+two*qxz_17_18*hfieldsh(i+1,j,k-1,9,idblock))
-	temp_pop=temp_pop +(fz-fx)*p2dcssq
-	!-1  0  +1
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u-temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pxz-temp_pop
-
-	!18   -1   +1
-	uu=halfonecssq*(hfieldsh(i-1,j,k+1,2,idblock)*hfieldsh(i-1,j,k+1,2,idblock) &
-	+ hfieldsh(i-1,j,k+1,3,idblock)*hfieldsh(i-1,j,k+1,3,idblock) + hfieldsh(i-1,j,k+1,4,idblock)*hfieldsh(i-1,j,k+1,4,idblock))
-	udotc=(-hfieldsh(i-1,j,k+1,2,idblock)+hfieldsh(i-1,j,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li-1,lj,lk+1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfieldsh(i-1,j,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qxx*hfieldsh(i-1,j,k+1,5,idblock)+qzz*hfieldsh(i-1,j,k+1,7,idblock) &
-	-cssq*hfieldsh(i-1,j,k+1,6,idblock)+two*qxz_17_18*hfieldsh(i-1,j,k+1,9,idblock))
-	temp_pop=temp_pop + (fx-fz)*p2dcssq
-	!+1  0  -1
-	temp_rho=temp_rho+temp_pop
-	temp_u=temp_u+temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pxx=temp_pxx+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pxz=temp_pxz-temp_pop
-
-	!11  -1  -1
-	uu=halfonecssq*(hfieldsh(i,j-1,k-1,2,idblock)*hfieldsh(i,j-1,k-1,2,idblock) &
-	+ hfieldsh(i,j-1,k-1,3,idblock)*hfieldsh(i,j-1,k-1,3,idblock) + hfieldsh(i,j-1,k-1,4,idblock)*hfieldsh(i,j-1,k-1,4,idblock))
-	udotc=(hfieldsh(i,j-1,k-1,3,idblock)+hfieldsh(i,j-1,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li,lj-1,lk-1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfieldsh(i,j-1,k-1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfieldsh(i,j-1,k-1,6,idblock)+qzz*hfieldsh(i,j-1,k-1,7,idblock) &
-	-cssq*hfieldsh(i,j-1,k-1,5,idblock)+two*qyz_11_12*hfieldsh(i,j-1,k-1,10,idblock))
-	temp_pop=temp_pop + (fy+fz)*p2dcssq
-	! 0 +1 +1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v+temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pop
-	
-	!12   +1  +1
-	uu=halfonecssq*(hfieldsh(i,j+1,k+1,2,idblock)*hfieldsh(i,j+1,k+1,2,idblock) &
-	+ hfieldsh(i,j+1,k+1,3,idblock)*hfieldsh(i,j+1,k+1,3,idblock) + hfieldsh(i,j+1,k+1,4,idblock)*hfieldsh(i,j+1,k+1,4,idblock))
-	udotc=(hfieldsh(i,j+1,k+1,3,idblock)+hfieldsh(i,j+1,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li,lj+1,lk+1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfieldsh(i,j+1,k+1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfieldsh(i,j+1,k+1,6,idblock)+qzz*hfieldsh(i,j+1,k+1,7,idblock) &
-	-cssq*hfieldsh(i,j+1,k+1,5,idblock)+two*qyz_11_12*hfieldsh(i,j+1,k+1,10,idblock))
-	temp_pop=temp_pop - (fy+fz)*p2dcssq
-	! 0 -1 -1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pyz+temp_pop
-
-	!13   -1   +1
-	uu=halfonecssq*(hfieldsh(i,j-1,k+1,2,idblock)*hfieldsh(i,j-1,k+1,2,idblock) &
-	+ hfieldsh(i,j-1,k+1,3,idblock)*hfieldsh(i,j-1,k+1,3,idblock) + hfieldsh(i,j-1,k+1,4,idblock)*hfieldsh(i,j-1,k+1,4,idblock))
-	udotc=(hfieldsh(i,j-1,k+1,3,idblock)-hfieldsh(i,j-1,k+1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li,lj-1,lk+1)+(temp + udotc))
-#else
-	temp_pop=p2*(hfieldsh(i,j-1,k+1,1,idblock)+(temp + udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfieldsh(i,j-1,k+1,6,idblock)+qzz*hfieldsh(i,j-1,k+1,7,idblock) &
-	-cssq*hfieldsh(i,j-1,k+1,5,idblock)+two*qyz_13_14*hfieldsh(i,j-1,k+1,10,idblock))
-	temp_pop=temp_pop + (fy-fz)*p2dcssq
-	! 0 +1 -1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v+temp_pop
-	temp_w=temp_w-temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pyz-temp_pop
-	
-	!14  +1 -1
-	uu=halfonecssq*(hfieldsh(i,j+1,k-1,2,idblock)*hfieldsh(i,j+1,k-1,2,idblock) &
-	+ hfieldsh(i,j+1,k-1,3,idblock)*hfieldsh(i,j+1,k-1,3,idblock) + hfieldsh(i,j+1,k-1,4,idblock)*hfieldsh(i,j+1,k-1,4,idblock))
-	udotc=(hfieldsh(i,j+1,k-1,3,idblock)-hfieldsh(i,j+1,k-1,4,idblock))*onecssq
-	temp = -uu + half*udotc*udotc
-#ifdef USESHARE 
-    temp_pop=p2*(loc_rhoh(li,lj+1,lk-1)+(temp - udotc))
-#else
-	temp_pop=p2*(hfieldsh(i,j+1,k-1,1,idblock)+(temp - udotc))
-#endif
-	temp_pop=temp_pop+oneminusomega*pi2cssq2*(qyy*hfieldsh(i,j+1,k-1,6,idblock)+qzz*hfieldsh(i,j+1,k-1,7,idblock) &
-	-cssq*hfieldsh(i,j+1,k-1,5,idblock)+two*qyz_13_14*hfieldsh(i,j+1,k-1,10,idblock))
-	temp_pop=temp_pop + (fz-fy)*p2dcssq
-	! 0 -1 +1
-	temp_rho=temp_rho+temp_pop
-	temp_v=temp_v-temp_pop
-	temp_w=temp_w+temp_pop
-	temp_pyy=temp_pyy+temp_pop
-	temp_pzz=temp_pzz+temp_pop
-	temp_pyz=temp_pyz-temp_pop
-    	
-	hfields(i,j,k,1,idblock)=temp_rho
-	
-	hfields(i,j,k,2,idblock)=temp_u
-	hfields(i,j,k,3,idblock)=temp_v
-	hfields(i,j,k,4,idblock)=temp_w
-	
-	hfields(i,j,k,4,idblock)=temp_pxx
-	hfields(i,j,k,6,idblock)=temp_pyy
-	hfields(i,j,k,7,idblock)=temp_pzz
-	hfields(i,j,k,8,idblock)=temp_pxy
-	hfields(i,j,k,9,idblock)=temp_pxz
-	hfields(i,j,k,10,idblock)=temp_pyz
-    
-    return
-	
-  end subroutine streamcoll_bulk_flop
-  
-  attributes(global) subroutine streamcoll_bulk_shared(mystep)
+  attributes(global) subroutine streamcoll_shared(mystep)
 	
 	implicit none  
 	
@@ -1003,9 +43,6 @@
 		  
 	!if(isfluid(i,j,k).ne.1)return
     	
-	li = threadIdx%x
-    lj = threadIdx%y
-    lk = threadIdx%z
     
     gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
@@ -1015,7 +52,23 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+	
+	
+	
+!	 myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+    
+!    zblock=(idblock-1)/nxyblock +1
+!    yblock=((idblock-1)-(zblock-1)*nxyblock)/nxblock +1
+!    xblock=(idblock-1)-(zblock-1)*nxyblock-(yblock-1)*nxblock +1
+	
+	!myblock=(blockIdx%x+1)+(blockIdx%y+1)*nxblock_d+(blockIdx%z+1)*nxyblock_d+1
 	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	!iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	
+	!if(myblock.ne.iidblock)write(*,*)'cazzo1',gi,gj,gk,myblock,iidblock
     
         
     uu=halfonecssq*(hfields(i,j,k,2,myblock)*hfields(i,j,k,2,myblock) + hfields(i,j,k,3,myblock)*hfields(i,j,k,3,myblock) + hfields(i,j,k,4,myblock)*hfields(i,j,k,4,myblock))
@@ -1175,14 +228,14 @@
       gii=gi-1
       gjj=gj
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1227,14 +280,14 @@
       gii=gi+1
       gjj=gj
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1280,14 +333,14 @@
       gii=gi
       gjj=gj-1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1332,14 +385,14 @@
       gii=gi
       gjj=gj+1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1385,14 +438,14 @@
       gii=gi
       gjj=gj
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1438,14 +491,14 @@
       gii=gi
       gjj=gj
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1492,14 +545,14 @@
       gii=gi-1
       gjj=gj-1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1516,14 +569,14 @@
       gii=gi-1
       gjj=gj+1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1540,14 +593,14 @@
       gii=gi-1
       gjj=gj
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1564,14 +617,14 @@
       gii=gi-1
       gjj=gj
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1588,14 +641,14 @@
       gii=gi+1
       gjj=gj-1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1612,14 +665,14 @@
       gii=gi+1
       gjj=gj+1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1636,14 +689,14 @@
       gii=gi+1
       gjj=gj
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1660,14 +713,14 @@
       gii=gi+1
       gjj=gj
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1684,14 +737,14 @@
       gii=gi
       gjj=gj-1
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1708,14 +761,14 @@
       gii=gi
       gjj=gj-1
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1732,14 +785,14 @@
       gii=gi
       gjj=gj+1
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1756,14 +809,14 @@
       gii=gi
       gjj=gj+1
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfields(ii,jj,kk,2,iidblock)*hfields(ii,jj,kk,2,iidblock) + hfields(ii,jj,kk,3,iidblock)*hfields(ii,jj,kk,3,iidblock) + hfields(ii,jj,kk,4,iidblock)*hfields(ii,jj,kk,4,iidblock))
       
@@ -1777,6 +830,8 @@
     endif      
     
     call syncthreads
+    
+    if(abs(isfluid(gi,gj,gk)).ne.1)return
     
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
@@ -1845,8 +900,6 @@
 	hfieldsh(i,j,k,10,myblock)=udotc
      
 #ifdef PRESSCORR
-
-	call syncthreads
 	
 	uu=halfonecssq*(hfieldsh(i,j,k,2,myblock)*hfieldsh(i,j,k,2,myblock) + hfieldsh(i,j,k,3,myblock)*hfieldsh(i,j,k,3,myblock) + hfieldsh(i,j,k,4,myblock)*hfieldsh(i,j,k,4,myblock))
     
@@ -1995,9 +1048,9 @@
     return
 #endif	
 
-  end subroutine streamcoll_bulk_shared
+  end subroutine streamcoll_shared
   
-  attributes(global) subroutine streamcoll_bulk_shared_flop()
+  attributes(global) subroutine streamcoll_shared_flop()
 	
 	implicit none  
 	
@@ -2032,10 +1085,7 @@
 		  
 		  
 	!if(isfluid(i,j,k).ne.1)return
-    	
-	li = threadIdx%x
-    lj = threadIdx%y
-    lk = threadIdx%z
+    
     
     gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
 	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
@@ -2045,8 +1095,22 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+	
+	
+	
+!	 myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+    
+!    zblock=(idblock-1)/nxyblock +1
+!    yblock=((idblock-1)-(zblock-1)*nxyblock)/nxblock +1
+!    xblock=(idblock-1)-(zblock-1)*nxyblock-(yblock-1)*nxblock +1
 	
 	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	!iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	
+	!if(myblock.ne.iidblock)write(*,*)'cazzo2',gi,gj,gk,myblock,iidblock
     
     
     
@@ -2207,14 +1271,14 @@
       gii=gi-1
       gjj=gj
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2259,14 +1323,14 @@
       gii=gi+1
       gjj=gj
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2312,14 +1376,14 @@
       gii=gi
       gjj=gj-1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2364,14 +1428,14 @@
       gii=gi
       gjj=gj+1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2417,14 +1481,14 @@
       gii=gi
       gjj=gj
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2470,14 +1534,14 @@
       gii=gi
       gjj=gj
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2524,14 +1588,14 @@
       gii=gi-1
       gjj=gj-1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2548,14 +1612,14 @@
       gii=gi-1
       gjj=gj+1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2572,14 +1636,14 @@
       gii=gi-1
       gjj=gj
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2596,14 +1660,14 @@
       gii=gi-1
       gjj=gj
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2620,14 +1684,14 @@
       gii=gi+1
       gjj=gj-1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2644,14 +1708,14 @@
       gii=gi+1
       gjj=gj+1
       gkk=gk
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2668,14 +1732,14 @@
       gii=gi+1
       gjj=gj
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2692,14 +1756,14 @@
       gii=gi+1
       gjj=gj
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2716,14 +1780,14 @@
       gii=gi
       gjj=gj-1
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2740,14 +1804,14 @@
       gii=gi
       gjj=gj-1
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2764,14 +1828,14 @@
       gii=gi
       gjj=gj+1
       gkk=gk-1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2788,14 +1852,14 @@
       gii=gi
       gjj=gj+1
       gkk=gk+1
-      xblock=(gii+TILE_DIMx_d-1)/TILE_DIMx_d
-      yblock=(gjj+TILE_DIMy_d-1)/TILE_DIMy_d
-      zblock=(gkk+TILE_DIMz_d-1)/TILE_DIMz_d
-      iidblock=xblock+yblock*nxblock_d+zblock*nxyblock_d+1
+      xblock=(gii+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      yblock=(gjj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gkk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
       
-      ii=gii-xblock*TILE_DIMx_d+TILE_DIMx_d
-      jj=gjj-yblock*TILE_DIMy_d+TILE_DIMy_d
-      kk=gkk-zblock*TILE_DIMz_d+TILE_DIMz_d
+      ii=gii-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+      jj=gjj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      kk=gkk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
       
       uu=halfonecssq*(hfieldsh(ii,jj,kk,2,iidblock)*hfieldsh(ii,jj,kk,2,iidblock) + hfieldsh(ii,jj,kk,3,iidblock)*hfieldsh(ii,jj,kk,3,iidblock) + hfieldsh(ii,jj,kk,4,iidblock)*hfieldsh(ii,jj,kk,4,iidblock))
       
@@ -2809,6 +1873,8 @@
     endif      
     
     call syncthreads
+    
+    if(abs(isfluid(gi,gj,gk)).ne.1)return
     
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
@@ -2878,7 +1944,6 @@
      
 #ifdef PRESSCORR
 
-	call syncthreads
 	
 	uu=halfonecssq*(hfields(i,j,k,2,myblock)*hfields(i,j,k,2,myblock) + hfields(i,j,k,3,myblock)*hfields(i,j,k,3,myblock) + hfields(i,j,k,4,myblock)*hfields(i,j,k,4,myblock))
     
@@ -3028,9 +2093,9 @@
     
     return
  
-  end subroutine streamcoll_bulk_shared_flop
+  end subroutine streamcoll_shared_flop
   
-    attributes(global) subroutine streamcoll_bulk_shared_halo()
+    attributes(global) subroutine streamcoll_shared_halo()
 	
 	implicit none  
 	  
@@ -3063,21 +2128,25 @@
     
 		  
 		  
-	!if(isfluid(i,j,k).ne.1)return
-    	
-	li = threadIdx%x-1
-    lj = threadIdx%y-1
-    lk = threadIdx%z-1
-    
-    gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x-1
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x-1
 	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y-1
 	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z-1
 	
-	i=threadIdx%x-1
-	j=threadIdx%y-1
-	k=threadIdx%z-1
+	li = threadIdx%x-1
+    lj = threadIdx%y-1
+    lk = threadIdx%z-1
+
+    xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    
+    i=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+	j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
 	
-	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	
+	!if(gi==6 .and. isfluid(gi,gj,gk).ne.3)write(*,*)'test',gi,gj,gk,myblock,isfluid(gi,gj,gk)
     
     
     
@@ -3255,6 +2324,8 @@
     
     if(li<1 .or. lj<1 .or. lk<1)return
     if(li>TILE_DIMx_d .or. lj>TILE_DIMy_d .or. lk>TILE_DIMz_d)return
+    
+    if(abs(isfluid(gi,gj,gk)).ne.1)return
     
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
@@ -3473,9 +2544,9 @@
 	    
     return
 #endif	
-  end subroutine streamcoll_bulk_shared_halo
+  end subroutine streamcoll_shared_halo
   
-  attributes(global) subroutine streamcoll_bulk_shared_halo_flop()
+  attributes(global) subroutine streamcoll_shared_halo_flop()
 	
 	implicit none  
 	
@@ -3509,21 +2580,25 @@
     
 		  
 		  
-	!if(isfluid(i,j,k).ne.1)return
-    	
-	li = threadIdx%x-1
-    lj = threadIdx%y-1
-    lk = threadIdx%z-1
-    
-    gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x-1
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x-1
 	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y-1
 	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z-1
 	
-	i=threadIdx%x-1
-	j=threadIdx%y-1
-	k=threadIdx%z-1
+	li = threadIdx%x-1
+    lj = threadIdx%y-1
+    lk = threadIdx%z-1
+
+    xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+    
+    i=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+	j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
 	
-	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	
+	!if(gi==6 .and. isfluid(gi,gj,gk).ne.3)write(*,*)'test',gi,gj,gk,myblock,isfluid(gi,gj,gk)
     
     
     
@@ -3701,6 +2776,8 @@
     
     if(li<1 .or. lj<1 .or. lk<1)return
     if(li>TILE_DIMx_d .or. lj>TILE_DIMy_d .or. lk>TILE_DIMz_d)return
+    
+    if(abs(isfluid(gi,gj,gk)).ne.1)return
     
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
@@ -3920,6 +2997,6 @@
     
     return
  
-  end subroutine streamcoll_bulk_shared_halo_flop
+  end subroutine streamcoll_shared_halo_flop
   
- end module streamcoll_bulk_kernels
+ end module streamcoll_kernels

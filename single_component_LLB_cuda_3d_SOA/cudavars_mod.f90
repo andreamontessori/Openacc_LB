@@ -191,7 +191,7 @@
 	
  end subroutine setup_system_halo2
  
-  attributes(global) subroutine setup_system_bulk(rhos,vxs,vys,vzs,idblock,ii,jj,kk,iii,jjj,kkk)
+  attributes(global) subroutine setup_system_bulk2(rhos,vxs,vys,vzs,idblock,ii,jj,kk,iii,jjj,kkk)
     
     real(kind=db), value :: rhos,vxs,vys,vzs
     integer, value ::idblock,ii,jj,kk,iii,jjj,kkk
@@ -220,11 +220,11 @@
   	  if(k .ne. kkk)write(*,*)'SONO CAZZI2',idblock,myblock
 	endif
 	
- end subroutine setup_system_bulk
+ end subroutine setup_system_bulk2
  
  attributes(global) subroutine store_print()
 	
-	integer :: i,j,k,gi,gj,gk,idblock,ii,jj,kk  ,xblock,yblock,zblock,idblocko
+	integer :: i,j,k,gi,gj,gk,idblock,ii,jj,kk,xblock,yblock,zblock,idblocko
     real :: mytest
     
 	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x

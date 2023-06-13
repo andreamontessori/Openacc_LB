@@ -63,7 +63,6 @@
 !    yblock=((idblock-1)-(zblock-1)*nxyblock)/nxblock +1
 !    xblock=(idblock-1)-(zblock-1)*nxyblock-(yblock-1)*nxblock +1
 	
-	!myblock=(blockIdx%x+1)+(blockIdx%y+1)*nxblock_d+(blockIdx%z+1)*nxyblock_d+1
 	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	!iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
@@ -898,8 +897,6 @@
 	pyzh(i,j,k,myblock)=udotc
      
 #ifdef PRESSCORR
-
-	call syncthreads
 	
 	uu=halfonecssq*(uh(i,j,k,myblock)*uh(i,j,k,myblock) + vh(i,j,k,myblock)*vh(i,j,k,myblock) + wh(i,j,k,myblock)*wh(i,j,k,myblock))
     
@@ -1105,7 +1102,6 @@
 !    yblock=((idblock-1)-(zblock-1)*nxyblock)/nxblock +1
 !    xblock=(idblock-1)-(zblock-1)*nxyblock-(yblock-1)*nxblock +1
 	
-	!myblock=(blockIdx%x+1)+(blockIdx%y+1)*nxblock_d+(blockIdx%z+1)*nxyblock_d+1
 	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	!iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
@@ -1943,7 +1939,6 @@
      
 #ifdef PRESSCORR
 
-	call syncthreads
 	
 	uu=halfonecssq*(u(i,j,k,myblock)*u(i,j,k,myblock) + v(i,j,k,myblock)*v(i,j,k,myblock) + w(i,j,k,myblock)*w(i,j,k,myblock))
     
