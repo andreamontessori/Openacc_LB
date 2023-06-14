@@ -710,18 +710,18 @@ program lb_openacc
 #endif
 
     !*******************************user parameters and allocations**************************m
-        nx=32
-        ny=32
-        nz=32
-        nsteps=10000
-        stamp=100
+        nx=16
+        ny=16
+        nz=16
+        nsteps=10
+        stamp=1
         fx=1.0_db*10.0**(-5)
         fy=0.0_db*10.0**(-5)
         fz=0.0_db*10.0**(-5)
         lpbc=.true.
         lprint=.true.
         lvtk=.true.
-        lasync=.true.
+        lasync=.false.
         
         allocate(f0(0:nx+1,0:ny+1,0:nz+1),f1(0:nx+1,0:ny+1,0:nz+1),f2(0:nx+1,0:ny+1,0:nz+1),f3(0:nx+1,0:ny+1,0:nz+1))
         allocate(f4(0:nx+1,0:ny+1,0:nz+1),f5(0:nx+1,0:ny+1,0:nz+1),f6(0:nx+1,0:ny+1,0:nz+1),f7(0:nx+1,0:ny+1,0:nz+1))

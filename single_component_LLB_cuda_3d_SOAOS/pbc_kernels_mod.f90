@@ -34,7 +34,6 @@
 	
 	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
-    
 	  
 	hfields(ie,j,k,1,idblocke)=hfields(io,j,k,1,idblocko)
 	hfields(ie,j,k,2,idblocke)=hfields(io,j,k,2,idblocko)
@@ -828,5 +827,145 @@
     return
 		  
   end subroutine pbc_edge_z_flop
+  
+  attributes(global) subroutine bc_per_x_hvar(step)
+  
+      integer, value :: step
+      
+      integer :: j,k,gj,gk
+      integer :: yblock,zblock
+      integer :: xblocko,xblocke
+      integer :: idblocko,idblocke
+      integer :: io,ie,gio,gie
+  
+      gj = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+      gk = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
+      
+      if (gj>ny_d .or. gk>nz_d) return
+      
+      yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      
+      j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
+      
+      gio=2
+	  gie=nx_d
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+	  hfields(ie,j,k,1,idblocke)=hfields(io,j,k,1,idblocko)
+	  hfields(ie,j,k,2,idblocke)=hfields(io,j,k,2,idblocko)
+	  hfields(ie,j,k,3,idblocke)=hfields(io,j,k,3,idblocko)
+	  hfields(ie,j,k,4,idblocke)=hfields(io,j,k,4,idblocko)
+	  hfields(ie,j,k,5,idblocke)=hfields(io,j,k,5,idblocko)
+	  hfields(ie,j,k,6,idblocke)=hfields(io,j,k,6,idblocko)
+	  hfields(ie,j,k,7,idblocke)=hfields(io,j,k,7,idblocko)
+	  hfields(ie,j,k,8,idblocke)=hfields(io,j,k,8,idblocko)
+	  hfields(ie,j,k,9,idblocke)=hfields(io,j,k,9,idblocko)
+	  hfields(ie,j,k,10,idblocke)=hfields(io,j,k,10,idblocko)
+	  
+	  gio=nx_d-1
+	  gie=1
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+      hfields(ie,j,k,1,idblocke)=hfields(io,j,k,1,idblocko)
+	  hfields(ie,j,k,2,idblocke)=hfields(io,j,k,2,idblocko)
+	  hfields(ie,j,k,3,idblocke)=hfields(io,j,k,3,idblocko)
+	  hfields(ie,j,k,4,idblocke)=hfields(io,j,k,4,idblocko)
+	  hfields(ie,j,k,5,idblocke)=hfields(io,j,k,5,idblocko)
+	  hfields(ie,j,k,6,idblocke)=hfields(io,j,k,6,idblocko)
+	  hfields(ie,j,k,7,idblocke)=hfields(io,j,k,7,idblocko)
+	  hfields(ie,j,k,8,idblocke)=hfields(io,j,k,8,idblocko)
+	  hfields(ie,j,k,9,idblocke)=hfields(io,j,k,9,idblocko)
+	  hfields(ie,j,k,10,idblocke)=hfields(io,j,k,10,idblocko)
+      
+      
+    end subroutine bc_per_x_hvar
+    
+    attributes(global) subroutine bc_per_x_hvar_flop(step)
+  
+      integer, value :: step
+      
+      integer :: j,k,gj,gk
+      integer :: yblock,zblock
+      integer :: xblocko,xblocke
+      integer :: idblocko,idblocke
+      integer :: io,ie,gio,gie
+  
+      gj = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+      gk = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
+      
+      if (gj>ny_d .or. gk>nz_d) return
+      
+      yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      
+      j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
+      
+      gio=2
+	  gie=nx_d
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+	  hfieldsh(ie,j,k,1,idblocke)=hfieldsh(io,j,k,1,idblocko)
+	  hfieldsh(ie,j,k,2,idblocke)=hfieldsh(io,j,k,2,idblocko)
+	  hfieldsh(ie,j,k,3,idblocke)=hfieldsh(io,j,k,3,idblocko)
+	  hfieldsh(ie,j,k,4,idblocke)=hfieldsh(io,j,k,4,idblocko)
+	  hfieldsh(ie,j,k,5,idblocke)=hfieldsh(io,j,k,5,idblocko)
+	  hfieldsh(ie,j,k,6,idblocke)=hfieldsh(io,j,k,6,idblocko)
+	  hfieldsh(ie,j,k,7,idblocke)=hfieldsh(io,j,k,7,idblocko)
+	  hfieldsh(ie,j,k,8,idblocke)=hfieldsh(io,j,k,8,idblocko)
+	  hfieldsh(ie,j,k,9,idblocke)=hfieldsh(io,j,k,9,idblocko)
+	  hfieldsh(ie,j,k,10,idblocke)=hfieldsh(io,j,k,10,idblocko)
+	  
+	  gio=nx_d-1
+	  gie=1
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+      hfieldsh(ie,j,k,1,idblocke)=hfieldsh(io,j,k,1,idblocko)
+	  hfieldsh(ie,j,k,2,idblocke)=hfieldsh(io,j,k,2,idblocko)
+	  hfieldsh(ie,j,k,3,idblocke)=hfieldsh(io,j,k,3,idblocko)
+	  hfieldsh(ie,j,k,4,idblocke)=hfieldsh(io,j,k,4,idblocko)
+	  hfieldsh(ie,j,k,5,idblocke)=hfieldsh(io,j,k,5,idblocko)
+	  hfieldsh(ie,j,k,6,idblocke)=hfieldsh(io,j,k,6,idblocko)
+	  hfieldsh(ie,j,k,7,idblocke)=hfieldsh(io,j,k,7,idblocko)
+	  hfieldsh(ie,j,k,8,idblocke)=hfieldsh(io,j,k,8,idblocko)
+	  hfieldsh(ie,j,k,9,idblocke)=hfieldsh(io,j,k,9,idblocko)
+	  hfieldsh(ie,j,k,10,idblocke)=hfieldsh(io,j,k,10,idblocko)
+      
+      
+    end subroutine bc_per_x_hvar_flop
  
  end module pbc_kernels

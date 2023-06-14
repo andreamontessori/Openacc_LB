@@ -48,7 +48,8 @@
     integer(kind=cuda_Stream_Kind) :: stream1,stream2
     type (cudaDeviceProp) :: prop
     type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
-    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2
+    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimGridz,dimBlock2,dimBlockshared,&
+     dimGridhalo,dimBlockhalo
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
     
@@ -67,10 +68,11 @@
     integer :: i,j,k
           
             
-	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
+	i = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x -1
+	j = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y -1
+	k = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z -1
 	
+	if (i>nx_d+1 .or. j>ny_d+1 .or. k>nz_d+1)return
 	
 	u(i,j,k)=vxs
 	v(i,j,k)=vys

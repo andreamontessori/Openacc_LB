@@ -43,6 +43,7 @@ program lb_openacc
     integer :: nxblock,nyblock,nzblock,nblocks,idblock,xblock,yblock,zblock,nxyblock
     integer :: ciao(3)
     
+    logical :: xperiodic,yperiodic,zperiodic
        
     nlinks=18 !pari!
     tau=real(1.5d0,kind=db)
@@ -51,20 +52,20 @@ program lb_openacc
 
 
     !*******************************user parameters and allocations**************************m
-        nx=128
-        ny=128
-        nz=128
+        nx=256
+        ny=256
+        nz=256
         nsteps=1000
         stamp=100
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
-        lpbc=.true.
-        lprint=.true.
-        lvtk=.true.
+        lpbc=.false.
+        lprint=.false.
+        lvtk=.false.
         lasync=.false.
         
-        TILE_DIMx=4
+        TILE_DIMx=8
         TILE_DIMy=4
         TILE_DIMz=4
         TILE_DIM=16
@@ -91,6 +92,8 @@ program lb_openacc
         
         dimGridx  = dim3((ny+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
         dimGridy  = dim3((nx+TILE_DIM-1)/TILE_DIM, (nz+TILE_DIM-1)/TILE_DIM, 1)
+        dimGridz  = dim3((nx+TILE_DIM-1)/TILE_DIM, (ny+TILE_DIM-1)/TILE_DIM, 1)
+        
         dimBlock2 = dim3(TILE_DIM, TILE_DIM, 1)
         !plus 2 for the halo forward and backward
         nxblock=nx/TILE_DIMx +2
@@ -105,6 +108,24 @@ program lb_openacc
         write(6,*)'TILE_DIMx,TILE_DIMy,TILE_DIMz',TILE_DIMx,TILE_DIMy,TILE_DIMz
         write(6,*)'nxblock,nyblock,nzblock',nxblock,nyblock,nzblock
         write(6,*)'nblocks',nblocks
+        
+        h_omega=one/tau
+        h_oneminusomega=one-h_omega
+        fx=h_fx
+        fy=h_fy
+        fz=h_fz
+        omega=h_omega
+        oneminusomega=h_oneminusomega
+        nx_d=nx
+        ny_d=ny
+        nz_d=nz
+        TILE_DIMx_d=TILE_DIMx
+        TILE_DIMy_d=TILE_DIMy
+        TILE_DIMz_d=TILE_DIMz
+        TILE_DIM_d=TILE_DIM
+        nxblock_d=nxblock
+        nxyblock_d=nxyblock
+        nblocks_d=nblocks
         
 #if 0   
        k=1
@@ -132,10 +153,9 @@ program lb_openacc
         enddo
         enddo
         
-#endif        
-#if 1   
-       k=1
-       j=1   
+#endif    
+
+#if 0  
         do k=1-TILE_DIMz,nz+TILE_DIMz
         do j=1-TILE_DIMy,ny+TILE_DIMy
         do i=1-TILE_DIMx,nx+TILE_DIMx
@@ -149,13 +169,25 @@ program lb_openacc
           ii=i-xblock*TILE_DIMx+2*TILE_DIMx
           jj=j-yblock*TILE_DIMy+2*TILE_DIMy
           kk=k-zblock*TILE_DIMz+2*TILE_DIMz
-          write(6,'(10i4)')i,j,k,xblock,yblock,zblock,idblock
+          if(abs(xblock-2)<=1 .and. abs(yblock-2)<=1 .and. abs(zblock-2)<=1)then
+            if(xblock==2 .and. yblock==2 .and. zblock==2)then
+              write(6,'(a,7i5)')'azzo dentro',i,j,k,idblock!,xblock,yblock,zblock
+
+            else
+              if(i>=0 .and. i<=5 .and. j>=0 .and. j<=3 .and. k>=0 .and. k<=3)then
+              write(6,'(a,7i5)')'azzo intorno',i,j,k,idblock!,xblock,yblock,zblock
+              endif
+            endif
+          endif
+          
+          !if(idblock==30)write(6,'(10i4)')i,j,k,ii,jj,kk,idblock,xblock,yblock,zblock
           if(xblock/=ciao(1) .or. yblock/=ciao(2) .or. zblock/=ciao(3) .or. idblock>nblocks)then
             write(6,*)'cazzo',ciao(1),xblock
             stop
           endif
            call setup_system_halo2<<<dimGridhalo,dimBlockhalo>>>(1.0,0.0,0.0,0.0,idblock,i,j,k,ii,jj,kk)
            istat = cudaDeviceSynchronize
+           
            if(i<0)cycle
            if(i>nx)cycle
            if(j<0)cycle
@@ -168,27 +200,56 @@ program lb_openacc
         enddo
         enddo
         
-#endif             
-    
+#endif   
         
+#if 0
+ 
+        do k=1,nz
+        do j=1,ny
+        do i=1,nx
+          xblock=(i+2*TILE_DIMx-1)/TILE_DIMx
+          yblock=(j+2*TILE_DIMy-1)/TILE_DIMy
+          zblock=(k+2*TILE_DIMz-1)/TILE_DIMz
+          !idblock start from 1
+          idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*(nxblock*nyblock)+1
+          !return coord of block from its id
+          ciao=coordblock(idblock)
+          ii=i-xblock*TILE_DIMx+2*TILE_DIMx
+          jj=j-yblock*TILE_DIMy+2*TILE_DIMy
+          kk=k-zblock*TILE_DIMz+2*TILE_DIMz
+          !write(6,'(10i4)')i,j,k,xblock,yblock,zblock,idblock
+!          if(xblock/=ciao(1) .or. yblock/=ciao(2) .or. zblock/=ciao(3) .or. idblock>nblocks)then
+!            write(6,*)'cazzo',ciao(1),xblock
+!            stop
+!          endif
+!          if(xblock==2 .and. yblock==2 .and. zblock==2)then
+!            write(6,'(a,7i5)')'azzo',i,j,k,idblock,xblock,yblock,zblock
+
+!          endif
+
+          !if(abs(xblock-2)<=1 .and. abs(yblock-2)<=1 .and. abs(zblock-2)<=1)then
+            if(xblock==2 .and. yblock==2 .and. zblock==2)then
+            write(6,'(a,7i5)')'azzo dentro2',i,j,k,idblock,xblock,yblock,zblock
+
+          !  else
+          !    write(6,'(a,7i5)')'azzo intorno',i,j,k,idblock,xblock,yblock,zblock
+            endif
+          !endif
+        enddo
+        enddo
+        enddo
+        call flush(6)
+#endif 
+#if 0         
+         call setup_system_bulk3<<<dimGrid,dimBlockshared>>>(1.0,0.0,0.0,0.0,idblock,i,j,k,ii,jj,kk)
+           istat = cudaDeviceSynchronize
+           stop
+#endif        
+            
+    
+
        
-        h_omega=one/tau
-        h_oneminusomega=one-h_omega
-        fx=h_fx
-        fy=h_fy
-        fz=h_fz
-        omega=h_omega
-        oneminusomega=h_oneminusomega
-        nx_d=nx
-        ny_d=ny
-        nz_d=nz
-        TILE_DIMx_d=TILE_DIMx
-        TILE_DIMy_d=TILE_DIMy
-        TILE_DIMz_d=TILE_DIMz
-        TILE_DIM_d=TILE_DIM
-        nxblock_d=nxblock
-        nxyblock_d=nxyblock
-        nblocks_d=nblocks
+        
         
 !        allocate(rho(0:nx+1,0:ny+1,0:nz+1),u(0:nx+1,0:ny+1,0:nz+1),v(0:nx+1,0:ny+1,0:nz+1),w(0:nx+1,0:ny+1,0:nz+1))
 !        allocate(pxx(0:nx+1,0:ny+1,0:nz+1),pxy(0:nx+1,0:ny+1,0:nz+1),pxz(0:nx+1,0:ny+1,0:nz+1),pyy(0:nx+1,0:ny+1,0:nz+1))
@@ -224,7 +285,7 @@ program lb_openacc
         endif
         
     !*****************************************geometry************************
-        h_isfluid=3
+        h_isfluid=0
         h_isfluid(1:nx,1:ny,1:nz)=1
 !        h_isfluid=1
 !        h_isfluid(1,:,:)=0 !left
@@ -281,8 +342,7 @@ program lb_openacc
         istat = cudaMemcpy(isfluid,h_isfluid,(nx+2)*(ny+2)*(nz+2) )
         istat = cudaDeviceSynchronize
     !****************************************hermite projection vars**********
-        
-
+     xperiodic=.true.
     !*************************************initial conditions ************************    
     
     call setup_system_halo<<<dimGridhalo,dimBlockhalo>>>(one,zero,zero,zero)
@@ -403,7 +463,7 @@ program lb_openacc
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
 	    endif
-        
+        call fixPeriodic_hvar(istep)
         !***********************************PRINT************************
         if(mod(istep,stamp).eq.0)write(6,'(a,i8)')'step : ',istep
         if(lprint)then
@@ -450,8 +510,8 @@ program lb_openacc
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after streamcoll_bulk', istep)
-        !istat = cudaDeviceSynchronize
-        !stop
+       ! istat = cudaDeviceSynchronize
+       ! stop
         
         !***********************************correct pressor*********
 #ifndef PRESSCORR
@@ -472,7 +532,7 @@ program lb_openacc
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
 	    endif
-        
+        call fixPeriodic_hvar_flop(istep)
         !***********************************PRINT************************
         if(mod(istep,stamp).eq.0)write(6,'(a,i8)')'step : ',istep
         if(lprint)then
@@ -568,5 +628,73 @@ program lb_openacc
      coordblock(1)=(idblock-1)-(coordblock(3)-1)*nxyblock-(coordblock(2)-1)*nxblock +1
       
     end function coordblock
+    
+    subroutine fixPeriodic_hvar(mystep)
+
+      implicit none
+      
+      integer, intent(in) :: mystep
+    
+   
+         if(xperiodic)then
+          call bc_per_x_hvar<<<dimGridx, dimBlock2>>>(mystep)
+          call abortOnLastErrorAndSync('after bc_per_x_hvar', mystep)
+         endif
+!         if(yperiodic)then
+!          call bc_per_y_hvar<<<dimGridy, dimBlock2>>>(mystep)
+!          call abortOnLastErrorAndSync('after bc_per_y_hvar', mystep)
+!         if(zperiodic)then
+!           call bc_per_z_hvar<<<dimGridz, dimBlock2>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_per_z_hvar', mystep)
+!         endif
+         
+!         if(xperiodic)then
+!           call bc_edge_x_hvar<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_edge_x_hvar', mystep)
+!         endif
+!         if(yperiodic)then
+!           call bc_edge_y_hvar<<<(ny+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_edge_y_hvar', mystep)
+!         endif
+!         if(zperiodic)then
+!           call bc_edge_z_hvar<<<(nz+2*nbuff+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_edge_z_hvar', mystep)
+!         endif
+
+    end subroutine fixPeriodic_hvar
+    
+    subroutine fixPeriodic_hvar_flop(mystep)
+
+      implicit none
+      
+      integer :: mystep
+    
+   
+         if(xperiodic)then
+          call bc_per_x_hvar_flop<<<dimGridx, dimBlock2>>>(mystep)
+          call abortOnLastErrorAndSync('after bc_per_x_hvar', mystep)
+         endif
+!         if(yperiodic)then
+!          call bc_per_y_hvar_flop<<<dimGridy, dimBlock2>>>(mystep)
+!          call abortOnLastErrorAndSync('after bc_per_y_hvar', mystep)
+!         if(zperiodic)then
+!           call bc_per_z_hvar_flop<<<dimGridz, dimBlock2>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_per_z_hvar', mystep)
+!         endif
+         
+!         if(xperiodic)then
+!           call bc_edge_x_hvar_flop<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_edge_x_hvar', mystep)
+!         endif
+!         if(yperiodic)then
+!           call bc_edge_y_hvar_flop<<<(ny+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_edge_y_hvar', mystep)
+!         endif
+!         if(zperiodic)then
+!           call bc_edge_z_hvar_flop<<<(nz+2*nbuff+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
+!           call abortOnLastErrorAndSync('after bc_edge_z_hvar', mystep)
+!         endif
+
+    end subroutine fixPeriodic_hvar_flop
 
 end program

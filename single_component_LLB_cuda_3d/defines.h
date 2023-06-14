@@ -1,3 +1,4 @@
 #define noUSESHARE
-#define noPRESSCORR
+#define PRESSCORR
 #define IFBC
+#define HALOSHARED

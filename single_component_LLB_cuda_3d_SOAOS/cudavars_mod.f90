@@ -48,7 +48,7 @@
     integer(kind=cuda_Stream_Kind) :: stream1,stream2
     type (cudaDeviceProp) :: prop
     type (cudaEvent) :: startEvent, stopEvent, dummyEvent, dummyEvent1, dummyEvent2
-    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2, &
+    type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimGridz,dimBlock2, &
      dimGridhalo,dimBlockhalo,dimGridshared,dimBlockshared
     
     integer, constant :: TILE_DIMx_d,TILE_DIMy_d,TILE_DIMz_d,TILE_DIM_d
@@ -69,7 +69,6 @@
     real(kind=db), value :: rhos,vxs,vys,vzs
     real :: mytest
     
-    !integer :: i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
     integer :: i,j,k,gi,gj,gk,idblock       
             
 	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
@@ -126,12 +125,12 @@
 	i=threadIdx%x
 	j=threadIdx%y
 	k=threadIdx%z
+    
+    xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
 	
-	idblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
-	
-	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
-    yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
-    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+	idblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	!if(gi==6)write(*,*)'cazzo',gi,gj,gk,idblock
 	
@@ -172,7 +171,7 @@
     integer, value ::idblock,ii,jj,kk,iii,jjj,kkk
     real :: mytest
     
-    integer :: i,j,k,gi,gj,gk,myblock,coordblock_d(3)       
+    integer :: i,j,k,gi,gj,gk,myblock,coordblock_d(3),xblock,yblock,zblock
             
 	gi = (blockIdx%x-2) * TILE_DIMx_d + threadIdx%x
 	gj = (blockIdx%y-2) * TILE_DIMy_d + threadIdx%y
@@ -182,22 +181,31 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
-	myblock=(blockIdx%x-1)+(blockIdx%y-1)*nxblock_d+(blockIdx%z-1)*nxyblock_d+1
+	
+	
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+	zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+	
+	myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	
+	!if(gi==1 .and. gj==1 .and. gk==1)
+	!write(*,*)gi,gj,gk,blockIdx%x,blockIdx%y,blockIdx%z
 	
 	if(gi==ii .and. gj==jj .and. gk==kk)then
 	coordblock_d(3)=(idblock-1)/nxyblock_d+1
     coordblock_d(2)=((idblock-1)-(coordblock_d(3)-1)*nxyblock_d)/nxblock_d +1
     coordblock_d(1)=(idblock-1)-(coordblock_d(3)-1)*nxyblock_d-(coordblock_d(2)-1)*nxblock_d+1
-	write(*,*)ii,jj,kk
-	  if(idblock .ne. myblock)write(*,*)'SONO CAZZI',idblock,myblock
-  	  if(i .ne. iii)write(*,*)'SONO CAZZI',idblock,myblock
-  	  if(j .ne. jjj)write(*,*)'SONO CAZZI',idblock,myblock
-  	  if(k .ne. kkk)write(*,*)'SONO CAZZI',idblock,myblock
+	!write(*,*)ii,jj,kk
+	  if(idblock .ne. myblock)write(*,*)'SONO CAZZo1',idblock,myblock
+  	  if(i .ne. iii)write(*,*)'SONO CAZZI2',idblock,myblock
+  	  if(j .ne. jjj)write(*,*)'SONO CAZZI3',idblock,myblock
+  	  if(k .ne. kkk)write(*,*)'SONO CAZZI4',idblock,myblock
 	endif
 	
- end subroutine setup_system_halo2
+  end subroutine setup_system_halo2
  
- attributes(global) subroutine setup_system_bulk2(rhos,vxs,vys,vzs,idblock,ii,jj,kk,iii,jjj,kkk)
+  attributes(global) subroutine setup_system_bulk2(rhos,vxs,vys,vzs,idblock,ii,jj,kk,iii,jjj,kkk)
     
     real(kind=db), value :: rhos,vxs,vys,vzs
     integer, value ::idblock,ii,jj,kk,iii,jjj,kkk
@@ -219,7 +227,7 @@
 	coordblock_d(3)=(myblock-1)/nxyblock_d+1
     coordblock_d(2)=((myblock-1)-(coordblock_d(3)-1)*nxyblock_d)/nxblock_d +1
     coordblock_d(1)=(myblock-1)-(coordblock_d(3)-1)*nxyblock_d-(coordblock_d(2)-1)*nxblock_d+1
-	write(*,*)ii,jj,kk
+	!write(*,*)ii,jj,kk
 	  if(idblock .ne. myblock)write(*,*)'SONO CAZZI2',idblock,myblock
   	  if(i .ne. iii)write(*,*)'SONO CAZZI2',idblock,myblock
   	  if(j .ne. jjj)write(*,*)'SONO CAZZI2',idblock,myblock
@@ -227,6 +235,61 @@
 	endif
 	
  end subroutine setup_system_bulk2
+ 
+ attributes(global) subroutine setup_system_bulk3(rhos,vxs,vys,vzs,idblock,ii,jj,kk,iii,jjj,kkk)
+    
+    real(kind=db), value :: rhos,vxs,vys,vzs
+    integer, value ::idblock,ii,jj,kk,iii,jjj,kkk,myxb,myyb,myzb
+    real :: mytest
+    
+    integer :: i,j,k,gi,gj,gk,myblock,coordblock_d(3),xblock,yblock,zblock,iidblock 
+            
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x -1
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y -1
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z -1
+	
+	ii=threadIdx%x-1
+	jj=threadIdx%y-1
+	kk=threadIdx%z-1
+	
+	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
+    yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+    zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+	
+	i=gi-xblock*TILE_DIMx_d+2*TILE_DIMx_d
+	j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+    k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
+	
+	myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	!iidblock=(blockIdx%x)+(blockIdx%y)*nxblock_d+(blockIdx%z)*nxyblock_d+1
+	
+	myxb=blockIdx%x+1
+	myyb=blockIdx%y+1
+	myzb=blockIdx%z+1
+	
+	if(ii>=1 .and. jj>=1 .and. kk>=1 .and. ii<=TILE_DIMx_d .and. jj<=TILE_DIMy_d .and. kk<=TILE_DIMz_d)then
+	  if(myxb==2 .and. myyb==2 .and. myzb==2)write(*,*)'dentro',gi,gj,gk,myblock
+	else
+	  if(myxb==2 .and. myyb==2 .and. myzb==2)write(*,*)'fuori',gi,gj,gk,myblock
+	endif
+	
+	if(ii<1 .or. jj<1 .or. kk<1)return
+	if(ii>TILE_DIMx_d .or. jj>TILE_DIMy_d .or. kk>TILE_DIMz_d)return
+	
+	!write(*,*)gi,gj,gk,myblock
+	
+!	if(gi==ii .and. gj==jj .and. gk==kk)then
+!	coordblock_d(3)=(myblock-1)/nxyblock_d+1
+!    coordblock_d(2)=((myblock-1)-(coordblock_d(3)-1)*nxyblock_d)/nxblock_d +1
+!    coordblock_d(1)=(myblock-1)-(coordblock_d(3)-1)*nxyblock_d-(coordblock_d(2)-1)*nxblock_d+1
+!	!write(*,*)ii,jj,kk
+!	  if(idblock .ne. iidblock)write(*,*)'SONO CAZZI2',idblock,myblock,iidblock
+!  	  if(i .ne. iii)write(*,*)'SONO CAZZI3',i,iii,iidblock
+!  	  if(j .ne. jjj)write(*,*)'SONO CAZZI4',j,jjj,iidblock
+!  	  if(k .ne. kkk)write(*,*)'SONO CAZZI5',k,kkk,iidblock
+!	endif
+	
+ end subroutine setup_system_bulk3
  
  attributes(global) subroutine store_print()
 	

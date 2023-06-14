@@ -1264,25 +1264,25 @@ program lb_openacc
 !#endif
 
     !*******************************user parameters and allocations**************************
-        nx=256
-        ny=256
-        nz=256
+        nx=16
+        ny=16
+        nz=16
         
         h_myu=zero
         h_myv=zero
         h_myw=zero
         h_myrho=one  !tot dens
-        nsteps=1000
-        stamp=100
-        lprint=.false.
-        lvtk=.false.
+        nsteps=10
+        stamp=1
+        lprint=.true.
+        lvtk=.true.
         lpbc=.true.
         lasync=.false.
         h_fx=one*10.0**(-5)
         h_fy=zero*10.0**(-5)
         h_fz=zero*10.0**(-5)
         
-        TILE_DIMx=256
+        TILE_DIMx=16
         TILE_DIMy=1
         TILE_DIMz=1
         TILE_DIM=16

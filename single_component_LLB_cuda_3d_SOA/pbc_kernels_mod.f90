@@ -34,7 +34,6 @@
 	
 	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
-    
 	  
 	rho(ie,j,k,idblocke)=rho(io,j,k,idblocko)
 	u(ie,j,k,idblocke)=u(io,j,k,idblocko)
@@ -828,5 +827,145 @@
     return
 		  
   end subroutine pbc_edge_z_flop
+  
+  attributes(global) subroutine bc_per_x_hvar(step)
+  
+      integer, value :: step
+      
+      integer :: j,k,gj,gk
+      integer :: yblock,zblock
+      integer :: xblocko,xblocke
+      integer :: idblocko,idblocke
+      integer :: io,ie,gio,gie
+  
+      gj = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+      gk = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
+      
+      if (gj>ny_d .or. gk>nz_d) return
+      
+      yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      
+      j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
+      
+      gio=2
+	  gie=nx_d
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+	  rho(ie,j,k,idblocke)=rho(io,j,k,idblocko)
+	  u(ie,j,k,idblocke)=u(io,j,k,idblocko)
+	  v(ie,j,k,idblocke)=v(io,j,k,idblocko)
+	  w(ie,j,k,idblocke)=w(io,j,k,idblocko)
+	  pxx(ie,j,k,idblocke)=pxx(io,j,k,idblocko)
+	  pyy(ie,j,k,idblocke)=pyy(io,j,k,idblocko)
+	  pzz(ie,j,k,idblocke)=pzz(io,j,k,idblocko)
+	  pxy(ie,j,k,idblocke)=pxy(io,j,k,idblocko)
+	  pxz(ie,j,k,idblocke)=pxz(io,j,k,idblocko)
+	  pyz(ie,j,k,idblocke)=pyz(io,j,k,idblocko)
+	  
+	  gio=nx_d-1
+	  gie=1
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+      rho(ie,j,k,idblocke)=rho(io,j,k,idblocko)
+	  u(ie,j,k,idblocke)=u(io,j,k,idblocko)
+	  v(ie,j,k,idblocke)=v(io,j,k,idblocko)
+	  w(ie,j,k,idblocke)=w(io,j,k,idblocko)
+	  pxx(ie,j,k,idblocke)=pxx(io,j,k,idblocko)
+	  pyy(ie,j,k,idblocke)=pyy(io,j,k,idblocko)
+	  pzz(ie,j,k,idblocke)=pzz(io,j,k,idblocko)
+	  pxy(ie,j,k,idblocke)=pxy(io,j,k,idblocko)
+	  pxz(ie,j,k,idblocke)=pxz(io,j,k,idblocko)
+	  pyz(ie,j,k,idblocke)=pyz(io,j,k,idblocko)
+      
+      
+    end subroutine bc_per_x_hvar
+    
+    attributes(global) subroutine bc_per_x_hvar_flop(step)
+  
+      integer, value :: step
+      
+      integer :: j,k,gj,gk
+      integer :: yblock,zblock
+      integer :: xblocko,xblocke
+      integer :: idblocko,idblocke
+      integer :: io,ie,gio,gie
+  
+      gj = (blockIdx%x-1) * TILE_DIM_d + threadIdx%x
+      gk = (blockIdx%y-1) * TILE_DIM_d + threadIdx%y
+      
+      if (gj>ny_d .or. gk>nz_d) return
+      
+      yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
+      zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
+      
+      j=gj-yblock*TILE_DIMy_d+2*TILE_DIMy_d
+      k=gk-zblock*TILE_DIMz_d+2*TILE_DIMz_d
+      
+      gio=2
+	  gie=nx_d
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+	  rhoh(ie,j,k,idblocke)=rhoh(io,j,k,idblocko)
+	  uh(ie,j,k,idblocke)=uh(io,j,k,idblocko)
+	  vh(ie,j,k,idblocke)=vh(io,j,k,idblocko)
+	  wh(ie,j,k,idblocke)=wh(io,j,k,idblocko)
+	  pxxh(ie,j,k,idblocke)=pxxh(io,j,k,idblocko)
+	  pyyh(ie,j,k,idblocke)=pyyh(io,j,k,idblocko)
+	  pzzh(ie,j,k,idblocke)=pzzh(io,j,k,idblocko)
+	  pxyh(ie,j,k,idblocke)=pxyh(io,j,k,idblocko)
+	  pxzh(ie,j,k,idblocke)=pxzh(io,j,k,idblocko)
+	  pyzh(ie,j,k,idblocke)=pyzh(io,j,k,idblocko)
+	  
+	  gio=nx_d-1
+	  gie=1
+	  
+	  xblocko=(gio+2*TILE_DIMx_d-1)/TILE_DIMx_d
+      idblocko=(xblocko-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  xblocke=(gie+2*TILE_DIMx_d-1)/TILE_DIMx_d
+	  idblocke=(xblocke-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	  
+	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
+	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
+	  
+      rhoh(ie,j,k,idblocke)=rhoh(io,j,k,idblocko)
+	  uh(ie,j,k,idblocke)=uh(io,j,k,idblocko)
+	  vh(ie,j,k,idblocke)=vh(io,j,k,idblocko)
+	  wh(ie,j,k,idblocke)=wh(io,j,k,idblocko)
+	  pxxh(ie,j,k,idblocke)=pxxh(io,j,k,idblocko)
+	  pyyh(ie,j,k,idblocke)=pyyh(io,j,k,idblocko)
+	  pzzh(ie,j,k,idblocke)=pzzh(io,j,k,idblocko)
+	  pxyh(ie,j,k,idblocke)=pxyh(io,j,k,idblocko)
+	  pxzh(ie,j,k,idblocke)=pxzh(io,j,k,idblocko)
+	  pyzh(ie,j,k,idblocke)=pyzh(io,j,k,idblocko)
+      
+      
+    end subroutine bc_per_x_hvar_flop
  
  end module pbc_kernels

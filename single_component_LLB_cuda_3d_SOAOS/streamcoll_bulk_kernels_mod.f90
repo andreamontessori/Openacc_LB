@@ -7,11 +7,10 @@
   
   contains
   
-  attributes(global) subroutine streamcoll_shared(mystep)
+  attributes(global) subroutine streamcoll_shared()
 	
 	implicit none  
 	
-	integer, value :: mystep
     integer :: i,j,k,gi,gj,gk,myblock,iidblock
     integer :: gii,gjj,gkk,ii,jj,kk
     integer :: xblock,yblock,zblock
@@ -52,11 +51,15 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
+	li=threadIdx%x
+	lj=threadIdx%y
+	lk=threadIdx%z
+	
 	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
     yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
     zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
 	
-	
+	myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 !	 myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
@@ -65,10 +68,10 @@
 !    xblock=(idblock-1)-(zblock-1)*nxyblock-(yblock-1)*nxblock +1
 	
 	!myblock=(blockIdx%x+1)+(blockIdx%y+1)*nxblock_d+(blockIdx%z+1)*nxyblock_d+1
-	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	iidblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	!iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	!if(myblock.ne.iidblock)write(*,*)'cazzo1',gi,gj,gk,myblock,iidblock
+	if(myblock.ne.iidblock)write(*,*)'cazzo amaro streamcoll_shared',gi,gj,gk,myblock,iidblock
     
         
     uu=halfonecssq*(hfields(i,j,k,2,myblock)*hfields(i,j,k,2,myblock) + hfields(i,j,k,3,myblock)*hfields(i,j,k,3,myblock) + hfields(i,j,k,4,myblock)*hfields(i,j,k,4,myblock))
@@ -1095,19 +1098,23 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
+	li=threadIdx%x
+	lj=threadIdx%y
+	lk=threadIdx%z
+	
 	xblock=(gi+2*TILE_DIMx_d-1)/TILE_DIMx_d
     yblock=(gj+2*TILE_DIMy_d-1)/TILE_DIMy_d
     zblock=(gk+2*TILE_DIMz_d-1)/TILE_DIMz_d
 	
 	
 	
-!	 myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
+	 myblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
     
 !    zblock=(idblock-1)/nxyblock +1
 !    yblock=((idblock-1)-(zblock-1)*nxyblock)/nxblock +1
 !    xblock=(idblock-1)-(zblock-1)*nxyblock-(yblock-1)*nxblock +1
 	
-	myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	!myblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
 	!iidblock=(xblock-1)+(yblock-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
 	!if(myblock.ne.iidblock)write(*,*)'cazzo2',gi,gj,gk,myblock,iidblock
@@ -2580,9 +2587,9 @@
     
 		  
 		  
-	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x-1
-	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y-1
-	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z-1
+	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x -1
+	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y -1
+	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z -1
 	
 	li = threadIdx%x-1
     lj = threadIdx%y-1
