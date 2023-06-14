@@ -833,9 +833,9 @@
     endif      
     
     call syncthreads
-    
+#ifdef IFBC    
     if(abs(isfluid(gi,gj,gk)).ne.1)return
-    
+#endif
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
      f05(li,lj,lk-1)+f06(li,lj,lk+1)+  &
@@ -1880,9 +1880,9 @@
     endif      
     
     call syncthreads
-    
+#ifdef IFBC    
     if(abs(isfluid(gi,gj,gk)).ne.1)return
-    
+#endif
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
      f05(li,lj,lk-1)+f06(li,lj,lk+1)+  &
@@ -2331,9 +2331,9 @@
     
     if(li<1 .or. lj<1 .or. lk<1)return
     if(li>TILE_DIMx_d .or. lj>TILE_DIMy_d .or. lk>TILE_DIMz_d)return
-    
+#ifdef IFBC    
     if(abs(isfluid(gi,gj,gk)).ne.1)return
-    
+#endif
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
      f05(li,lj,lk-1)+f06(li,lj,lk+1)+  &
@@ -2783,9 +2783,9 @@
     
     if(li<1 .or. lj<1 .or. lk<1)return
     if(li>TILE_DIMx_d .or. lj>TILE_DIMy_d .or. lk>TILE_DIMz_d)return
-    
+#ifdef IFBC    
     if(abs(isfluid(gi,gj,gk)).ne.1)return
-    
+#endif
     udotc=f00(li,lj,lk)+f01(li-1,lj,lk)+f02(li+1,lj,lk)+  &
      f03(li,lj-1,lk)+f04(li,lj+1,lk)+  &
      f05(li,lj,lk-1)+f06(li,lj,lk+1)+  &
@@ -2854,7 +2854,6 @@
      
 #ifdef PRESSCORR
 
-	!call syncthreads
 	
 	uu=halfonecssq*(hfields(i,j,k,2,myblock)*hfields(i,j,k,2,myblock) &
 	+ hfields(i,j,k,3,myblock)*hfields(i,j,k,3,myblock) + hfields(i,j,k,4,myblock)*hfields(i,j,k,4,myblock))
