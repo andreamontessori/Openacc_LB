@@ -52,10 +52,10 @@ program lb_openacc
 
 
     !*******************************user parameters and allocations**************************m
-        nx=256
-        ny=256
-        nz=256
-        nsteps=1000
+        nx=512
+        ny=512
+        nz=512
+        nsteps=500
         stamp=100
         h_fx=one*ten**(-real(5.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))

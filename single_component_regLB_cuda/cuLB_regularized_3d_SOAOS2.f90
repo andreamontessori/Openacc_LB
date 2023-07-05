@@ -1823,7 +1823,7 @@ program lb_openacc
         h_fz=zero*10.0**(-5)
         
         TILE_DIMx=8
-        TILE_DIMy=4
+        TILE_DIMy=8
         TILE_DIMz=4
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
