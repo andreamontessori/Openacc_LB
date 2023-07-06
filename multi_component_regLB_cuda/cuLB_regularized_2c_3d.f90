@@ -27,6 +27,24 @@
     type (dim3) :: dimGrid,dimBlock,dimGridx,dimGridy,dimBlock2
    
     contains
+    
+    subroutine abortOnLastErrorAndSync(msg, step)
+      implicit none
+      integer, intent(in) :: step
+      character(len=*), intent(in) :: msg
+      integer :: istat0
+    
+      istat0 = cudaGetLastError()
+    
+      if (istat0/=0) then
+        write(*,*) 'status after ',msg,':', cudaGetErrorString(istat0)
+        write(*,*) 'Exiting at step:', step
+        stop
+      endif
+    
+      return
+    
+      end subroutine  abortOnLastErrorAndSync
 
     attributes(device) function fcut(r, r1, r2)
   
@@ -1577,7 +1595,7 @@ program lb_openacc
         myv=0.0_db
         myw=0.0_db
         nsteps=1000
-        stamp=500000
+        stamp=100
         lprint=.false.
         lvtk=.false.
         lpbc=.false.
@@ -1723,6 +1741,8 @@ program lb_openacc
         istat = cudaDeviceSynchronize
     !*************************************initial conditions ************************    
         call setup_pops<<<dimGrid,dimBlock>>>(radius)
+        call abortOnLastErrorAndSync('after setup_pops', step)
+        istat = cudaDeviceSynchronize
         
         allocate(rhoprint(1:nx,1:ny,1:nz),velprint(3,1:nx,1:ny,1:nz))
         allocate(rhoprint_d(1:nx_d,1:ny_d,1:nz_d), velprint_d(3,1:nx_d,1:ny_d,1:nz_d))
@@ -1782,6 +1802,10 @@ program lb_openacc
         iframe=0
         if(lprint)then
           call moments<<<dimGrid,dimBlock,0,stream1>>>()
+          istat = cudaEventRecord(dummyEvent1, stream1)
+          istat = cudaEventSynchronize(dummyEvent1)
+          call abortOnLastErrorAndSync('after moments', step)
+          
           call store_print<<<dimGrid,dimBlock,0,stream1>>>()
           istat = cudaEventRecord(dummyEvent1, stream1)
           istat = cudaEventSynchronize(dummyEvent1)
@@ -1807,6 +1831,9 @@ program lb_openacc
         !***********************************moments collision bbck + forcing************************ 
 
             call moments<<<dimGrid,dimBlock,0,stream1>>>()
+            istat = cudaEventRecord(dummyEvent1, stream1)
+            istat = cudaEventSynchronize(dummyEvent1)
+            call abortOnLastErrorAndSync('after moments', step)
             
             !***********************************PRINT************************
               if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
@@ -1819,6 +1846,7 @@ program lb_openacc
                           call store_print<<<dimGrid,dimBlock,0,stream1>>>()
                           istat = cudaEventRecord(dummyEvent1, stream1)
                           istat = cudaEventSynchronize(dummyEvent1)
+                          call abortOnLastErrorAndSync('after store_print', step)
                           if(lasync)then
                             call close_print_async
                             istat = cudaMemcpyAsync(rhoprint,rhoprint_d,nx*ny*nz,cudaMemcpyDeviceToHost,stream2)
@@ -1849,13 +1877,25 @@ program lb_openacc
             
             !***********************************collision + no slip + forcing: fused implementation*********
             call  streamcoll<<<dimGrid,dimBlock,0,stream1>>>()
+            istat = cudaEventRecord(dummyEvent1, stream1)
+            istat = cudaEventSynchronize(dummyEvent1)
+            call abortOnLastErrorAndSync('after streamcoll', step)
 
             !********************************boundary conditions no slip everywhere********************************!
             call bcs_no_slip<<<dimGrid,dimBlock,0,stream1>>>()
+            istat = cudaEventRecord(dummyEvent1, stream1)
+            istat = cudaEventSynchronize(dummyEvent1)
+            call abortOnLastErrorAndSync('after bcs_no_slip', step)
             !******************************************call other bcs************************ 
             if(lpbc)then
               call pbc_edge_x<<<dimGridx,dimBlock2,0,stream1>>>()
+              istat = cudaEventRecord(dummyEvent1, stream1)
+              istat = cudaEventSynchronize(dummyEvent1)
+              call abortOnLastErrorAndSync('after pbc_edge_x', step)
               call pbc_edge_y<<<dimGridy,dimBlock2,0,stream1>>>()
+              istat = cudaEventRecord(dummyEvent1, stream1)
+              istat = cudaEventSynchronize(dummyEvent1)
+              call abortOnLastErrorAndSync('after pbc_edge_y', step)
             endif
             
             istat = cudaEventRecord(dummyEvent, stream1)
