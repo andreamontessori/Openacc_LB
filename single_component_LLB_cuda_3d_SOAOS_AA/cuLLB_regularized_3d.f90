@@ -270,7 +270,17 @@ program lb_openacc
 !         pxzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pyyh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
 !        allocate(pyzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pzzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
         
-        allocate(hfields(TILE_DIMx,TILE_DIMy,TILE_DIMz,10,nblocks),hfieldsh(TILE_DIMx,TILE_DIMy,TILE_DIMz,10,nblocks))
+        !allocate(hfields(TILE_DIMx,TILE_DIMy,TILE_DIMz,10,nblocks),hfieldsh(TILE_DIMx,TILE_DIMy,TILE_DIMz,10,nblocks))
+        allocate(hfields(TILE_DIMx,TILE_DIMy,TILE_DIMz,10,nblocks))
+        
+        allocate(xshell0(TILE_DIMy,TILE_DIMz,10,nblocks),xshell1(TILE_DIMy,TILE_DIMz,10,nblocks))
+        allocate(xshell0h(TILE_DIMy,TILE_DIMz,10,nblocks),xshell1h(TILE_DIMy,TILE_DIMz,10,nblocks))
+        
+        allocate(yshell0(TILE_DIMx,TILE_DIMz,10,nblocks),yshell1(TILE_DIMx,TILE_DIMz,10,nblocks))
+        allocate(yshell0h(TILE_DIMx,TILE_DIMz,10,nblocks),yshell1h(TILE_DIMx,TILE_DIMz,10,nblocks))
+        
+        allocate(zshell0(TILE_DIMx,TILE_DIMy,10,nblocks),zshell1(TILE_DIMx,TILE_DIMy,10,nblocks))
+        allocate(zshell0h(TILE_DIMx,TILE_DIMy,10,nblocks),zshell1h(TILE_DIMx,TILE_DIMy,10,nblocks))
         
         allocate(h_isfluid(0:nx+1,0:ny+1,0:nz+1))
         allocate(isfluid(0:nx+1,0:ny+1,0:nz+1)) 
@@ -526,20 +536,20 @@ program lb_openacc
         !******************************************call other bcs************************
         if(lpbc)then      
             !periodic along x 
-            call pbc_side_x_flop<<<dimGridx,dimBlock2,0,stream1>>>()
+            call pbc_side_x<<<dimGridx,dimBlock2,0,stream1>>>()
             !periodic along x 
-            call pbc_side_y_flop<<<dimGridy,dimBlock2,0,stream1>>>()
-            call pbc_edge_z_flop<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
+            call pbc_side_y<<<dimGridy,dimBlock2,0,stream1>>>()
+            call pbc_edge_z<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM,0,stream1>>>()
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
 	    endif
-        call fixPeriodic_hvar_flop(istep)
+        call fixPeriodic_hvar(istep)
         !***********************************PRINT************************
         if(mod(istep,stamp).eq.0)write(6,'(a,i8)')'step : ',istep
         if(lprint)then
           if(mod(istep,stamp).eq.0)then
             iframe=iframe+1
-            call store_print_flop<<<dimGrid,dimBlock,0,stream1>>>()
+            call store_print<<<dimGrid,dimBlock,0,stream1>>>()
             istat = cudaEventRecord(dummyEvent1, stream1)
             istat = cudaEventSynchronize(dummyEvent1)
             if(lasync)then
@@ -585,7 +595,7 @@ program lb_openacc
 
         !***********************************correct pressor*********
 #ifndef PRESSCORR
-        call correct_pressure_flop<<<dimGrid,dimBlock,0,stream1>>>()
+        call correct_pressure<<<dimGrid,dimBlock,0,stream1>>>()
         istat = cudaEventRecord(dummyEvent1, stream1)
         istat = cudaEventSynchronize(dummyEvent1)
         call abortOnLastErrorAndSync('after correct_pressure_flop', istep)
@@ -665,38 +675,5 @@ program lb_openacc
 
     end subroutine fixPeriodic_hvar
     
-    subroutine fixPeriodic_hvar_flop(mystep)
-
-      implicit none
-      
-      integer :: mystep
-    
-   
-         if(xperiodic)then
-          call bc_per_x_hvar_flop<<<dimGridx, dimBlock2>>>(mystep)
-          call abortOnLastErrorAndSync('after bc_per_x_hvar', mystep)
-         endif
-!         if(yperiodic)then
-!          call bc_per_y_hvar_flop<<<dimGridy, dimBlock2>>>(mystep)
-!          call abortOnLastErrorAndSync('after bc_per_y_hvar', mystep)
-!         if(zperiodic)then
-!           call bc_per_z_hvar_flop<<<dimGridz, dimBlock2>>>(mystep)
-!           call abortOnLastErrorAndSync('after bc_per_z_hvar', mystep)
-!         endif
-         
-!         if(xperiodic)then
-!           call bc_edge_x_hvar_flop<<<(nx+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
-!           call abortOnLastErrorAndSync('after bc_edge_x_hvar', mystep)
-!         endif
-!         if(yperiodic)then
-!           call bc_edge_y_hvar_flop<<<(ny+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
-!           call abortOnLastErrorAndSync('after bc_edge_y_hvar', mystep)
-!         endif
-!         if(zperiodic)then
-!           call bc_edge_z_hvar_flop<<<(nz+2*nbuff+TILE_DIM-1)/TILE_DIM, TILE_DIM>>>(mystep)
-!           call abortOnLastErrorAndSync('after bc_edge_z_hvar', mystep)
-!         endif
-
-    end subroutine fixPeriodic_hvar_flop
     
 end program

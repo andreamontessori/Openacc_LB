@@ -57,58 +57,23 @@
     
     !real(kind=db), allocatable, dimension(:,:,:,:), device :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
     !real(kind=db), allocatable, dimension(:,:,:,:), device :: rhoh,uh,vh,wh,pxxh,pxyh,pxzh,pyyh,pyzh,pzzh
-    real(kind=db), allocatable, dimension(:,:,:,:,:), device :: hfields,hfieldsh
+    real(kind=db), allocatable, dimension(:,:,:,:,:), device :: hfields
+    !real(kind=db), allocatable, dimension(:,:,:,:,:), device :: hfieldsh
+    
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: xshell0,xshell1
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: xshell0h,xshell1h
+    
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: yshell0,yshell1
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: yshell0h,yshell1h
+    
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: zshell0,zshell1
+    real(kind=db), allocatable, dimension(:,:,:,:), device :: zshell0h,zshell1h
+    
     real(kind=4), allocatable, dimension(:,:,:), device :: rhoprint_d
     real(kind=4), allocatable, dimension(:,:,:,:), device :: velprint_d
     integer(kind=1), allocatable, dimension(:,:,:), device   :: isfluid
     
     contains
-    
-    attributes(global) subroutine setup_system(rhos,vxs,vys,vzs)
-    
-    real(kind=db), value :: rhos,vxs,vys,vzs
-    real :: mytest
-    
-    integer :: i,j,k,gi,gj,gk,idblock       
-            
-	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	
-	i=threadIdx%x
-	j=threadIdx%y
-	k=threadIdx%z
-	
-	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
-	
-	mytest=rhos!real(gi**3+gj**3+gk**3)
-	
-	hfields(i,j,k,1,idblock)=mytest!rhos
-	hfields(i,j,k,2,idblock)=vxs
-	hfields(i,j,k,3,idblock)=vys
-	hfields(i,j,k,4,idblock)=vzs
-	hfields(i,j,k,5,idblock)=zero
-	hfields(i,j,k,6,idblock)=zero
-	hfields(i,j,k,7,idblock)=zero
-	hfields(i,j,k,8,idblock)=zero
-	hfields(i,j,k,9,idblock)=zero
-	hfields(i,j,k,10,idblock)=zero
-	
-	hfieldsh(i,j,k,1,idblock)=mytest!rhos
-	hfieldsh(i,j,k,2,idblock)=vxs
-	hfieldsh(i,j,k,3,idblock)=vys
-	hfieldsh(i,j,k,4,idblock)=vzs
-	hfieldsh(i,j,k,5,idblock)=zero
-	hfieldsh(i,j,k,6,idblock)=zero
-	hfieldsh(i,j,k,7,idblock)=zero
-	hfieldsh(i,j,k,8,idblock)=zero
-	hfieldsh(i,j,k,9,idblock)=zero
-	hfieldsh(i,j,k,10,idblock)=zero
-	
-    
-    return
-
- end subroutine setup_system
  
  attributes(global) subroutine setup_system_halo(rhos,vxs,vys,vzs)
     
@@ -149,17 +114,138 @@
 	hfields(i,j,k,10,idblock)=zero
 	
 	!if(gi==3 .and. gj==3 .and. gk==0)write(*,*)'CAZZONE ',gi,gj,gk
+	xshell0(j,k,1,idblock)=mytest!rhos
+	xshell0(j,k,2,idblock)=vxs
+	xshell0(j,k,3,idblock)=vys
+	xshell0(j,k,4,idblock)=vzs
+	xshell0(j,k,5,idblock)=zero
+	xshell0(j,k,6,idblock)=zero
+	xshell0(j,k,7,idblock)=zero
+	xshell0(j,k,8,idblock)=zero
+	xshell0(j,k,9,idblock)=zero
+	xshell0(j,k,10,idblock)=zero
 	
-	hfieldsh(i,j,k,1,idblock)=mytest!rhos
-	hfieldsh(i,j,k,2,idblock)=vxs
-	hfieldsh(i,j,k,3,idblock)=vys
-	hfieldsh(i,j,k,4,idblock)=vzs
-	hfieldsh(i,j,k,5,idblock)=zero
-	hfieldsh(i,j,k,6,idblock)=zero
-	hfieldsh(i,j,k,7,idblock)=zero
-	hfieldsh(i,j,k,8,idblock)=zero
-	hfieldsh(i,j,k,9,idblock)=zero
-	hfieldsh(i,j,k,10,idblock)=zero
+	xshell1(j,k,1,idblock)=mytest!rhos
+	xshell1(j,k,2,idblock)=vxs
+	xshell1(j,k,3,idblock)=vys
+	xshell1(j,k,4,idblock)=vzs
+	xshell1(j,k,5,idblock)=zero
+	xshell1(j,k,6,idblock)=zero
+	xshell1(j,k,7,idblock)=zero
+	xshell1(j,k,8,idblock)=zero
+	xshell1(j,k,9,idblock)=zero
+	xshell1(j,k,10,idblock)=zero
+	
+    xshell0h(j,k,1,idblock)=mytest!rhos
+	xshell0h(j,k,2,idblock)=vxs
+	xshell0h(j,k,3,idblock)=vys
+	xshell0h(j,k,4,idblock)=vzs
+	xshell0h(j,k,5,idblock)=zero
+	xshell0h(j,k,6,idblock)=zero
+	xshell0h(j,k,7,idblock)=zero
+	xshell0h(j,k,8,idblock)=zero
+	xshell0h(j,k,9,idblock)=zero
+	xshell0h(j,k,10,idblock)=zero
+	
+	xshell1h(j,k,1,idblock)=mytest!rhos
+	xshell1h(j,k,2,idblock)=vxs
+	xshell1h(j,k,3,idblock)=vys
+	xshell1h(j,k,4,idblock)=vzs
+	xshell1h(j,k,5,idblock)=zero
+	xshell1h(j,k,6,idblock)=zero
+	xshell1h(j,k,7,idblock)=zero
+	xshell1h(j,k,8,idblock)=zero
+	xshell1h(j,k,9,idblock)=zero
+	xshell1h(j,k,10,idblock)=zero
+    
+    yshell0(i,k,1,idblock)=mytest!rhos
+    yshell0(i,k,2,idblock)=vxs
+    yshell0(i,k,3,idblock)=vys
+    yshell0(i,k,4,idblock)=vzs
+    yshell0(i,k,5,idblock)=zero
+    yshell0(i,k,6,idblock)=zero
+    yshell0(i,k,7,idblock)=zero
+    yshell0(i,k,8,idblock)=zero
+    yshell0(i,k,9,idblock)=zero
+    yshell0(i,k,10,idblock)=zero
+    
+    yshell1(i,k,1,idblock)=mytest!rhos
+    yshell1(i,k,2,idblock)=vxs
+    yshell1(i,k,3,idblock)=vys
+    yshell1(i,k,4,idblock)=vzs
+    yshell1(i,k,5,idblock)=zero
+    yshell1(i,k,6,idblock)=zero
+    yshell1(i,k,7,idblock)=zero
+    yshell1(i,k,8,idblock)=zero
+    yshell1(i,k,9,idblock)=zero
+    yshell1(i,k,10,idblock)=zero
+    
+    yshell0h(i,k,1,idblock)=mytest!rhos
+    yshell0h(i,k,2,idblock)=vxs
+    yshell0h(i,k,3,idblock)=vys
+    yshell0h(i,k,4,idblock)=vzs
+    yshell0h(i,k,5,idblock)=zero
+    yshell0h(i,k,6,idblock)=zero
+    yshell0h(i,k,7,idblock)=zero
+    yshell0h(i,k,8,idblock)=zero
+    yshell0h(i,k,9,idblock)=zero
+    yshell0h(i,k,10,idblock)=zero
+    
+    yshell1h(i,k,1,idblock)=mytest!rhos
+    yshell1h(i,k,2,idblock)=vxs
+    yshell1h(i,k,3,idblock)=vys
+    yshell1h(i,k,4,idblock)=vzs
+    yshell1h(i,k,5,idblock)=zero
+    yshell1h(i,k,6,idblock)=zero
+    yshell1h(i,k,7,idblock)=zero
+    yshell1h(i,k,8,idblock)=zero
+    yshell1h(i,k,9,idblock)=zero
+    yshell1h(i,k,10,idblock)=zero
+    
+    zshell0(i,j,1,idblock)=mytest!rhos
+    zshell0(i,j,2,idblock)=vxs
+    zshell0(i,j,3,idblock)=vys
+    zshell0(i,j,4,idblock)=vzs
+    zshell0(i,j,5,idblock)=zero
+    zshell0(i,j,6,idblock)=zero
+    zshell0(i,j,7,idblock)=zero
+    zshell0(i,j,8,idblock)=zero
+    zshell0(i,j,9,idblock)=zero
+    zshell0(i,j,10,idblock)=zero
+    
+    zshell1(i,j,1,idblock)=mytest!rhos
+    zshell1(i,j,2,idblock)=vxs
+    zshell1(i,j,3,idblock)=vys
+    zshell1(i,j,4,idblock)=vzs
+    zshell1(i,j,5,idblock)=zero
+    zshell1(i,j,6,idblock)=zero
+    zshell1(i,j,7,idblock)=zero
+    zshell1(i,j,8,idblock)=zero
+    zshell1(i,j,9,idblock)=zero
+    zshell1(i,j,10,idblock)=zero
+    
+    zshell0h(i,j,1,idblock)=mytest!rhos
+    zshell0h(i,j,2,idblock)=vxs
+    zshell0h(i,j,3,idblock)=vys
+    zshell0h(i,j,4,idblock)=vzs
+    zshell0h(i,j,5,idblock)=zero
+    zshell0h(i,j,6,idblock)=zero
+    zshell0h(i,j,7,idblock)=zero
+    zshell0h(i,j,8,idblock)=zero
+    zshell0h(i,j,9,idblock)=zero
+    zshell0h(i,j,10,idblock)=zero
+    
+    zshell1h(i,j,1,idblock)=mytest!rhos
+    zshell1h(i,j,2,idblock)=vxs
+    zshell1h(i,j,3,idblock)=vys
+    zshell1h(i,j,4,idblock)=vzs
+    zshell1h(i,j,5,idblock)=zero
+    zshell1h(i,j,6,idblock)=zero
+    zshell1h(i,j,7,idblock)=zero
+    zshell1h(i,j,8,idblock)=zero
+    zshell1h(i,j,9,idblock)=zero
+    zshell1h(i,j,10,idblock)=zero
+	
     
     return
 
@@ -339,41 +425,6 @@
 	  return
 
  end subroutine store_print
- 
- attributes(global) subroutine store_print_flop()
-	  
-	integer :: i,j,k,gi,gj,gk,idblock       
-            
-	gi = (blockIdx%x-1) * TILE_DIMx_d + threadIdx%x
-	gj = (blockIdx%y-1) * TILE_DIMy_d + threadIdx%y
-	gk = (blockIdx%z-1) * TILE_DIMz_d + threadIdx%z
-	
-	i=threadIdx%x
-	j=threadIdx%y
-	k=threadIdx%z
-	
-	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
-	  
-	  
-	!write(*,*)i,j,p_d(0)*myrho_d
-	if(abs(isfluid(gi,gj,gk)).eq.1)then
-      rhoprint_d(gi,gj,gk)=hfieldsh(i,j,k,1,idblock)
-	  velprint_d(1,gi,gj,gk)=hfieldsh(i,j,k,2,idblock)
-	  velprint_d(2,gi,gj,gk)=hfieldsh(i,j,k,3,idblock)
-	  velprint_d(3,gi,gj,gk)=hfieldsh(i,j,k,4,idblock)
-		
-	else
-	  
-	  rhoprint_d(gi,gj,gk)=zero
-	  velprint_d(1,gi,gj,gk)=zero
-	  velprint_d(2,gi,gj,gk)=zero
-	  velprint_d(3,gi,gj,gk)=zero
-	  
-	endif
-	  
-	return
-
- end subroutine store_print_flop
   
  subroutine abortOnLastErrorAndSync(msg, step)
     implicit none
