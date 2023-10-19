@@ -2,4 +2,4 @@
 #define PRESSCORR
 #define noIFBC
 #define BBBC
-#define HALOSHARED
+#define noHALOSHARED

@@ -52,18 +52,18 @@ program lb_openacc
 
 
     !*******************************user parameters and allocations**************************m
-        nx=512
-        ny=512
-        nz=512
+        nx=64
+        ny=64
+        nz=64
         nsteps=500
         stamp=100
-        h_fx=one*ten**(-real(5.d0,kind=db))
+        h_fx=one*ten**(-real(4.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
-        lpbc=.false.
-        lprint=.false.
-        lvtk=.false.
-        lasync=.false.
+        lpbc=.true.
+        lprint=.true.
+        lvtk=.true.
+        lasync=.true.
         
         TILE_DIMx=8
         TILE_DIMy=8
@@ -340,7 +340,7 @@ program lb_openacc
 		  enddo
 	    enddo
 	    
-	    istat = cudaDeviceSynchronize
+	istat = cudaDeviceSynchronize
         istat = cudaMemcpy(isfluid,h_isfluid,(nx+2)*(ny+2)*(nz+2) )
         istat = cudaDeviceSynchronize
     !****************************************hermite projection vars**********

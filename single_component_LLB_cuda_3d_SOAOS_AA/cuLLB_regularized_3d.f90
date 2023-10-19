@@ -52,21 +52,21 @@ program lb_openacc
 
 
     !*******************************user parameters and allocations**************************m
-        nx=512
-        ny=512
-        nz=512
-        nsteps=500
-        stamp=100
-        h_fx=one*ten**(-real(5.d0,kind=db))
+        nx=32
+        ny=32
+        nz=32
+        nsteps=5
+        stamp=1
+        h_fx=one*ten**(-real(4.d0,kind=db))
         h_fy=zero*ten**(-real(5.d0,kind=db))
         h_fz=zero*ten**(-real(5.d0,kind=db))
-        lpbc=.false.
-        lprint=.false.
-        lvtk=.false.
+        lpbc=.true.
+        lprint=.true.
+        lvtk=.true.
         lasync=.false.
         
-        TILE_DIMx=8
-        TILE_DIMy=8
+        TILE_DIMx=4
+        TILE_DIMy=4
         TILE_DIMz=4
         TILE_DIM=16
         if (mod(nx, TILE_DIMx)/= 0) then
@@ -300,12 +300,12 @@ program lb_openacc
         h_isfluid=0
         h_isfluid(1:nx,1:ny,1:nz)=1
 !        h_isfluid=1
-!        h_isfluid(1,:,:)=0 !left
-!        h_isfluid(nx,:,:)=0 !right
-!        h_isfluid(:,1,:)=0 !front 
-!        h_isfluid(:,ny,:)=0 !rear
-!        h_isfluid(:,:,1)=0 !bottom
-!        h_isfluid(:,:,nz)=0 !top
+        h_isfluid(1,:,:)=0 !left
+        h_isfluid(nx,:,:)=0 !right
+        h_isfluid(:,1,:)=0 !front 
+        h_isfluid(:,ny,:)=0 !rear
+        h_isfluid(:,:,1)=0 !bottom
+        h_isfluid(:,:,nz)=0 !top
         if(lpbc)then
           h_isfluid=1
           h_isfluid(:,:,0)=3 !bottom
@@ -354,7 +354,7 @@ program lb_openacc
         istat = cudaMemcpy(isfluid,h_isfluid,(nx+2)*(ny+2)*(nz+2) )
         istat = cudaDeviceSynchronize
     !****************************************hermite projection vars**********
-     xperiodic=.true.
+     xperiodic=.false.
     !*************************************initial conditions ************************    
 
     call setup_system_halo<<<dimGridhalo,dimBlockhalo>>>(one,zero,zero,zero)
