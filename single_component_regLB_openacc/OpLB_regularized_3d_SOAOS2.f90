@@ -668,6 +668,8 @@ program lb_openacc
     integer :: nx,ny,nz,step,stamp,nlinks,nsteps,ngpus
     integer :: istat,iframe
     
+    integer :: itile,jtile,ktile
+    
     logical :: lprint,lvtk,lasync,lpbc
     
     real(kind=db),parameter :: pi_greek=3.14159265359793234626433
@@ -681,15 +683,19 @@ program lb_openacc
     real(kind=db) :: qxx,qyy,qzz,qxy_7_8,qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14
     real(kind=db) :: pi2cssq1,pi2cssq2,pi2cssq0
     
-    integer :: TILE_DIMx,TILE_DIMy,TILE_DIMz
+    !integer :: TILE_DIMx,TILE_DIMy,TILE_DIMz
     integer :: nxblock,nyblock,nzblock,nblocks,nxyblock
     integer :: idblock,xblock,yblock,zblock
     integer :: ii,jj,kk
+    integer :: oidblock,oxblock,oyblock,ozblock
+    integer :: oii,ojj,okk
+    integer :: oi,oj,ok
     
+    integer(kind=4), allocatable,dimension(:,:,:,:) :: provace
     integer(kind=4), allocatable,dimension(:,:,:)   :: isfluid
-    real(kind=db), allocatable, dimension(:,:,:) :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
-    real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
-    real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
+    !real(kind=db), allocatable, dimension(:,:,:) :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
+    !real(kind=db), allocatable, dimension(:,:,:) :: f0,f1,f2,f3,f4,f5,f6,f7,f8,f9
+    !real(kind=db), allocatable, dimension(:,:,:) :: f10,f11,f12,f13,f14,f15,f16,f17,f18
     real(kind=db), allocatable, dimension(:,:,:,:,:) :: fpops,hfields
     
     real(kind=db) :: mymemory,totmemory
@@ -727,20 +733,21 @@ program lb_openacc
         lasync=.false.
         
         init_rho=1.0_db
-        
-        TILE_DIMx=8
-        TILE_DIMy=8
-        TILE_DIMz=4
+
+#define TILE_DIMx 4
+#define TILE_DIMy 4
+#define TILE_DIMz 4    
+
         if (mod(nx, TILE_DIMx)/= 0) then
-          write(*,*) 'nx must be a multiple of TILE_DIM'
+          write(*,*) 'nx must be a multiple of TILEDIMx'
           stop
         end if
         if (mod(ny, TILE_DIMy) /= 0) then
-          write(*,*) 'ny must be a multiple of TILE_DIMy'
+          write(*,*) 'ny must be a multiple of TILEDIMy'
           stop
         end if
         if (mod(nz, TILE_DIMz) /= 0) then
-          write(*,*) 'nz must be a multiple of TILE_DIMz'
+          write(*,*) 'nz must be a multiple of TILEDIMz'
           stop
         end if
         
@@ -753,7 +760,7 @@ program lb_openacc
         nblocks=nxblock*nyblock*nzblock
         
         write(6,*)'nx,ny,nz',nx,ny,nz
-        write(6,*)'TILE_DIMx,TILE_DIMy,TILE_DIMz',TILE_DIMx,TILE_DIMy,TILE_DIMz
+        write(6,*)'TILEDIMx,TILEDIMy,TILEDIMz',TILE_DIMx,TILE_DIMy,TILE_DIMz
         write(6,*)'nxblock,nyblock,nzblock',nxblock,nyblock,nzblock
         write(6,*)'nblocks',nblocks
         
@@ -788,10 +795,10 @@ program lb_openacc
         omega=1.0_db/tau
     !*****************************************geometry************************
         isfluid=1
-        isfluid(1,:,:)=0 !left
-        isfluid(nx,:,:)=0 !right
-        isfluid(:,1,:)=0 !front 
-        isfluid(:,ny,:)=0 !rear
+        !isfluid(1,:,:)=0 !left
+        !isfluid(nx,:,:)=0 !right
+        !isfluid(:,1,:)=0 !front 
+        !isfluid(:,ny,:)=0 !rear
         isfluid(:,:,1)=0 !bottom
         isfluid(:,:,nz)=0 !top
     !****************************************hermite projection vars**********
@@ -811,31 +818,31 @@ program lb_openacc
 
     !*************************************initial conditions ************************ 
         
-        do zblock=1,nzblock
-          do yblock=1,nyblock
-            do xblock=1,nxblock
-              idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,1,idblock)=0.0_db  !pxx
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,2,idblock)=0.0_db  !pyy
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,3,idblock)=0.0_db  !pzz
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,4,idblock)=0.0_db  !pxy
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,5,idblock)=0.0_db  !pxz
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,6,idblock)=0.0_db  !pyz
+!        do zblock=1,nzblock
+!          do yblock=1,nyblock
+!            do xblock=1,nxblock
+!              idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,1,idblock)=0.0_db  !pxx
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,2,idblock)=0.0_db  !pyy
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,3,idblock)=0.0_db  !pzz
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,4,idblock)=0.0_db  !pxy
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,5,idblock)=0.0_db  !pxz
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,6,idblock)=0.0_db  !pyz
               
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,7,idblock)=0.0_db  !u
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,8,idblock)=0.0_db  !v
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,9,idblock)=0.0_db  !w
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,7,idblock)=0.0_db  !u
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,8,idblock)=0.0_db  !v
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,9,idblock)=0.0_db  !w
               
-              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,10,idblock)=init_rho  !rho
+!              hfields(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,10,idblock)=init_rho  !rho
               
               
-              fpops(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,0,idblock)=init_rho*p0
-              fpops(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,1:6,idblock)=init_rho*p1
-              fpops(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,7:18,idblock)=init_rho*p2
+!              fpops(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,0,idblock)=init_rho*p0
+!              fpops(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,1:6,idblock)=init_rho*p1
+!              fpops(1:TILE_DIMx,1:TILE_DIMy,1:TILE_DIMz,7:18,idblock)=init_rho*p2
               
-            enddo
-          enddo
-        enddo
+!            enddo
+!          enddo
+!        enddo
         
         write(6,*)'AHO',nblocks,nxblock,nyblock,nzblock
         do k=1,nz
@@ -848,8 +855,8 @@ program lb_openacc
               ii=i-xblock*TILE_DIMx+TILE_DIMx
               jj=j-yblock*TILE_DIMy+TILE_DIMy
               kk=k-zblock*TILE_DIMz+TILE_DIMz
-              if(i==nx/2 .and. j==ny/2 .and. k==nz/2)then
-                init_rho=666.0_db
+              if(i==nx/4 .and. j==ny/4 .and. k==nz/4)then
+                init_rho=1.1_db
               else
                 init_rho=1.0_db
               endif
@@ -868,16 +875,92 @@ program lb_openacc
               
               
               fpops(ii,jj,kk,0,idblock)=init_rho*p0
-              fpops(ii,jj,kk,1:6,idblock)=init_rho*p1
-              fpops(ii,jj,kk,7:18,idblock)=init_rho*p2
+              fpops(ii,jj,kk,1,idblock)=init_rho*p1
+              fpops(ii,jj,kk,2,idblock)=init_rho*p1
+              fpops(ii,jj,kk,3,idblock)=init_rho*p1
+              fpops(ii,jj,kk,4,idblock)=init_rho*p1
+              fpops(ii,jj,kk,5,idblock)=init_rho*p1
+              fpops(ii,jj,kk,6,idblock)=init_rho*p1
+              fpops(ii,jj,kk,7,idblock)=init_rho*p2
+              fpops(ii,jj,kk,8,idblock)=init_rho*p2
+              fpops(ii,jj,kk,9,idblock)=init_rho*p2
+              fpops(ii,jj,kk,10,idblock)=init_rho*p2
+              fpops(ii,jj,kk,11,idblock)=init_rho*p2
+              fpops(ii,jj,kk,12,idblock)=init_rho*p2
+              fpops(ii,jj,kk,13,idblock)=init_rho*p2
+              fpops(ii,jj,kk,14,idblock)=init_rho*p2
+              fpops(ii,jj,kk,15,idblock)=init_rho*p2
+              fpops(ii,jj,kk,16,idblock)=init_rho*p2
+              fpops(ii,jj,kk,17,idblock)=init_rho*p2
+              fpops(ii,jj,kk,18,idblock)=init_rho*p2
               
-              write(6,'(10i8)')i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
+              !rhoprint(i,j,k)=init_rho
+              !velprint(1,i,j,k)=0.0_db
+              !velprint(2,i,j,k)=0.0_db
+              !velprint(3,i,j,k)=0.0_db
+              
+              !write(6,'(10i8)')i,j,k,ii,jj,kk,xblock,yblock,zblock,idblock
               
             enddo
           enddo
         enddo
         
-       stop
+        allocate(provace(3,nx,ny,nz))
+        
+        !$acc loop collapse(6)
+        !tile(8,16)
+        do ktile = 1,nz,TILE_DIMz
+          do jtile = 1,ny,TILE_DIMy
+            do itile = 1,nx,TILE_DIMx
+              do k = ktile,ktile+TILE_DIMz-1
+                do j = jtile,jtile+TILE_DIMy-1
+                  do i = itile,itile+TILE_DIMx-1
+                   ! write(6,'(10i8)')i,j,k,itile,jtile,ktile
+                   xblock=(i+TILE_DIMx-1)/TILE_DIMx
+                   yblock=(j+TILE_DIMy-1)/TILE_DIMy
+                   zblock=(k+TILE_DIMz-1)/TILE_DIMz
+                   idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                   ii=i-xblock*TILE_DIMx+TILE_DIMx
+                   jj=j-yblock*TILE_DIMy+TILE_DIMy
+                   kk=k-zblock*TILE_DIMz+TILE_DIMz
+                   rhoprint(i,j,k)=real(hfields(ii,jj,kk,10,idblock),kind=4)
+                   velprint(1,i,j,k)=real(hfields(ii,jj,kk,7,idblock),kind=4)
+                   velprint(2,i,j,k)=real(hfields(ii,jj,kk,8,idblock),kind=4)
+                   velprint(3,i,j,k)=real(hfields(ii,jj,kk,9,idblock),kind=4)
+                   provace(1,i,j,k)=itile
+                   provace(2,i,j,k)=jtile
+                   provace(3,i,j,k)=ktile
+                  enddo
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+        
+        
+        !$acc loop tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) 
+        do k=1,nz
+          do j=1,ny
+            do i=1,nx
+              itile=((i+TILE_DIMx-1)/TILE_DIMx-1)*TILE_DIMx+1
+              jtile=((j+TILE_DIMy-1)/TILE_DIMy-1)*TILE_DIMy+1
+              ktile=((k+TILE_DIMz-1)/TILE_DIMz-1)*TILE_DIMz+1
+              
+              !write(6,'(10i8)')i,j,k,itile,jtile,ktile
+              if(provace(1,i,j,k).ne.itile .or. provace(2,i,j,k).ne.jtile .or. provace(3,i,j,k).ne.ktile)then
+                write(6,'(a,10i8)')'CAZZO',i,j,k,itile,jtile,ktile
+                stop
+              endif
+            enddo
+          enddo
+        enddo
+        
+!        iframe=0
+!        call init_output(nx,ny,nz,1,lvtk)
+!      call string_char(head1,nheadervtk(1),headervtk(1))
+!      call string_char(head2,nheadervtk(2),headervtk(2))
+!        call print_vtk_sync(iframe)
+!      stop 
               
         !do ll=0,nlinks
 !        f0(1:nx,1:ny,1:nz)=rho(1:nx,1:ny,1:nz)*p0
@@ -916,6 +999,9 @@ program lb_openacc
         write(6,*) 'nx',nx
         write(6,*) 'ny',ny
         write(6,*) 'ny',nz
+        write(6,*) 'TILEDIMx',TILE_DIMx
+        write(6,*) 'TILEDIMy',TILE_DIMy
+        write(6,*) 'TILEDIMz',TILE_DIMz
         write(6,*) 'lpbc',lpbc
         write(6,*) 'lprint',lprint
         write(6,*) 'lvtk',lvtk
@@ -932,7 +1018,7 @@ program lb_openacc
     !$acc& nx,ny,nz,fx,fy,fz,p0,p1,p2,tau,omega,visc_LB,cssq,&
     !$acc& p1dcssq,p2dcssq,pi2cssq0,pi2cssq1,pi2cssq2,qxx,qyy,qzz,qxy_7_8,&
     !$acc& qxy_9_10,qxz_15_16,qxz_17_18,qyz_11_12,qyz_13_14,nxblock,nyblock,&
-    !$acc& nzblock,nxyblock,nblocks,TILE_DIMx,TILE_DIMy,TILE_DIMz) async(1)
+    !$acc& nzblock,nxyblock,nblocks) async(1)
     
     
     !$if _OPENACC        
@@ -949,9 +1035,10 @@ program lb_openacc
     
     !$acc wait(1)
     if(lprint)then
-      !$acc kernels present(rhoprint,velprint,hfields,TILE_DIMx,TILE_DIMy,TILE_DIMz) async(1)
-      !$acc loop tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) private(i,j,k,&
+      !$acc kernels present(hfields,rhoprint) async(1)
+      !$acc loop independent tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) private(i,j,k,&
       !$acc& xblock,yblock,zblock,idblock,ii,jj,kk)
+      !tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) 
       do k=1,nz
         do j=1,ny
           do i=1,nx
@@ -962,21 +1049,32 @@ program lb_openacc
             ii=i-xblock*TILE_DIMx+TILE_DIMx
             jj=j-yblock*TILE_DIMy+TILE_DIMy
             kk=k-zblock*TILE_DIMz+TILE_DIMz
+            
             rhoprint(i,j,k)=real(hfields(ii,jj,kk,10,idblock),kind=4)
             velprint(1,i,j,k)=real(hfields(ii,jj,kk,7,idblock),kind=4)
             velprint(2,i,j,k)=real(hfields(ii,jj,kk,8,idblock),kind=4)
             velprint(3,i,j,k)=real(hfields(ii,jj,kk,9,idblock),kind=4)
+            !write(*,*)i,j,k,rhoprint(i,j,k)
           enddo
         enddo
       enddo
       !$acc end kernels 
       !$acc wait(1)
+      
       if(lasync)then
         !$acc update host(rhoprint,velprint) async(2)
         continue
       else
         !$acc update host(rhoprint,velprint) async(2)
         !$acc wait(2)
+        !call sleep(1)
+!        do k=1,nz
+!         do j=1,ny
+!          do i=1,nx
+!            write(6,'(a,3i8,f16.8)')'CIAONE',i,j,k,rhoprint(i,j,k)
+!          enddo
+!        enddo
+!      enddo
         if(lvtk)then
           call print_vtk_sync(iframe)
         else
@@ -985,92 +1083,99 @@ program lb_openacc
       endif
     endif
     
-    !$acc wait
-    stop
     !*************************************time loop************************  
     call cpu_time(ts1)
     do step=1,nsteps 
         !***********************************moments collision bbck + forcing************************ 
-        !$acc kernels async(1)
-        !$acc loop collapse(3) private(fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8,fneq9,fneq10,fneq11,&
-        !$acc& fneq12,fneq3,fneq14,fneq15,uu,temp,udotc)
+        !$acc kernels present(fpops,hfields,isfluid) async(1)
+        !$acc loop tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) private(fneq1,fneq2,fneq3,fneq4,fneq5,fneq6,fneq7,fneq8,fneq9,fneq10,fneq11,&
+        !$acc& fneq12,fneq3,fneq14,fneq15,uu,temp,udotc,xblock,yblock,zblock,idblock,ii,jj,kk)
         do k=1,nz
             do j=1,ny
                 do i=1,nx
                     if(isfluid(i,j,k).eq.1)then
-                        rho(i,j,k) = f0(i,j,k)+f1(i,j,k)+f2(i,j,k)+f3(i,j,k)+f4(i,j,k)+f5(i,j,k) &
-                            +f6(i,j,k)+f7(i,j,k)+f8(i,j,k)+f9(i,j,k)+f10(i,j,k)+f11(i,j,k) &
-                            +f12(i,j,k)+f13(i,j,k)+f14(i,j,k)+f15(i,j,k)+f16(i,j,k)+f17(i,j,k) &
-                            +f18(i,j,k)
+                        xblock=(i+TILE_DIMx-1)/TILE_DIMx
+                        yblock=(j+TILE_DIMy-1)/TILE_DIMy
+                        zblock=(k+TILE_DIMz-1)/TILE_DIMz
+                        idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        ii=i-xblock*TILE_DIMx+TILE_DIMx
+                        jj=j-yblock*TILE_DIMy+TILE_DIMy
+                        kk=k-zblock*TILE_DIMz+TILE_DIMz
+                        hfields(ii,jj,kk,10,idblock) = fpops(ii,jj,kk,0,idblock)+fpops(ii,jj,kk,1,idblock)+fpops(ii,jj,kk,2,idblock)+fpops(ii,jj,kk,3,idblock)+fpops(ii,jj,kk,4,idblock)+fpops(ii,jj,kk,5,idblock) &
+                            +fpops(ii,jj,kk,6,idblock)+fpops(ii,jj,kk,7,idblock)+fpops(ii,jj,kk,8,idblock)+fpops(ii,jj,kk,9,idblock)+fpops(ii,jj,kk,10,idblock)+fpops(ii,jj,kk,11,idblock) &
+                            +fpops(ii,jj,kk,12,idblock)+fpops(ii,jj,kk,13,idblock)+fpops(ii,jj,kk,14,idblock)+fpops(ii,jj,kk,15,idblock)+fpops(ii,jj,kk,16,idblock)+fpops(ii,jj,kk,17,idblock) &
+                            +fpops(ii,jj,kk,18,idblock)
 
-                        u(i,j,k) = (f1(i,j,k)+f7(i,j,k)+f9(i,j,k)+f15(i,j,k)+f18(i,j,k)) &
-                             -(f2(i,j,k)+f8(i,j,k)+f10(i,j,k)+f16(i,j,k)+f17(i,j,k)) 
+                        hfields(ii,jj,kk,7,idblock) = (fpops(ii,jj,kk,1,idblock)+fpops(ii,jj,kk,7,idblock)+fpops(ii,jj,kk,9,idblock)+fpops(ii,jj,kk,15,idblock)+fpops(ii,jj,kk,18,idblock)) &
+                             -(fpops(ii,jj,kk,2,idblock)+fpops(ii,jj,kk,8,idblock)+fpops(ii,jj,kk,10,idblock)+fpops(ii,jj,kk,16,idblock)+fpops(ii,jj,kk,17,idblock)) 
                         
-                        v(i,j,k) = (f3(i,j,k)+f7(i,j,k)+f10(i,j,k)+f11(i,j,k)+f13(i,j,k)) &
-                            -(f4(i,j,k)+f8(i,j,k)+f9(i,j,k)+f12(i,j,k)+f14(i,j,k))
+                        hfields(ii,jj,kk,8,idblock) = (fpops(ii,jj,kk,3,idblock)+fpops(ii,jj,kk,7,idblock)+fpops(ii,jj,kk,10,idblock)+fpops(ii,jj,kk,11,idblock)+fpops(ii,jj,kk,13,idblock)) &
+                            -(fpops(ii,jj,kk,4,idblock)+fpops(ii,jj,kk,8,idblock)+fpops(ii,jj,kk,9,idblock)+fpops(ii,jj,kk,12,idblock)+fpops(ii,jj,kk,14,idblock))
 
-                        w(i,j,k) = (f5(i,j,k)+f11(i,j,k)+f14(i,j,k)+f15(i,j,k)+f17(i,j,k)) &
-                            -(f6(i,j,k)+f12(i,j,k)+f13(i,j,k)+f16(i,j,k)+f18(i,j,k))
+                        hfields(ii,jj,kk,9,idblock) = (fpops(ii,jj,kk,5,idblock)+fpops(ii,jj,kk,11,idblock)+fpops(ii,jj,kk,14,idblock)+fpops(ii,jj,kk,15,idblock)+fpops(ii,jj,kk,17,idblock)) &
+                            -(fpops(ii,jj,kk,6,idblock)+fpops(ii,jj,kk,12,idblock)+fpops(ii,jj,kk,13,idblock)+fpops(ii,jj,kk,16,idblock)+fpops(ii,jj,kk,18,idblock))
                         
-                        uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
+                        uu=0.5_db*(hfields(ii,jj,kk,7,idblock)*hfields(ii,jj,kk,7,idblock) + &
+                         hfields(ii,jj,kk,8,idblock)*hfields(ii,jj,kk,8,idblock) + &
+                         hfields(ii,jj,kk,9,idblock)*hfields(ii,jj,kk,9,idblock))/cssq
                         !1-2
-                        udotc=u(i,j,k)/cssq
+                        udotc=hfields(ii,jj,kk,7,idblock)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq1=f1(i,j,k)-p1*(rho(i,j,k)+(temp + udotc))
-                        fneq2=f2(i,j,k)-p1*(rho(i,j,k)+(temp - udotc))
+                        fneq1=fpops(ii,jj,kk,1,idblock)-p1*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq2=fpops(ii,jj,kk,2,idblock)-p1*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !3-4
-                        udotc=v(i,j,k)/cssq
+                        udotc=hfields(ii,jj,kk,8,idblock)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p1*(rho(i,j,k)+(temp + udotc))
-                        fneq3=f3(i,j,k)-p1*(rho(i,j,k)+(temp + udotc))
-                        fneq4=f4(i,j,k)-p1*(rho(i,j,k)+(temp - udotc))
+                        feq=p1*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq3=fpops(ii,jj,kk,3,idblock)-p1*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq4=fpops(ii,jj,kk,4,idblock)-p1*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !5-6
-                        udotc=w(i,j,k)/cssq
+                        udotc=hfields(ii,jj,kk,9,idblock)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq5=f5(i,j,k)-p1*(rho(i,j,k)+(temp + udotc))
-                        fneq6=f6(i,j,k)-p1*(rho(i,j,k)+(temp - udotc))
+                        fneq5=fpops(ii,jj,kk,5,idblock)-p1*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq6=fpops(ii,jj,kk,6,idblock)-p1*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !7-8
-                        udotc=(u(i,j,k)+v(i,j,k))/cssq
+                        udotc=(hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,8,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq7=f7(i,j,k)-p2*(rho(i,j,k)+(temp + udotc))
-                        fneq8=f8(i,j,k)-p2*(rho(i,j,k)+(temp - udotc))
+                        fneq7=fpops(ii,jj,kk,7,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq8=fpops(ii,jj,kk,8,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !10-9
-                        udotc=(-u(i,j,k)+v(i,j,k))/cssq
+                        udotc=(-hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,8,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq10=f10(i,j,k)-p2*(rho(i,j,k)+(temp + udotc))
-                        fneq9=f9(i,j,k)-p2*(rho(i,j,k)+(temp - udotc))
+                        fneq10=fpops(ii,jj,kk,10,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq9=fpops(ii,jj,kk,9,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !11-12
-                        udotc=(v(i,j,k)+w(i,j,k))/cssq
+                        udotc=(hfields(ii,jj,kk,8,idblock)+hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq11=f11(i,j,k)-p2*(rho(i,j,k)+(temp + udotc))
-                        fneq12=f12(i,j,k)-p2*(rho(i,j,k)+(temp - udotc))
+                        fneq11=fpops(ii,jj,kk,11,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq12=fpops(ii,jj,kk,12,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !13-14
-                        udotc=(v(i,j,k)-w(i,j,k))/cssq
+                        udotc=(hfields(ii,jj,kk,8,idblock)-hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq13=f13(i,j,k) - p2*(rho(i,j,k)+(temp + udotc))
-                        fneq14=f14(i,j,k) - p2*(rho(i,j,k)+(temp - udotc))
+                        fneq13=fpops(ii,jj,kk,13,idblock) - p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq14=fpops(ii,jj,kk,14,idblock) - p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !15-16
-                        udotc=(u(i,j,k)+w(i,j,k))/cssq
+                        udotc=(hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq15=f15(i,j,k)-p2*(rho(i,j,k)+(temp + udotc))
-                        fneq16=f16(i,j,k)-p2*(rho(i,j,k)+(temp - udotc))
+                        fneq15=fpops(ii,jj,kk,15,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq16=fpops(ii,jj,kk,16,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
                         !17-18
-                        udotc=(-u(i,j,k)+w(i,j,k))/cssq
+                        udotc=(-hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        fneq17=f17(i,j,k)-p2*(rho(i,j,k)+(temp + udotc))
-                        fneq18=f18(i,j,k)-p2*(rho(i,j,k)+(temp - udotc))
-                        pxx(i,j,k)=fneq1+fneq2+fneq7+fneq8+fneq9+fneq10+fneq15+fneq16+fneq17+fneq18
-                        pyy(i,j,k)=fneq3+fneq4+fneq7+fneq8+fneq9+fneq10+fneq11+fneq12+fneq13+fneq14
-                        pzz(i,j,k)=fneq5+fneq6+fneq11+fneq12+fneq13+fneq14+fneq15+fneq16+fneq17+fneq18
-                        pxy(i,j,k)= fneq7+fneq8-fneq9-fneq10
-                        pxz(i,j,k)=fneq15+fneq16-fneq17-fneq18
-                        pyz(i,j,k)=fneq11+fneq12-fneq13-fneq14
+                        fneq17=fpops(ii,jj,kk,17,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq18=fpops(ii,jj,kk,18,idblock)-p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        hfields(ii,jj,kk,1,idblock)=fneq1+fneq2+fneq7+fneq8+fneq9+fneq10+fneq15+fneq16+fneq17+fneq18
+                        hfields(ii,jj,kk,2,idblock)=fneq3+fneq4+fneq7+fneq8+fneq9+fneq10+fneq11+fneq12+fneq13+fneq14
+                        hfields(ii,jj,kk,3,idblock)=fneq5+fneq6+fneq11+fneq12+fneq13+fneq14+fneq15+fneq16+fneq17+fneq18
+                        hfields(ii,jj,kk,4,idblock)= fneq7+fneq8-fneq9-fneq10
+                        hfields(ii,jj,kk,5,idblock)=fneq15+fneq16-fneq17-fneq18
+                        hfields(ii,jj,kk,6,idblock)=fneq11+fneq12-fneq13-fneq14
                     endif
                 enddo
             enddo
         enddo
         !$acc end kernels
-        
+        !$acc wait(1)
         
         !***********************************PRINT************************
         if(mod(step,stamp).eq.0)write(6,'(a,i8)')'step : ',step
@@ -1078,15 +1183,22 @@ program lb_openacc
           if(mod(step,stamp).eq.0)then
             iframe=iframe+1
             !$acc wait(1)
-            !$acc kernels present(rhoprint,velprint,rho,u,v,w) async(1)
-            !$acc loop independent collapse(3)  private(i,j,k)
+            !$acc kernels present(rhoprint,velprint,hfields) async(1)
+            !$acc loop independent tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) private(i,j,k,xblock,yblock,zblock,idblock,ii,jj,kk)
             do k=1,nz
               do j=1,ny
                 do i=1,nx
-                  rhoprint(i,j,k)=real(rho(i,j,k),kind=4)
-                  velprint(1,i,j,k)=real(u(i,j,k),kind=4)
-                  velprint(2,i,j,k)=real(v(i,j,k),kind=4)
-                  velprint(3,i,j,k)=real(w(i,j,k),kind=4)
+                  xblock=(i+TILE_DIMx-1)/TILE_DIMx
+                  yblock=(j+TILE_DIMy-1)/TILE_DIMy
+                  zblock=(k+TILE_DIMz-1)/TILE_DIMz
+                  idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                  ii=i-xblock*TILE_DIMx+TILE_DIMx
+                  jj=j-yblock*TILE_DIMy+TILE_DIMy
+                  kk=k-zblock*TILE_DIMz+TILE_DIMz
+                  rhoprint(i,j,k)=real(hfields(ii,jj,kk,10,idblock),kind=4)
+                  velprint(1,i,j,k)=real(hfields(ii,jj,kk,7,idblock),kind=4)
+                  velprint(2,i,j,k)=real(hfields(ii,jj,kk,8,idblock),kind=4)
+                  velprint(3,i,j,k)=real(hfields(ii,jj,kk,9,idblock),kind=4)
                 enddo
               enddo
             enddo
@@ -1117,336 +1229,501 @@ program lb_openacc
         endif
         
         !***********************************collision + no slip + forcing: fused implementation*********
-        !$acc kernels async(1)
-        !$acc loop collapse(3) private(feq,uu,temp,udotc)
+        !$acc kernels present(fpops,hfields,isfluid) async(1)
+        !$acc loop independent tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) private(feq,uu,temp,udotc,&
+        !$acc& xblock,yblock,zblock,idblock,ii,jj,kk,oxblock,oyblock,ozblock,oidblock,oii,ojj,okk,&
+        !$acc& oi,oj,ok)
         do k=1,nz
             do j=1,ny
                 do i=1,nx
                     if(isfluid(i,j,k).eq.1)then
-                        uu=0.5_db*(u(i,j,k)*u(i,j,k) + v(i,j,k)*v(i,j,k) + w(i,j,k)*w(i,j,k))/cssq
+                        xblock=(i+TILE_DIMx-1)/TILE_DIMx
+                        yblock=(j+TILE_DIMy-1)/TILE_DIMy
+                        zblock=(k+TILE_DIMz-1)/TILE_DIMz
+                        idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        ii=i-xblock*TILE_DIMx+TILE_DIMx
+                        jj=j-yblock*TILE_DIMy+TILE_DIMy
+                        kk=k-zblock*TILE_DIMz+TILE_DIMz
+                        uu=0.5_db*(hfields(ii,jj,kk,7,idblock)*hfields(ii,jj,kk,7,idblock) + &
+                         hfields(ii,jj,kk,8,idblock)*hfields(ii,jj,kk,8,idblock) + &
+                         hfields(ii,jj,kk,9,idblock)*hfields(ii,jj,kk,9,idblock))/cssq
                         !0
-                        feq=p0*(rho(i,j,k)-uu)
-                        f0(i,j,k)=feq + (1.0_db-omega)*pi2cssq0*(-cssq*(pyy(i,j,k)+pxx(i,j,k)+pzz(i,j,k)))
+                        feq=p0*(hfields(ii,jj,kk,10,idblock)-uu)
+                        fpops(ii,jj,kk,0,idblock)=feq + (1.0_db-omega)*pi2cssq0*&
+                         (-cssq*(hfields(ii,jj,kk,2,idblock)+hfields(ii,jj,kk,1,idblock)&
+                         +hfields(ii,jj,kk,3,idblock)))
                         
                         !1
-                        udotc=u(i,j,k)/cssq
+                        oi=i+1
+                        oi=mod(oi+nx-1,nx)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        oidblock=(oxblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        udotc=hfields(ii,jj,kk,7,idblock)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p1*(rho(i,j,k)+(temp + udotc))
-                        fneq1=(1.0_db-omega)*pi2cssq1*(qxx*pxx(i,j,k)-cssq*(pyy(i,j,k)+pzz(i,j,k)))
-                        f1(i+1,j,k)=feq + fneq1 + fx*p1dcssq
+                        feq=p1*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq1=(1.0_db-omega)*pi2cssq1*(qxx*hfields(ii,jj,kk,1,idblock)&
+                         -cssq*(hfields(ii,jj,kk,2,idblock)+hfields(ii,jj,kk,3,idblock)))
+                        !f1(i+1,j,k)
+                        fpops(oii,jj,kk,1,oidblock)=feq + fneq1 + fx*p1dcssq
                         
                         !2
-                        feq=p1*(rho(i,j,k)+(temp - udotc))
-                        f2(i-1,j,k)=feq + fneq1 - fx*p1dcssq
+                        oi=i-1
+                        oi=mod(oi+nx-1,nx)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        oidblock=(oxblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        feq=p1*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f2(i-1,j,k)
+                        fpops(oii,jj,kk,2,oidblock)=feq + fneq1 - fx*p1dcssq
                         
                         !3
-                        udotc=v(i,j,k)/cssq
+                        oj=j+1
+                        oj=mod(oj+ny-1,ny)+1
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        oidblock=(xblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        udotc=hfields(ii,jj,kk,8,idblock)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p1*(rho(i,j,k)+(temp + udotc))
-                        fneq3=(1.0_db-omega)*pi2cssq1*(qyy*pyy(i,j,k)-cssq*(pxx(i,j,k)+pzz(i,j,k)))
-                        f3(i,j+1,k)=feq+fneq3 + fy*p1dcssq
+                        feq=p1*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq3=(1.0_db-omega)*pi2cssq1*(qyy*hfields(ii,jj,kk,2,idblock)&
+                         -cssq*(hfields(ii,jj,kk,1,idblock)+hfields(ii,jj,kk,3,idblock)))
+                        !f3(i,j+1,k)
+                        fpops(ii,ojj,kk,3,oidblock)=feq+fneq3 + fy*p1dcssq
                         
                         !4
-                        feq=p1*(rho(i,j,k)+(temp - udotc))
-                        f4(i,j-1,k)=feq+fneq3 - fy*p1dcssq
+                        oj=j-1
+                        oj=mod(oj+ny-1,ny)+1
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        oidblock=(xblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        feq=p1*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f4(i,j-1,k)
+                        fpops(ii,ojj,kk,4,oidblock)=feq+fneq3 - fy*p1dcssq
                         
                         !7
-                        udotc=(u(i,j,k)+v(i,j,k))/cssq
+                        oi=i+1
+                        oj=j+1
+                        oi=mod(oi+nx-1,nx)+1
+                        oj=mod(oj+ny-1,ny)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        udotc=(hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,8,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p2*(rho(i,j,k)+(temp + udotc))
-                        fneq7=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_7_8*pxy(i,j,k))
-                        f7(i+1,j+1,k)=feq + fneq7 + (fx+fy)*p2dcssq 
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq7=(1.0_db-omega)*pi2cssq2*(qxx*hfields(ii,jj,kk,1,idblock)&
+                         +qyy*hfields(ii,jj,kk,2,idblock)-cssq*hfields(ii,jj,kk,3,idblock)&
+                         +2.0_db*qxy_7_8*hfields(ii,jj,kk,4,idblock))
+                        !f7(i+1,j+1,k)
+                        fpops(oii,ojj,kk,7,oidblock)=feq + fneq7 + (fx+fy)*p2dcssq 
                         
                         !8
-                        feq=p2*(rho(i,j,k)+(temp - udotc))
-                        f8(i-1,j-1,k)=feq + fneq7 - (fx+fy)*p2dcssq
+                        oi=i-1
+                        oj=j-1
+                        oi=mod(oi+nx-1,nx)+1
+                        oj=mod(oj+ny-1,ny)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f8(i-1,j-1,k)
+                        fpops(oii,ojj,kk,8,oidblock)=feq + fneq7 - (fx+fy)*p2dcssq
                         
                         !10
-                        udotc=(-u(i,j,k)+v(i,j,k))/cssq
+                        oi=i-1
+                        oj=j+1
+                        oi=mod(oi+nx-1,nx)+1
+                        oj=mod(oj+ny-1,ny)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        udotc=(-hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,8,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p2*(rho(i,j,k)+(temp + udotc))
-                        fneq10=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qyy*pyy(i,j,k)-cssq*pzz(i,j,k)+2.0_db*qxy_9_10*pxy(i,j,k))
-                        f10(i-1,j+1,k)=feq+fneq10 +(fy-fx)*p2dcssq
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq10=(1.0_db-omega)*pi2cssq2*(qxx*hfields(ii,jj,kk,1,idblock)&
+                         +qyy*hfields(ii,jj,kk,2,idblock)-cssq*hfields(ii,jj,kk,3,idblock)&
+                         +2.0_db*qxy_9_10*hfields(ii,jj,kk,4,idblock))
+                        !f10(i-1,j+1,k)
+                        fpops(oii,ojj,kk,10,oidblock)=feq+fneq10 +(fy-fx)*p2dcssq
                         
                         !9
-                        feq=p2*(rho(i,j,k)+(temp - udotc))
-                        f9(i+1,j-1,k)=feq+fneq10 + (fx-fy)*p2dcssq
+                        oi=i+1
+                        oj=j-1
+                        oi=mod(oi+nx-1,nx)+1
+                        oj=mod(oj+ny-1,ny)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f9(i+1,j-1,k)
+                        fpops(oii,ojj,kk,9,oidblock)=feq+fneq10 + (fx-fy)*p2dcssq
 
                         !5
-                        udotc=w(i,j,k)/cssq
+                        ok=k+1
+                        ok=mod(ok+nz-1,nz)+1
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(xblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        udotc=hfields(ii,jj,kk,9,idblock)/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p1*(rho(i,j,k)+(temp + udotc))
-                        fneq5=(1.0_db-omega)*pi2cssq1*(qzz*pzz(i,j,k)-cssq*(pxx(i,j,k)+pyy(i,j,k)))
-                        f5(i,j,k+1)=feq+fneq5 + fz*p1dcssq
+                        feq=p1*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq5=(1.0_db-omega)*pi2cssq1*(qzz*hfields(ii,jj,kk,3,idblock)&
+                         -cssq*(hfields(ii,jj,kk,1,idblock)+hfields(ii,jj,kk,2,idblock)))
+                        !f5(i,j,k+1)
+                        fpops(ii,jj,okk,5,oidblock)=feq+fneq5 + fz*p1dcssq
                         
                         !6
-                        feq=p1*(rho(i,j,k)+(temp - udotc))
-                        f6(i,j,k-1)=feq+fneq5 - fz*p1dcssq
+                        ok=k-1
+                        ok=mod(ok+nz-1,nz)+1
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(xblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        feq=p1*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f6(i,j,k-1)
+                        fpops(ii,jj,okk,6,oidblock)=feq+fneq5 - fz*p1dcssq
 
                         !15
-                        udotc=(u(i,j,k)+w(i,j,k))/cssq
+                        oi=i+1
+                        ok=k+1
+                        oi=mod(oi+nx-1,nx)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        udotc=(hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p2*(rho(i,j,k)+(temp + udotc))
-                        fneq15=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_15_16*pxz(i,j,k))
-                        f15(i+1,j,k+1)=feq+fneq15 + (fx+fz)*p2dcssq 
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq15=(1.0_db-omega)*pi2cssq2*(qxx*hfields(ii,jj,kk,1,idblock)&
+                         +qzz*hfields(ii,jj,kk,3,idblock)-cssq*hfields(ii,jj,kk,2,idblock)&
+                         +2.0_db*qxz_15_16*hfields(ii,jj,kk,5,idblock))
+                        !f15(i+1,j,k+1)
+                        fpops(oii,jj,okk,15,oidblock)=feq+fneq15 + (fx+fz)*p2dcssq 
                         
                         !16
-                        feq=p2*(rho(i,j,k)+(temp - udotc))
-                        f16(i-1,j,k-1)=feq+fneq15 - (fx+fz)*p2dcssq
+                        oi=i-1
+                        ok=k-1
+                        oi=mod(oi+nx-1,nx)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f16(i-1,j,k-1)
+                        fpops(oii,jj,okk,16,oidblock)=feq+fneq15 - (fx+fz)*p2dcssq
 
                         !17
-                        udotc=(-u(i,j,k)+w(i,j,k))/cssq
+                        oi=i-1
+                        ok=k+1
+                        oi=mod(oi+nx-1,nx)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        udotc=(-hfields(ii,jj,kk,7,idblock)+hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p2*(rho(i,j,k)+(temp + udotc))
-                        fneq17=(1.0_db-omega)*pi2cssq2*(qxx*pxx(i,j,k)+qzz*pzz(i,j,k)-cssq*pyy(i,j,k)+2.0_db*qxz_17_18*pxz(i,j,k))
-                        f17(i-1,j,k+1)=feq+fneq17 +(fz-fx)*p2dcssq
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq17=(1.0_db-omega)*pi2cssq2*(qxx*hfields(ii,jj,kk,1,idblock)&
+                         +qzz*hfields(ii,jj,kk,3,idblock)-cssq*hfields(ii,jj,kk,2,idblock)&
+                         +2.0_db*qxz_17_18*hfields(ii,jj,kk,5,idblock))
+                        !f17(i-1,j,k+1)
+                        fpops(oii,jj,okk,17,oidblock)=feq+fneq17 +(fz-fx)*p2dcssq
                         
                         !18
-                        feq=p2*(rho(i,j,k)+(temp - udotc))
-                        f18(i+1,j,k-1)=feq+fneq17 + (fx-fz)*p2dcssq
+                        oi=i+1
+                        ok=k-1
+                        oi=mod(oi+nx-1,nx)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f18(i+1,j,k-1)
+                        fpops(oii,jj,okk,18,oidblock)=feq+fneq17 + (fx-fz)*p2dcssq
 
                         !11
-                        udotc=(v(i,j,k)+w(i,j,k))/cssq
+                        oj=j+1
+                        ok=k+1
+                        oj=mod(oj+ny-1,ny)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        udotc=(hfields(ii,jj,kk,8,idblock)+hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p2*(rho(i,j,k)+(temp + udotc))
-                        fneq11=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_11_12*pyz(i,j,k))
-                        f11(i,j+1,k+1)=feq+fneq11+(fy+fz)*p2dcssq
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq11=(1.0_db-omega)*pi2cssq2*(qyy*hfields(ii,jj,kk,2,idblock)&
+                         +qzz*hfields(ii,jj,kk,3,idblock)-cssq*hfields(ii,jj,kk,1,idblock)&
+                         +2.0_db*qyz_11_12*hfields(ii,jj,kk,6,idblock))
+                        !f11(i,j+1,k+1)
+                        fpops(ii,ojj,okk,11,oidblock)=feq+fneq11+(fy+fz)*p2dcssq
                         
                         !12
-                        feq=p2*(rho(i,j,k)+(temp - udotc))
-                        f12(i,j-1,k-1)=feq+fneq11 - (fy+fz)*p2dcssq
+                        oj=j-1
+                        ok=k-1
+                        oj=mod(oj+ny-1,ny)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f12(i,j-1,k-1)
+                        fpops(ii,ojj,okk,12,oidblock)=feq+fneq11 - (fy+fz)*p2dcssq
 
                         !13
-                        udotc=(v(i,j,k)-w(i,j,k))/cssq
+                        oj=j+1
+                        ok=k-1
+                        oj=mod(oj+ny-1,ny)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        udotc=(hfields(ii,jj,kk,8,idblock)-hfields(ii,jj,kk,9,idblock))/cssq
                         temp = -uu + 0.5_db*udotc*udotc
-                        feq=p2*(rho(i,j,k)+(temp + udotc))
-                        fneq13=(1.0_db-omega)*pi2cssq2*(qyy*pyy(i,j,k)+qzz*pzz(i,j,k)-cssq*pxx(i,j,k)+2.0_db*qyz_13_14*pyz(i,j,k))
-                        f13(i,j+1,k-1)=feq+fneq13 + (fy-fz)*p2dcssq
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp + udotc))
+                        fneq13=(1.0_db-omega)*pi2cssq2*(qyy*hfields(ii,jj,kk,2,idblock)&
+                         +qzz*hfields(ii,jj,kk,3,idblock)-cssq*hfields(ii,jj,kk,1,idblock)&
+                         +2.0_db*qyz_13_14*hfields(ii,jj,kk,6,idblock))
+                        !f13(i,j+1,k-1)
+                        fpops(ii,ojj,okk,13,oidblock)=feq+fneq13 + (fy-fz)*p2dcssq
                         
                         !14
-                        feq=p2*(rho(i,j,k)+(temp - udotc))
-                        f14(i,j-1,k+1)=feq+fneq13 + (fz-fy)*p2dcssq
+                        oj=j-1
+                        ok=k+1
+                        oj=mod(oj+ny-1,ny)+1
+                        ok=mod(ok+nz-1,nz)+1
+                        oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                        ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                        oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                        ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                        okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                        feq=p2*(hfields(ii,jj,kk,10,idblock)+(temp - udotc))
+                        !f14(i,j-1,k+1)
+                        fpops(ii,ojj,okk,14,oidblock)=feq+fneq13 + (fz-fy)*p2dcssq
                     endif
                 enddo
             enddo
         enddo
+        !$acc end kernels
+        !$acc wait(1)
         !********************************boundary conditions no slip everywhere********************************!
-            !$acc loop independent 
+        !$acc kernels present(fpops,hfields,isfluid) async(1)
+        !$acc loop independent tile(TILE_DIMx,TILE_DIMy,TILE_DIMz) private(xblock,yblock,zblock,&
+        !$acc& idblock,ii,jj,kk,oxblock,oyblock,ozblock,oidblock,oii,ojj,okk,&
+        !$acc& oi,oj,ok)
             do k=1,nz
-                !$acc loop independent 
                 do j=1,ny
-                    !$acc loop independent 
                     do i=1,nx
                         if(isfluid(i,j,k).eq.0)then
-                            f18(i+1,j,k-1)=f17(i,j,k) !gpc 
-                            f17(i-1,j,k+1)=f18(i,j,k) !hpc
-
-                            f16(i-1,j,k-1)=f15(i,j,k) !gpc 
-                            f15(i+1,j,k+1)=f16(i,j,k) !hpc
-
-                            f14(i,j-1,k+1)=f13(i,j,k)!gpc 
-                            f13(i,j+1,k-1)=f14(i,j,k)!hpc
+                            xblock=(i+TILE_DIMx-1)/TILE_DIMx
+                            yblock=(j+TILE_DIMy-1)/TILE_DIMy
+                            zblock=(k+TILE_DIMz-1)/TILE_DIMz
+                            idblock=(xblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            ii=i-xblock*TILE_DIMx+TILE_DIMx
+                            jj=j-yblock*TILE_DIMy+TILE_DIMy
+                            kk=k-zblock*TILE_DIMz+TILE_DIMz
                             
-                            f12(i,j-1,k-1)=f11(i,j,k)!gpc 
-                            f11(i,j+1,k+1)=f12(i,j,k)!hpc
+                            oi=i+1
+                            ok=k-1
+                            oi=mod(oi+nx-1,nx)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(oii,jj,okk,18,oidblock)=fpops(ii,jj,kk,17,idblock) !gpc
+                            
+                            oi=i-1
+                            ok=k+1
+                            oi=mod(oi+nx-1,nx)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz 
+                            fpops(oii,jj,okk,17,oidblock)=fpops(ii,jj,kk,18,idblock) !hpc
+                            
+                            oi=i-1
+                            ok=k-1
+                            oi=mod(oi+nx-1,nx)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(oii,jj,okk,16,oidblock)=fpops(ii,jj,kk,15,idblock) !gpc
+                            
+                            oi=i+1
+                            ok=k+1
+                            oi=mod(oi+nx-1,nx)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(oxblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(oii,jj,okk,15,oidblock)=fpops(ii,jj,kk,16,idblock) !hpc
+                            
+                            oj=j-1
+                            ok=k+1
+                            oj=mod(oj+ny-1,ny)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(ii,ojj,okk,14,oidblock)=fpops(ii,jj,kk,13,idblock)!gpc 
+                            
+                            oj=j+1
+                            ok=k-1
+                            oj=mod(oj+ny-1,ny)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(ii,ojj,okk,13,oidblock)=fpops(ii,jj,kk,14,idblock)!hpc
+                            
+                            oj=j-1
+                            ok=k-1
+                            oj=mod(oj+ny-1,ny)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(ii,ojj,okk,12,oidblock)=fpops(ii,jj,kk,11,idblock)!gpc 
+                            
+                            oj=j+1
+                            ok=k+1
+                            oj=mod(oj+ny-1,ny)+1
+                            ok=mod(ok+nz-1,nz)+1
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(xblock-1)+(oyblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(ii,ojj,okk,11,oidblock)=fpops(ii,jj,kk,12,idblock)!hpc
+                            
+                            oi=i-1
+                            oj=j+1
+                            oi=mod(oi+nx-1,nx)+1
+                            oj=mod(oj+ny-1,ny)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            fpops(oii,ojj,kk,10,oidblock)=fpops(ii,jj,kk,9,idblock)!gpc 
+                            
+                            oi=i+1
+                            oj=j-1
+                            oi=mod(oi+nx-1,nx)+1
+                            oj=mod(oj+ny-1,ny)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            fpops(oii,ojj,kk,9,oidblock)=fpops(ii,jj,kk,10,idblock)!hpc
+                            
+                            oi=i-1
+                            oj=j-1
+                            oi=mod(oi+nx-1,nx)+1
+                            oj=mod(oj+ny-1,ny)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            fpops(oii,ojj,kk,8,oidblock)=fpops(ii,jj,kk,7,idblock)!gpc 
+                            
+                            oi=i+1
+                            oj=j+1
+                            oi=mod(oi+nx-1,nx)+1
+                            oj=mod(oj+ny-1,ny)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            oidblock=(oxblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            fpops(oii,ojj,kk,7,oidblock)=fpops(ii,jj,kk,8,idblock)!hpc
+                            
+                            ok=k-1
+                            ok=mod(ok+nz-1,nz)+1
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(xblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(ii,jj,okk,6,oidblock)=fpops(ii,jj,kk,5,idblock)!gpc 
+                            
+                            ok=k+1
+                            ok=mod(ok+nz-1,nz)+1
+                            ozblock=(ok+TILE_DIMz-1)/TILE_DIMz
+                            oidblock=(xblock-1)+(yblock-1)*nxblock+(ozblock-1)*nxyblock+1
+                            okk=ok-ozblock*TILE_DIMz+TILE_DIMz
+                            fpops(ii,jj,okk,5,oidblock)=fpops(ii,jj,kk,6,idblock)!hpc 
 
-                            f10(i-1,j+1,k)=f9(i,j,k)!gpc 
-                            f9(i+1,j-1,k)=f10(i,j,k)!hpc
-
-                            f8(i-1,j-1,k)=f7(i,j,k)!gpc 
-                            f7(i+1,j+1,k)=f8(i,j,k)!hpc
-
-                            f6(i,j,k-1)=f5(i,j,k)!gpc 
-                            f5(i,j,k+1)=f6(i,j,k)!hpc 
-
-
-                            f4(i,j-1,k)=f3(i,j,k)!gpc 
-                            f3(i,j+1,k)=f4(i,j,k)!hpc 
-
-                            f2(i-1,j,k)=f1(i,j,k)!gpc 
-                            f1(i+1,j,k)=f2(i,j,k)!hpc 
+                            oj=j-1
+                            oj=mod(oj+ny-1,ny)+1
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            oidblock=(xblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            fpops(ii,ojj,kk,4,oidblock)=fpops(ii,jj,kk,3,idblock)!gpc 
+                            
+                            oj=j+1
+                            oj=mod(oj+ny-1,ny)+1
+                            oyblock=(oj+TILE_DIMy-1)/TILE_DIMy
+                            oidblock=(xblock-1)+(oyblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            ojj=oj-oyblock*TILE_DIMy+TILE_DIMy
+                            fpops(ii,ojj,kk,3,oidblock)=fpops(ii,jj,kk,4,idblock)!hpc 
+                            
+                            oi=i-1
+                            oi=mod(oi+nx-1,nx)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            oidblock=(oxblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            fpops(oii,jj,kk,2,oidblock)=fpops(ii,jj,kk,1,idblock)!gpc 
+                            
+                            oi=i+1
+                            oi=mod(oi+nx-1,nx)+1
+                            oxblock=(oi+TILE_DIMx-1)/TILE_DIMx
+                            oidblock=(oxblock-1)+(yblock-1)*nxblock+(zblock-1)*nxyblock+1
+                            oii=oi-oxblock*TILE_DIMx+TILE_DIMx
+                            fpops(oii,jj,kk,1,oidblock)=fpops(ii,jj,kk,2,idblock)!hpc 
                         endif
                     enddo
                 enddo
             enddo
         !$acc end kernels
-        
-        !******************************************call other bcs************************
-         if(lpbc)then      
-            !periodic along x 
-            !$acc kernels async(1)
-            !$acc loop independent 
-            do k=2,nz-1
-                !$acc loop independent 
-                do j=2,ny-1
-			      if(j>2 .and. j<ny-1 .and. k>2 .and. k<nz-1)then
-			        f1(2,j,k)=f1(nx,j,k)
-			        f7(2,j,k)=f7(nx,j,k)
-			        f9(2,j,k)=f9(nx,j,k)
-			        f15(2,j,k)=f15(nx,j,k)
-			        f18(2,j,k)=f18(nx,j,k)
-			        f2(nx-1,j,k)=f2(1,j,k)
-			        f8(nx-1,j,k)=f8(1,j,k)
-			        f10(nx-1,j,k)=f10(1,j,k)
-			        f16(nx-1,j,k)=f16(1,j,k)
-			        f17(nx-1,j,k)=f17(1,j,k)
-			      else
-			        if(j==2)then
-			          if(k==2)then
-			            f1(2,j,k)=f1(nx,j,k)
-			            f9(2,j,k)=f9(nx,j,k)
-			            f18(2,j,k)=f18(nx,j,k)
-			            f2(nx-1,j,k)=f2(1,j,k)
-			            f8(nx-1,j,k)=f8(1,j,k)
-			            f16(nx-1,j,k)=f16(1,j,k)
-			          elseif(k==nz-1)then
-			            f1(2,j,k)=f1(nx,j,k)
-			            f9(2,j,k)=f9(nx,j,k)
-			            f15(2,j,k)=f15(nx,j,k)
-			            f2(nx-1,j,k)=f2(1,j,k)
-			            f8(nx-1,j,k)=f8(1,j,k)
-			            f17(nx-1,j,k)=f17(1,j,k)
-			          else
-			            f1(2,j,k)=f1(nx,j,k)
-			            f9(2,j,k)=f9(nx,j,k)
-			            f15(2,j,k)=f15(nx,j,k)
-			            f18(2,j,k)=f18(nx,j,k)
-			            f2(nx-1,j,k)=f2(1,j,k)
-			            f8(nx-1,j,k)=f8(1,j,k)
-			            f16(nx-1,j,k)=f16(1,j,k)
-			            f17(nx-1,j,k)=f17(1,j,k)
-			          endif
-			        elseif(j==ny-1)then
-			          if(k==2)then
-			            f1(2,j,k)=f1(nx,j,k)
-			            f7(2,j,k)=f7(nx,j,k)
-			            f18(2,j,k)=f18(nx,j,k)
-			            f2(nx-1,j,k)=f2(1,j,k)
-			            f10(nx-1,j,k)=f10(1,j,k)
-			            f16(nx-1,j,k)=f16(1,j,k)
-			          elseif(k==nz-1)then
-			            f1(2,j,k)=f1(nx,j,k)
-			            f7(2,j,k)=f7(nx,j,k)
-			            f15(2,j,k)=f15(nx,j,k)
-			            f2(nx-1,j,k)=f2(1,j,k)
-			            f10(nx-1,j,k)=f10(1,j,k)
-			            f17(nx-1,j,k)=f17(1,j,k)
-			          else
-			            f1(2,j,k)=f1(nx,j,k)
-			            f7(2,j,k)=f7(nx,j,k)
-			            f15(2,j,k)=f15(nx,j,k)
-			            f18(2,j,k)=f18(nx,j,k)
-			            f2(nx-1,j,k)=f2(1,j,k)
-			            f10(nx-1,j,k)=f10(1,j,k)
-			            f16(nx-1,j,k)=f16(1,j,k)
-			            f17(nx-1,j,k)=f17(1,j,k)
-			          endif
-			        endif
-			      endif 
-			    enddo
-			enddo
-            !$acc end kernels
-            
-            !periodic along y
-            !$acc kernels async(1)
-            !$acc loop independent 
-            do k=2,nz-1
-                !$acc loop independent 
-                do i=2,nx-1
-			      if(i>2 .and. i<nx-1 .and. k>2 .and. k<nz-1)then
-			        f3(i,2,k)=f3(i,ny,k)
-			        f7(i,2,k)=f7(i,ny,k)
-			        f10(i,2,k)=f10(i,ny,k)
-			        f11(i,2,k)=f11(i,ny,k)
-			        f13(i,2,k)=f13(i,ny,k)
-			        f4(i,ny-1,k)=f4(i,1,k)
-			        f8(i,ny-1,k)=f8(i,1,k)
-			        f9(i,ny-1,k)=f9(i,1,k)
-			        f12(i,ny-1,k)=f12(i,1,k)
-			        f14(i,ny-1,k)=f14(i,1,k)
-			      else
-			        if(i==2)then
-			          if(k==2)then
-			            f3(i,2,k)=f3(i,ny,k)
-			            f10(i,2,k)=f10(i,ny,k)
-			            f13(i,2,k)=f13(i,ny,k)
-			            f4(i,ny-1,k)=f4(i,1,k)
-			            f8(i,ny-1,k)=f8(i,1,k)
-			            f12(i,ny-1,k)=f12(i,1,k)
-			          elseif(k==nz-1)then
-			            f3(i,2,k)=f3(i,ny,k)
-			            f10(i,2,k)=f10(i,ny,k)
-			            f11(i,2,k)=f11(i,ny,k)
-			            f4(i,ny-1,k)=f4(i,1,k)
-			            f8(i,ny-1,k)=f8(i,1,k)
-			            f14(i,ny-1,k)=f14(i,1,k)
-			          else
-			            f3(i,2,k)=f3(i,ny,k)
-			            f10(i,2,k)=f10(i,ny,k)
-			            f11(i,2,k)=f11(i,ny,k)
-			            f13(i,2,k)=f13(i,ny,k)
-			            f4(i,ny-1,k)=f4(i,1,k)
-			            f8(i,ny-1,k)=f8(i,1,k)
-			            f12(i,ny-1,k)=f12(i,1,k)
-			            f14(i,ny-1,k)=f14(i,1,k)
-			          endif
-			        elseif(i==nx-1)then
-			          if(k==2)then
-			            f3(i,2,k)=f3(i,ny,k)
-			            f7(i,2,k)=f7(i,ny,k)
-			            f13(i,2,k)=f13(i,ny,k)
-			            f4(i,ny-1,k)=f4(i,1,k)
-			            f9(i,ny-1,k)=f9(i,1,k)
-			            f12(i,ny-1,k)=f12(i,1,k)
-			          elseif(k==nz-1)then 
-			            f3(i,2,k)=f3(i,ny,k)
-			            f7(i,2,k)=f7(i,ny,k)
-			            f11(i,2,k)=f11(i,ny,k)
-			            f4(i,ny-1,k)=f4(i,1,k)
-			            f9(i,ny-1,k)=f9(i,1,k)
-			            f14(i,ny-1,k)=f14(i,1,k)
-			          else
-			            f3(i,2,k)=f3(i,ny,k)
-			            f7(i,2,k)=f7(i,ny,k)
-			            f11(i,2,k)=f11(i,ny,k)
-			            f13(i,2,k)=f13(i,ny,k)
-			            f4(i,ny-1,k)=f4(i,1,k)
-			            f9(i,ny-1,k)=f9(i,1,k)
-			            f12(i,ny-1,k)=f12(i,1,k)
-			            f14(i,ny-1,k)=f14(i,1,k)
-			          endif
-			        endif
-			      endif
-			    enddo
-			enddo
-			!$acc end kernels
-			
-          endif
-!             f1(2,:,:)=f1(nx,:,:)
-!             f7(2,:,:)=f7(nx,:,:)
-!             f9(2,:,:)=f9(nx,:,:)
-!             f15(2,:,:)=f15(nx,:,:)
-!             f18(2,:,:)=f18(nx,:,:)
-!             !x=nx 
-!             f2(nx-1,:,:)=f2(1,:,:)
-!             f8(nx-1,:,:)=f8(1,:,:)
-!             f10(nx-1,:,:)=f10(1,:,:)
-!             f16(nx-1,:,:)=f16(1,:,:)
-!             f17(nx-1,:,:)=f17(1,:,:)
-
-!             !y=1
-!             f3(:,2,:)=f3(:,ny,:)
-!             f7(:,2,:)=f7(:,ny,:)
-!             f10(:,2,:)=f10(:,ny,:)
-!             f11(:,2,:)=f11(:,ny,:)
-!             f13(:,2,:)=f13(:,ny,:)
-        
-!             !y=ny
-!             f4(:,ny-1,:)=f4(:,1,:)
-!             f8(:,ny-1,:)=f8(:,1,:)
-!             f9(:,ny-1,:)=f9(:,1,:)
-!             f12(:,ny-1,:)=f12(:,1,:)
-!             f14(:,ny-1,:)=f14(:,1,:)
+        !$acc wait(1)
        
         
     enddo 
@@ -1462,8 +1739,10 @@ program lb_openacc
     
     !$acc end data
     call cpu_time(ts2)
-    write(6,*) 'u=',u(nx/2,ny/2,nz/2),'v=',v(nx/2,ny/2,nz/2),'w=',w(nx/2,ny/2,nz/2),'rho=',rho(nx/2,ny/2,nz/2)
-    write(6,*) 'u=',u(nx/2,ny/2,1),'v=',v(nx/2,ny/2,1),'w=',w(nx/2,ny/2,1),'rho=',rho(nx/2,ny/2,1)
+    write(6,*) 'u=',velprint(1,nx/2,ny/2,nz/2),'v=',velprint(2,nx/2,ny/2,nz/2),&
+     'w=',velprint(3,nx/2,ny/2,nz/2),'rho=',rhoprint(nx/2,ny/2,nz/2)
+    write(6,*) 'u=',velprint(1,nx/2,ny/2,1),'v=',velprint(2,nx/2,ny/2,1),&
+     'w=',velprint(3,nx/2,ny/2,1),'rho=',rhoprint(nx/2,ny/2,1)
     write(6,*) 'time elapsed: ', ts2-ts1, ' s of your life time' 
     write(6,*) 'glups: ',  real(nx)*real(ny)*real(nz)*real(nsteps)/1.0e9/(ts2-ts1)
     
@@ -1542,6 +1821,7 @@ program lb_openacc
    implicit none
    
    integer, intent(in) :: iframe
+   integer :: i,j,k
    
    sevt1 = trim(dir_out) // trim(filenamevtk)//'_'//trim(namevarvtk(1))// &
     '_'//trim(write_fmtnumb(iframe)) // '.vti'
