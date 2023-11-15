@@ -270,7 +270,8 @@ program lb_openacc
 !         pxzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pyyh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
 !        allocate(pyzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks),pzzh(TILE_DIMx,TILE_DIMy,TILE_DIMz,nblocks))
         
-        allocate(hfields(TILE_DIMx,TILE_DIMy,TILE_DIMz,10,nblocks),hfieldsh(TILE_DIMx,TILE_DIMy,TILE_DIMz,10,nblocks))
+        allocate(hfields(TILE_DIMx*TILE_DIMy*TILE_DIMz*nhfields*nblocks), &
+         hfieldsh(TILE_DIMx*TILE_DIMy*TILE_DIMz*nhfields*nblocks))
         
         allocate(h_isfluid(0:nx+1,0:ny+1,0:nz+1))
         allocate(isfluid(0:nx+1,0:ny+1,0:nz+1)) 

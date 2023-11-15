@@ -29,92 +29,103 @@
 	
 	if(abs(isfluid(gi,gj,gk)).ne.1)return
                         
-	uu=half*(hfieldsh(i,j,k,2,idblock)*hfieldsh(i,j,k,2,idblock) + hfieldsh(i,j,k,3,idblock)*hfieldsh(i,j,k,3,idblock) + hfieldsh(i,j,k,4,idblock)*hfieldsh(i,j,k,4,idblock))/cssq
+	uu=half*(hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))*&
+	 hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10)) + &
+	 hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))*&
+	 hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10)) + &
+	 hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))*&
+	 hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	!1-2
-	udotc=hfieldsh(i,j,k,2,idblock)/cssq
+	udotc=hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p1*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p1*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=feq
-	feq=p1*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p1*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 
 	!3-4
-	udotc=hfieldsh(i,j,k,3,idblock)/cssq
+	udotc=hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p1*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p1*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pyy=feq
-	feq=p1*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p1*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	!5-6
-	udotc=hfieldsh(i,j,k,4,idblock)/cssq
+	udotc=hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p1*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p1*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pzz=feq
-	feq=p1*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p1*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pzz=temp_pzz+feq
 	!7-8
-	udotc=(hfieldsh(i,j,k,2,idblock)+hfieldsh(i,j,k,3,idblock))/cssq
+	udotc=(hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=feq
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=temp_pxy+feq
 	!10-9
-	udotc=(-hfieldsh(i,j,k,2,idblock)+hfieldsh(i,j,k,3,idblock))/cssq
+	udotc=(-hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=temp_pxy-feq
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=temp_pxy-feq
 	!11-12
-	udotc=(hfieldsh(i,j,k,3,idblock)+hfieldsh(i,j,k,4,idblock))/cssq
+	udotc=(hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=feq
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=temp_pyz+feq
 	!13-14
-	udotc=(hfieldsh(i,j,k,3,idblock)-hfieldsh(i,j,k,4,idblock))/cssq
+	udotc=(hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))-&
+	 hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=temp_pyz-feq
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=temp_pyz-feq
 	!15-16
-	udotc=(hfieldsh(i,j,k,2,idblock)+hfieldsh(i,j,k,4,idblock))/cssq
+	udotc=(hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=feq
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=temp_pxz+feq
 	!17-18
-	udotc=(-hfieldsh(i,j,k,2,idblock)+hfieldsh(i,j,k,4,idblock))/cssq
+	udotc=(-hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=temp_pxz-feq
-	feq=p2*(hfieldsh(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=temp_pxz-feq
@@ -122,12 +133,18 @@
 	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
 	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
 	
-	hfieldsh(i,j,k,5,idblock)=hfieldsh(i,j,k,5,idblock)-temp_pxx
-	hfieldsh(i,j,k,6,idblock)=hfieldsh(i,j,k,6,idblock)-temp_pyy
-	hfieldsh(i,j,k,7,idblock)=hfieldsh(i,j,k,7,idblock)-temp_pzz
-	hfieldsh(i,j,k,8,idblock)=hfieldsh(i,j,k,8,idblock)-temp_pxy
-	hfieldsh(i,j,k,9,idblock)=hfieldsh(i,j,k,9,idblock)-temp_pxz
-	hfieldsh(i,j,k,10,idblock)=hfieldsh(i,j,k,10,idblock)-temp_pyz
+	hfieldsh(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfieldsh(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))-temp_pxx
+	hfieldsh(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfieldsh(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))-temp_pyy
+	hfieldsh(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfieldsh(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))-temp_pzz
+	hfieldsh(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfieldsh(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))-temp_pxy
+	hfieldsh(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfieldsh(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))-temp_pxz
+	hfieldsh(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfieldsh(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))-temp_pyz
     
     return
     
@@ -155,92 +172,104 @@
 	
 	if(abs(isfluid(gi,gj,gk)).ne.1)return
 	
-    uu=half*(hfields(i,j,k,2,idblock)*hfields(i,j,k,2,idblock) + hfields(i,j,k,3,idblock)*hfields(i,j,k,3,idblock) + hfields(i,j,k,4,idblock)*hfields(i,j,k,4,idblock))/cssq
+    uu=half*(hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))*&
+     hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10)) + &
+     hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))*&
+     hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10)) + &
+     hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))*&
+     hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
+    
 	!1-2
-	udotc=hfields(i,j,k,2,idblock)/cssq
+	udotc=hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p1*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p1*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=feq
-	feq=p1*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p1*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 
 	!3-4
-	udotc=hfields(i,j,k,3,idblock)/cssq
+	udotc=hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p1*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p1*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pyy=feq
-	feq=p1*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p1*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	!5-6
-	udotc=hfields(i,j,k,4,idblock)/cssq
+	udotc=hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p1*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p1*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pzz=feq
-	feq=p1*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p1*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pzz=temp_pzz+feq
 	!7-8
-	udotc=(hfields(i,j,k,2,idblock)+hfields(i,j,k,3,idblock))/cssq
+	udotc=(hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=feq
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=temp_pxy+feq
 	!10-9
-	udotc=(-hfields(i,j,k,2,idblock)+hfields(i,j,k,3,idblock))/cssq
+	udotc=(-hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=temp_pxy-feq
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pyy=temp_pyy+feq
 	temp_pxy=temp_pxy-feq
 	!11-12
-	udotc=(hfields(i,j,k,3,idblock)+hfields(i,j,k,4,idblock))/cssq
+	udotc=(hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=feq
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=temp_pyz+feq
 	!13-14
-	udotc=(hfields(i,j,k,3,idblock)-hfields(i,j,k,4,idblock))/cssq
+	udotc=(hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))-&
+	 hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=temp_pyz-feq
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pyy=temp_pyy+feq
 	temp_pzz=temp_pzz+feq
 	temp_pyz=temp_pyz-feq
 	!15-16
-	udotc=(hfields(i,j,k,2,idblock)+hfields(i,j,k,4,idblock))/cssq
+	udotc=(hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=feq
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=temp_pxz+feq
 	!17-18
-	udotc=(-hfields(i,j,k,2,idblock)+hfields(i,j,k,4,idblock))/cssq
+	udotc=(-hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))+&
+	 hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10)))/cssq
 	temp = -uu + half*udotc*udotc
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp + udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp + udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=temp_pxz-feq
-	feq=p2*(hfields(i,j,k,1,idblock)+(temp - udotc))
+	feq=p2*(hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))+(temp - udotc))
 	temp_pxx=temp_pxx+feq
 	temp_pzz=temp_pzz+feq
 	temp_pxz=temp_pxz-feq
@@ -248,12 +277,18 @@
 	!ey=(/0, 0,  0, 1, -1,  0,  0,  1,  -1, -1,   1,  1,  -1,  1,  -1,  0,   0,   0,   0/)
 	!ez=(/0, 0,  0, 0,  0,  1, -1,  0,   0,  0,   0,  1,  -1, -1,   1,  1,  -1,   1,  -1/)
 	
-	hfields(i,j,k,5,idblock)=hfields(i,j,k,5,idblock)-temp_pxx
-	hfields(i,j,k,6,idblock)=hfields(i,j,k,6,idblock)-temp_pyy
-	hfields(i,j,k,7,idblock)=hfields(i,j,k,7,idblock)-temp_pzz
-	hfields(i,j,k,8,idblock)=hfields(i,j,k,8,idblock)-temp_pxy
-	hfields(i,j,k,9,idblock)=hfields(i,j,k,9,idblock)-temp_pxz
-	hfields(i,j,k,10,idblock)=hfields(i,j,k,10,idblock)-temp_pyz
+	hfields(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfields(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))-temp_pxx
+	hfields(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfields(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))-temp_pyy
+	hfields(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfields(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))-temp_pzz
+	hfields(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfields(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))-temp_pxy
+	hfields(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfields(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))-temp_pxz
+	hfields(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))=&
+	 hfields(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))-temp_pyz
 	
 	return
     

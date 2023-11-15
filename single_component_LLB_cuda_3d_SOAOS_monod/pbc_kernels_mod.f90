@@ -35,16 +35,16 @@
 	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	  
-	hfields(ie,j,k,1,idblocke)=hfields(io,j,k,1,idblocko)
-	hfields(ie,j,k,2,idblocke)=hfields(io,j,k,2,idblocko)
-	hfields(ie,j,k,3,idblocke)=hfields(io,j,k,3,idblocko)
-	hfields(ie,j,k,4,idblocke)=hfields(io,j,k,4,idblocko)
-	hfields(ie,j,k,5,idblocke)=hfields(io,j,k,5,idblocko)
-	hfields(ie,j,k,6,idblocke)=hfields(io,j,k,6,idblocko)
-	hfields(ie,j,k,7,idblocke)=hfields(io,j,k,7,idblocko)
-	hfields(ie,j,k,8,idblocke)=hfields(io,j,k,8,idblocko)
-	hfields(ie,j,k,9,idblocke)=hfields(io,j,k,9,idblocko)
-	hfields(ie,j,k,10,idblocke)=hfields(io,j,k,10,idblocko)
+	hfields(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=1
 	gie=nx_d+1
@@ -58,16 +58,16 @@
 	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	
-	hfields(ie,j,k,1,idblocke)=hfields(io,j,k,1,idblocko)
-	hfields(ie,j,k,2,idblocke)=hfields(io,j,k,2,idblocko)
-	hfields(ie,j,k,3,idblocke)=hfields(io,j,k,3,idblocko)
-	hfields(ie,j,k,4,idblocke)=hfields(io,j,k,4,idblocko)
-	hfields(ie,j,k,5,idblocke)=hfields(io,j,k,5,idblocko)
-	hfields(ie,j,k,6,idblocke)=hfields(io,j,k,6,idblocko)
-	hfields(ie,j,k,7,idblocke)=hfields(io,j,k,7,idblocko)
-	hfields(ie,j,k,8,idblocke)=hfields(io,j,k,8,idblocko)
-	hfields(ie,j,k,9,idblocke)=hfields(io,j,k,9,idblocko)
-	hfields(ie,j,k,10,idblocke)=hfields(io,j,k,10,idblocko)
+	hfields(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	  
     return
 		  
@@ -102,16 +102,16 @@
 	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
     
 	  
-	hfieldsh(ie,j,k,1,idblocke)=hfieldsh(io,j,k,1,idblocko)
-	hfieldsh(ie,j,k,2,idblocke)=hfieldsh(io,j,k,2,idblocko)
-	hfieldsh(ie,j,k,3,idblocke)=hfieldsh(io,j,k,3,idblocko)
-	hfieldsh(ie,j,k,4,idblocke)=hfieldsh(io,j,k,4,idblocko)
-	hfieldsh(ie,j,k,5,idblocke)=hfieldsh(io,j,k,5,idblocko)
-	hfieldsh(ie,j,k,6,idblocke)=hfieldsh(io,j,k,6,idblocko)
-	hfieldsh(ie,j,k,7,idblocke)=hfieldsh(io,j,k,7,idblocko)
-	hfieldsh(ie,j,k,8,idblocke)=hfieldsh(io,j,k,8,idblocko)
-	hfieldsh(ie,j,k,9,idblocke)=hfieldsh(io,j,k,9,idblocko)
-	hfieldsh(ie,j,k,10,idblocke)=hfieldsh(io,j,k,10,idblocko)
+	hfieldsh(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=1
 	gie=nx_d+1
@@ -125,16 +125,16 @@
 	io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	
-	hfieldsh(ie,j,k,1,idblocke)=hfieldsh(io,j,k,1,idblocko)
-	hfieldsh(ie,j,k,2,idblocke)=hfieldsh(io,j,k,2,idblocko)
-	hfieldsh(ie,j,k,3,idblocke)=hfieldsh(io,j,k,3,idblocko)
-	hfieldsh(ie,j,k,4,idblocke)=hfieldsh(io,j,k,4,idblocko)
-	hfieldsh(ie,j,k,5,idblocke)=hfieldsh(io,j,k,5,idblocko)
-	hfieldsh(ie,j,k,6,idblocke)=hfieldsh(io,j,k,6,idblocko)
-	hfieldsh(ie,j,k,7,idblocke)=hfieldsh(io,j,k,7,idblocko)
-	hfieldsh(ie,j,k,8,idblocke)=hfieldsh(io,j,k,8,idblocko)
-	hfieldsh(ie,j,k,9,idblocke)=hfieldsh(io,j,k,9,idblocko)
-	hfieldsh(ie,j,k,10,idblocke)=hfieldsh(io,j,k,10,idblocko)
+	hfieldsh(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	  
     return
 		  
@@ -170,16 +170,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfields(i,je,ke,1,idblocke)=hfields(i,jo,ko,1,idblocko)
-	hfields(i,je,ke,2,idblocke)=hfields(i,jo,ko,2,idblocko)
-	hfields(i,je,ke,3,idblocke)=hfields(i,jo,ko,3,idblocko)
-	hfields(i,je,ke,4,idblocke)=hfields(i,jo,ko,4,idblocko)
-	hfields(i,je,ke,5,idblocke)=hfields(i,jo,ko,5,idblocko)
-	hfields(i,je,ke,6,idblocke)=hfields(i,jo,ko,6,idblocko)
-	hfields(i,je,ke,7,idblocke)=hfields(i,jo,ko,7,idblocko)
-	hfields(i,je,ke,8,idblocke)=hfields(i,jo,ko,8,idblocko)
-	hfields(i,je,ke,9,idblocke)=hfields(i,jo,ko,9,idblocko)
-	hfields(i,je,ke,10,idblocke)=hfields(i,jo,ko,10,idblocko)
+	hfields(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=1
 	gje=ny_d+1
@@ -199,16 +199,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfields(i,je,ke,1,idblocke)=hfields(i,jo,ko,1,idblocko)
-	hfields(i,je,ke,2,idblocke)=hfields(i,jo,ko,2,idblocko)
-	hfields(i,je,ke,3,idblocke)=hfields(i,jo,ko,3,idblocko)
-	hfields(i,je,ke,4,idblocke)=hfields(i,jo,ko,4,idblocko)
-	hfields(i,je,ke,5,idblocke)=hfields(i,jo,ko,5,idblocko)
-	hfields(i,je,ke,6,idblocke)=hfields(i,jo,ko,6,idblocko)
-	hfields(i,je,ke,7,idblocke)=hfields(i,jo,ko,7,idblocko)
-	hfields(i,je,ke,8,idblocke)=hfields(i,jo,ko,8,idblocko)
-	hfields(i,je,ke,9,idblocke)=hfields(i,jo,ko,9,idblocko)
-	hfields(i,je,ke,10,idblocke)=hfields(i,jo,ko,10,idblocko)
+	hfields(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=ny_d
 	gje=0
@@ -228,16 +228,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfields(i,je,ke,1,idblocke)=hfields(i,jo,ko,1,idblocko)
-	hfields(i,je,ke,2,idblocke)=hfields(i,jo,ko,2,idblocko)
-	hfields(i,je,ke,3,idblocke)=hfields(i,jo,ko,3,idblocko)
-	hfields(i,je,ke,4,idblocke)=hfields(i,jo,ko,4,idblocko)
-	hfields(i,je,ke,5,idblocke)=hfields(i,jo,ko,5,idblocko)
-	hfields(i,je,ke,6,idblocke)=hfields(i,jo,ko,6,idblocko)
-	hfields(i,je,ke,7,idblocke)=hfields(i,jo,ko,7,idblocko)
-	hfields(i,je,ke,8,idblocke)=hfields(i,jo,ko,8,idblocko)
-	hfields(i,je,ke,9,idblocke)=hfields(i,jo,ko,9,idblocko)
-	hfields(i,je,ke,10,idblocke)=hfields(i,jo,ko,10,idblocko)
+	hfields(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=1
 	gje=ny_d+1
@@ -257,16 +257,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfields(i,je,ke,1,idblocke)=hfields(i,jo,ko,1,idblocko)
-	hfields(i,je,ke,2,idblocke)=hfields(i,jo,ko,2,idblocko)
-	hfields(i,je,ke,3,idblocke)=hfields(i,jo,ko,3,idblocko)
-	hfields(i,je,ke,4,idblocke)=hfields(i,jo,ko,4,idblocko)
-	hfields(i,je,ke,5,idblocke)=hfields(i,jo,ko,5,idblocko)
-	hfields(i,je,ke,6,idblocke)=hfields(i,jo,ko,6,idblocko)
-	hfields(i,je,ke,7,idblocke)=hfields(i,jo,ko,7,idblocko)
-	hfields(i,je,ke,8,idblocke)=hfields(i,jo,ko,8,idblocko)
-	hfields(i,je,ke,9,idblocke)=hfields(i,jo,ko,9,idblocko)
-	hfields(i,je,ke,10,idblocke)=hfields(i,jo,ko,10,idblocko)
+	hfields(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	
     return
@@ -303,16 +303,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfieldsh(i,je,ke,1,idblocke)=hfieldsh(i,jo,ko,1,idblocko)
-	hfieldsh(i,je,ke,2,idblocke)=hfieldsh(i,jo,ko,2,idblocko)
-	hfieldsh(i,je,ke,3,idblocke)=hfieldsh(i,jo,ko,3,idblocko)
-	hfieldsh(i,je,ke,4,idblocke)=hfieldsh(i,jo,ko,4,idblocko)
-	hfieldsh(i,je,ke,5,idblocke)=hfieldsh(i,jo,ko,5,idblocko)
-	hfieldsh(i,je,ke,6,idblocke)=hfieldsh(i,jo,ko,6,idblocko)
-	hfieldsh(i,je,ke,7,idblocke)=hfieldsh(i,jo,ko,7,idblocko)
-	hfieldsh(i,je,ke,8,idblocke)=hfieldsh(i,jo,ko,8,idblocko)
-	hfieldsh(i,je,ke,9,idblocke)=hfieldsh(i,jo,ko,9,idblocko)
-	hfieldsh(i,je,ke,10,idblocke)=hfieldsh(i,jo,ko,10,idblocko)
+	hfieldsh(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=1
 	gje=ny_d+1
@@ -332,16 +332,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfieldsh(i,je,ke,1,idblocke)=hfieldsh(i,jo,ko,1,idblocko)
-	hfieldsh(i,je,ke,2,idblocke)=hfieldsh(i,jo,ko,2,idblocko)
-	hfieldsh(i,je,ke,3,idblocke)=hfieldsh(i,jo,ko,3,idblocko)
-	hfieldsh(i,je,ke,4,idblocke)=hfieldsh(i,jo,ko,4,idblocko)
-	hfieldsh(i,je,ke,5,idblocke)=hfieldsh(i,jo,ko,5,idblocko)
-	hfieldsh(i,je,ke,6,idblocke)=hfieldsh(i,jo,ko,6,idblocko)
-	hfieldsh(i,je,ke,7,idblocke)=hfieldsh(i,jo,ko,7,idblocko)
-	hfieldsh(i,je,ke,8,idblocke)=hfieldsh(i,jo,ko,8,idblocko)
-	hfieldsh(i,je,ke,9,idblocke)=hfieldsh(i,jo,ko,9,idblocko)
-	hfieldsh(i,je,ke,10,idblocke)=hfieldsh(i,jo,ko,10,idblocko)
+	hfieldsh(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=ny_d
 	gje=0
@@ -361,16 +361,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfieldsh(i,je,ke,1,idblocke)=hfieldsh(i,jo,ko,1,idblocko)
-	hfieldsh(i,je,ke,2,idblocke)=hfieldsh(i,jo,ko,2,idblocko)
-	hfieldsh(i,je,ke,3,idblocke)=hfieldsh(i,jo,ko,3,idblocko)
-	hfieldsh(i,je,ke,4,idblocke)=hfieldsh(i,jo,ko,4,idblocko)
-	hfieldsh(i,je,ke,5,idblocke)=hfieldsh(i,jo,ko,5,idblocko)
-	hfieldsh(i,je,ke,6,idblocke)=hfieldsh(i,jo,ko,6,idblocko)
-	hfieldsh(i,je,ke,7,idblocke)=hfieldsh(i,jo,ko,7,idblocko)
-	hfieldsh(i,je,ke,8,idblocke)=hfieldsh(i,jo,ko,8,idblocko)
-	hfieldsh(i,je,ke,9,idblocke)=hfieldsh(i,jo,ko,9,idblocko)
-	hfieldsh(i,je,ke,10,idblocke)=hfieldsh(i,jo,ko,10,idblocko)
+	hfieldsh(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=1
 	gje=ny_d+1
@@ -390,16 +390,16 @@
     idblocko=(xblock-1)+(yblocko-1)*nxblock_d+(zblocko-1)*nxyblock_d+1
     idblocke=(xblock-1)+(yblocke-1)*nxblock_d+(zblocke-1)*nxyblock_d+1
 	
-	hfieldsh(i,je,ke,1,idblocke)=hfieldsh(i,jo,ko,1,idblocko)
-	hfieldsh(i,je,ke,2,idblocke)=hfieldsh(i,jo,ko,2,idblocko)
-	hfieldsh(i,je,ke,3,idblocke)=hfieldsh(i,jo,ko,3,idblocko)
-	hfieldsh(i,je,ke,4,idblocke)=hfieldsh(i,jo,ko,4,idblocko)
-	hfieldsh(i,je,ke,5,idblocke)=hfieldsh(i,jo,ko,5,idblocko)
-	hfieldsh(i,je,ke,6,idblocke)=hfieldsh(i,jo,ko,6,idblocko)
-	hfieldsh(i,je,ke,7,idblocke)=hfieldsh(i,jo,ko,7,idblocko)
-	hfieldsh(i,je,ke,8,idblocke)=hfieldsh(i,jo,ko,8,idblocko)
-	hfieldsh(i,je,ke,9,idblocke)=hfieldsh(i,jo,ko,9,idblocko)
-	hfieldsh(i,je,ke,10,idblocke)=hfieldsh(i,jo,ko,10,idblocko)
+	hfieldsh(idx5d(i,je,ke,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,ke,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,ko,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	
     return
@@ -433,16 +433,16 @@
 	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
 	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
-	hfields(i,je,k,1,idblocke)=hfields(i,jo,k,1,idblocko)
-	hfields(i,je,k,2,idblocke)=hfields(i,jo,k,2,idblocko)
-	hfields(i,je,k,3,idblocke)=hfields(i,jo,k,3,idblocko)
-	hfields(i,je,k,4,idblocke)=hfields(i,jo,k,4,idblocko)
-	hfields(i,je,k,5,idblocke)=hfields(i,jo,k,5,idblocko)
-	hfields(i,je,k,6,idblocke)=hfields(i,jo,k,6,idblocko)
-	hfields(i,je,k,7,idblocke)=hfields(i,jo,k,7,idblocko)
-	hfields(i,je,k,8,idblocke)=hfields(i,jo,k,8,idblocko)
-	hfields(i,je,k,9,idblocke)=hfields(i,jo,k,9,idblocko)
-	hfields(i,je,k,10,idblocke)=hfields(i,jo,k,10,idblocko)
+	hfields(idx5d(i,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=1
 	gje=ny_d+1
@@ -456,16 +456,16 @@
 	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
 	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
-	hfields(i,je,k,1,idblocke)=hfields(i,jo,k,1,idblocko)
-	hfields(i,je,k,2,idblocke)=hfields(i,jo,k,2,idblocko)
-	hfields(i,je,k,3,idblocke)=hfields(i,jo,k,3,idblocko)
-	hfields(i,je,k,4,idblocke)=hfields(i,jo,k,4,idblocko)
-	hfields(i,je,k,5,idblocke)=hfields(i,jo,k,5,idblocko)
-	hfields(i,je,k,6,idblocke)=hfields(i,jo,k,6,idblocko)
-	hfields(i,je,k,7,idblocke)=hfields(i,jo,k,7,idblocko)
-	hfields(i,je,k,8,idblocke)=hfields(i,jo,k,8,idblocko)
-	hfields(i,je,k,9,idblocke)=hfields(i,jo,k,9,idblocko)
-	hfields(i,je,k,10,idblocke)=hfields(i,jo,k,10,idblocko)
+	hfields(idx5d(i,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(i,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(i,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	  
     return
 
@@ -499,16 +499,16 @@
 	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
 	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
-	hfieldsh(i,je,k,1,idblocke)=hfieldsh(i,jo,k,1,idblocko)
-	hfieldsh(i,je,k,2,idblocke)=hfieldsh(i,jo,k,2,idblocko)
-	hfieldsh(i,je,k,3,idblocke)=hfieldsh(i,jo,k,3,idblocko)
-	hfieldsh(i,je,k,4,idblocke)=hfieldsh(i,jo,k,4,idblocko)
-	hfieldsh(i,je,k,5,idblocke)=hfieldsh(i,jo,k,5,idblocko)
-	hfieldsh(i,je,k,6,idblocke)=hfieldsh(i,jo,k,6,idblocko)
-	hfieldsh(i,je,k,7,idblocke)=hfieldsh(i,jo,k,7,idblocko)
-	hfieldsh(i,je,k,8,idblocke)=hfieldsh(i,jo,k,8,idblocko)
-	hfieldsh(i,je,k,9,idblocke)=hfieldsh(i,jo,k,9,idblocko)
-	hfieldsh(i,je,k,10,idblocke)=hfieldsh(i,jo,k,10,idblocko)
+	hfieldsh(idx5d(i,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gjo=1
 	gje=ny_d+1
@@ -522,16 +522,16 @@
 	jo=gjo-yblocko*TILE_DIMy_d+2*TILE_DIMy_d
 	je=gje-yblocke*TILE_DIMy_d+2*TILE_DIMy_d
 	
-	hfieldsh(i,je,k,1,idblocke)=hfieldsh(i,jo,k,1,idblocko)
-	hfieldsh(i,je,k,2,idblocke)=hfieldsh(i,jo,k,2,idblocko)
-	hfieldsh(i,je,k,3,idblocke)=hfieldsh(i,jo,k,3,idblocko)
-	hfieldsh(i,je,k,4,idblocke)=hfieldsh(i,jo,k,4,idblocko)
-	hfieldsh(i,je,k,5,idblocke)=hfieldsh(i,jo,k,5,idblocko)
-	hfieldsh(i,je,k,6,idblocke)=hfieldsh(i,jo,k,6,idblocko)
-	hfieldsh(i,je,k,7,idblocke)=hfieldsh(i,jo,k,7,idblocko)
-	hfieldsh(i,je,k,8,idblocke)=hfieldsh(i,jo,k,8,idblocko)
-	hfieldsh(i,je,k,9,idblocke)=hfieldsh(i,jo,k,9,idblocko)
-	hfieldsh(i,je,k,10,idblocke)=hfieldsh(i,jo,k,10,idblocko)
+	hfieldsh(idx5d(i,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(i,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(i,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	  
     return
 
@@ -571,16 +571,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfields(ie,je,k,1,idblocke)=hfields(io,jo,k,1,idblocko)
-	hfields(ie,je,k,2,idblocke)=hfields(io,jo,k,2,idblocko)
-	hfields(ie,je,k,3,idblocke)=hfields(io,jo,k,3,idblocko)
-	hfields(ie,je,k,4,idblocke)=hfields(io,jo,k,4,idblocko)
-	hfields(ie,je,k,5,idblocke)=hfields(io,jo,k,5,idblocko)
-	hfields(ie,je,k,6,idblocke)=hfields(io,jo,k,6,idblocko)
-	hfields(ie,je,k,7,idblocke)=hfields(io,jo,k,7,idblocko)
-	hfields(ie,je,k,8,idblocke)=hfields(io,jo,k,8,idblocko)
-	hfields(ie,je,k,9,idblocke)=hfields(io,jo,k,9,idblocko)
-	hfields(ie,je,k,10,idblocke)=hfields(io,jo,k,10,idblocko)
+	hfields(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=1
 	gie=nx_d+1
@@ -603,16 +603,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfields(ie,je,k,1,idblocke)=hfields(io,jo,k,1,idblocko)
-	hfields(ie,je,k,2,idblocke)=hfields(io,jo,k,2,idblocko)
-	hfields(ie,je,k,3,idblocke)=hfields(io,jo,k,3,idblocko)
-	hfields(ie,je,k,4,idblocke)=hfields(io,jo,k,4,idblocko)
-	hfields(ie,je,k,5,idblocke)=hfields(io,jo,k,5,idblocko)
-	hfields(ie,je,k,6,idblocke)=hfields(io,jo,k,6,idblocko)
-	hfields(ie,je,k,7,idblocke)=hfields(io,jo,k,7,idblocko)
-	hfields(ie,je,k,8,idblocke)=hfields(io,jo,k,8,idblocko)
-	hfields(ie,je,k,9,idblocke)=hfields(io,jo,k,9,idblocko)
-	hfields(ie,je,k,10,idblocke)=hfields(io,jo,k,10,idblocko)
+	hfields(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=1
 	gie=nx_d+1
@@ -635,16 +635,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfields(ie,je,k,1,idblocke)=hfields(io,jo,k,1,idblocko)
-	hfields(ie,je,k,2,idblocke)=hfields(io,jo,k,2,idblocko)
-	hfields(ie,je,k,3,idblocke)=hfields(io,jo,k,3,idblocko)
-	hfields(ie,je,k,4,idblocke)=hfields(io,jo,k,4,idblocko)
-	hfields(ie,je,k,5,idblocke)=hfields(io,jo,k,5,idblocko)
-	hfields(ie,je,k,6,idblocke)=hfields(io,jo,k,6,idblocko)
-	hfields(ie,je,k,7,idblocke)=hfields(io,jo,k,7,idblocko)
-	hfields(ie,je,k,8,idblocke)=hfields(io,jo,k,8,idblocko)
-	hfields(ie,je,k,9,idblocke)=hfields(io,jo,k,9,idblocko)
-	hfields(ie,je,k,10,idblocke)=hfields(io,jo,k,10,idblocko)
+	hfields(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=nx_d
 	gie=0
@@ -667,16 +667,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfields(ie,je,k,1,idblocke)=hfields(io,jo,k,1,idblocko)
-	hfields(ie,je,k,2,idblocke)=hfields(io,jo,k,2,idblocko)
-	hfields(ie,je,k,3,idblocke)=hfields(io,jo,k,3,idblocko)
-	hfields(ie,je,k,4,idblocke)=hfields(io,jo,k,4,idblocko)
-	hfields(ie,je,k,5,idblocke)=hfields(io,jo,k,5,idblocko)
-	hfields(ie,je,k,6,idblocke)=hfields(io,jo,k,6,idblocko)
-	hfields(ie,je,k,7,idblocke)=hfields(io,jo,k,7,idblocko)
-	hfields(ie,je,k,8,idblocke)=hfields(io,jo,k,8,idblocko)
-	hfields(ie,je,k,9,idblocke)=hfields(io,jo,k,9,idblocko)
-	hfields(ie,je,k,10,idblocke)=hfields(io,jo,k,10,idblocko)
+	hfields(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfields(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	
     return
@@ -716,16 +716,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfieldsh(ie,je,k,1,idblocke)=hfieldsh(io,jo,k,1,idblocko)
-	hfieldsh(ie,je,k,2,idblocke)=hfieldsh(io,jo,k,2,idblocko)
-	hfieldsh(ie,je,k,3,idblocke)=hfieldsh(io,jo,k,3,idblocko)
-	hfieldsh(ie,je,k,4,idblocke)=hfieldsh(io,jo,k,4,idblocko)
-	hfieldsh(ie,je,k,5,idblocke)=hfieldsh(io,jo,k,5,idblocko)
-	hfieldsh(ie,je,k,6,idblocke)=hfieldsh(io,jo,k,6,idblocko)
-	hfieldsh(ie,je,k,7,idblocke)=hfieldsh(io,jo,k,7,idblocko)
-	hfieldsh(ie,je,k,8,idblocke)=hfieldsh(io,jo,k,8,idblocko)
-	hfieldsh(ie,je,k,9,idblocke)=hfieldsh(io,jo,k,9,idblocko)
-	hfieldsh(ie,je,k,10,idblocke)=hfieldsh(io,jo,k,10,idblocko)
+	hfieldsh(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=1
 	gie=nx_d+1
@@ -748,16 +748,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfieldsh(ie,je,k,1,idblocke)=hfieldsh(io,jo,k,1,idblocko)
-	hfieldsh(ie,je,k,2,idblocke)=hfieldsh(io,jo,k,2,idblocko)
-	hfieldsh(ie,je,k,3,idblocke)=hfieldsh(io,jo,k,3,idblocko)
-	hfieldsh(ie,je,k,4,idblocke)=hfieldsh(io,jo,k,4,idblocko)
-	hfieldsh(ie,je,k,5,idblocke)=hfieldsh(io,jo,k,5,idblocko)
-	hfieldsh(ie,je,k,6,idblocke)=hfieldsh(io,jo,k,6,idblocko)
-	hfieldsh(ie,je,k,7,idblocke)=hfieldsh(io,jo,k,7,idblocko)
-	hfieldsh(ie,je,k,8,idblocke)=hfieldsh(io,jo,k,8,idblocko)
-	hfieldsh(ie,je,k,9,idblocke)=hfieldsh(io,jo,k,9,idblocko)
-	hfieldsh(ie,je,k,10,idblocke)=hfieldsh(io,jo,k,10,idblocko)
+	hfieldsh(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=1
 	gie=nx_d+1
@@ -780,16 +780,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfieldsh(ie,je,k,1,idblocke)=hfieldsh(io,jo,k,1,idblocko)
-	hfieldsh(ie,je,k,2,idblocke)=hfieldsh(io,jo,k,2,idblocko)
-	hfieldsh(ie,je,k,3,idblocke)=hfieldsh(io,jo,k,3,idblocko)
-	hfieldsh(ie,je,k,4,idblocke)=hfieldsh(io,jo,k,4,idblocko)
-	hfieldsh(ie,je,k,5,idblocke)=hfieldsh(io,jo,k,5,idblocko)
-	hfieldsh(ie,je,k,6,idblocke)=hfieldsh(io,jo,k,6,idblocko)
-	hfieldsh(ie,je,k,7,idblocke)=hfieldsh(io,jo,k,7,idblocko)
-	hfieldsh(ie,je,k,8,idblocke)=hfieldsh(io,jo,k,8,idblocko)
-	hfieldsh(ie,je,k,9,idblocke)=hfieldsh(io,jo,k,9,idblocko)
-	hfieldsh(ie,je,k,10,idblocke)=hfieldsh(io,jo,k,10,idblocko)
+	hfieldsh(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	gio=nx_d
 	gie=0
@@ -812,16 +812,16 @@
 	idblocko=(xblocko-1)+(yblocko-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	idblocke=(xblocke-1)+(yblocke-1)*nxblock_d+(zblock-1)*nxyblock_d+1
 	
-	hfieldsh(ie,je,k,1,idblocke)=hfieldsh(io,jo,k,1,idblocko)
-	hfieldsh(ie,je,k,2,idblocke)=hfieldsh(io,jo,k,2,idblocko)
-	hfieldsh(ie,je,k,3,idblocke)=hfieldsh(io,jo,k,3,idblocko)
-	hfieldsh(ie,je,k,4,idblocke)=hfieldsh(io,jo,k,4,idblocko)
-	hfieldsh(ie,je,k,5,idblocke)=hfieldsh(io,jo,k,5,idblocko)
-	hfieldsh(ie,je,k,6,idblocke)=hfieldsh(io,jo,k,6,idblocko)
-	hfieldsh(ie,je,k,7,idblocke)=hfieldsh(io,jo,k,7,idblocko)
-	hfieldsh(ie,je,k,8,idblocke)=hfieldsh(io,jo,k,8,idblocko)
-	hfieldsh(ie,je,k,9,idblocke)=hfieldsh(io,jo,k,9,idblocko)
-	hfieldsh(ie,je,k,10,idblocke)=hfieldsh(io,jo,k,10,idblocko)
+	hfieldsh(idx5d(ie,je,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	hfieldsh(idx5d(ie,je,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,jo,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	
 	
     return
@@ -861,16 +861,16 @@
 	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	  
-	  hfields(ie,j,k,1,idblocke)=hfields(io,j,k,1,idblocko)
-	  hfields(ie,j,k,2,idblocke)=hfields(io,j,k,2,idblocko)
-	  hfields(ie,j,k,3,idblocke)=hfields(io,j,k,3,idblocko)
-	  hfields(ie,j,k,4,idblocke)=hfields(io,j,k,4,idblocko)
-	  hfields(ie,j,k,5,idblocke)=hfields(io,j,k,5,idblocko)
-	  hfields(ie,j,k,6,idblocke)=hfields(io,j,k,6,idblocko)
-	  hfields(ie,j,k,7,idblocke)=hfields(io,j,k,7,idblocko)
-	  hfields(ie,j,k,8,idblocke)=hfields(io,j,k,8,idblocko)
-	  hfields(ie,j,k,9,idblocke)=hfields(io,j,k,9,idblocko)
-	  hfields(ie,j,k,10,idblocke)=hfields(io,j,k,10,idblocko)
+	  hfields(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	  
 	  gio=nx_d-1
 	  gie=1
@@ -884,16 +884,16 @@
 	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	  
-      hfields(ie,j,k,1,idblocke)=hfields(io,j,k,1,idblocko)
-	  hfields(ie,j,k,2,idblocke)=hfields(io,j,k,2,idblocko)
-	  hfields(ie,j,k,3,idblocke)=hfields(io,j,k,3,idblocko)
-	  hfields(ie,j,k,4,idblocke)=hfields(io,j,k,4,idblocko)
-	  hfields(ie,j,k,5,idblocke)=hfields(io,j,k,5,idblocko)
-	  hfields(ie,j,k,6,idblocke)=hfields(io,j,k,6,idblocko)
-	  hfields(ie,j,k,7,idblocke)=hfields(io,j,k,7,idblocko)
-	  hfields(ie,j,k,8,idblocke)=hfields(io,j,k,8,idblocko)
-	  hfields(ie,j,k,9,idblocke)=hfields(io,j,k,9,idblocko)
-	  hfields(ie,j,k,10,idblocke)=hfields(io,j,k,10,idblocko)
+      hfields(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	  hfields(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfields(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
       
       
     end subroutine bc_per_x_hvar
@@ -931,16 +931,16 @@
 	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	  
-	  hfieldsh(ie,j,k,1,idblocke)=hfieldsh(io,j,k,1,idblocko)
-	  hfieldsh(ie,j,k,2,idblocke)=hfieldsh(io,j,k,2,idblocko)
-	  hfieldsh(ie,j,k,3,idblocke)=hfieldsh(io,j,k,3,idblocko)
-	  hfieldsh(ie,j,k,4,idblocke)=hfieldsh(io,j,k,4,idblocko)
-	  hfieldsh(ie,j,k,5,idblocke)=hfieldsh(io,j,k,5,idblocko)
-	  hfieldsh(ie,j,k,6,idblocke)=hfieldsh(io,j,k,6,idblocko)
-	  hfieldsh(ie,j,k,7,idblocke)=hfieldsh(io,j,k,7,idblocko)
-	  hfieldsh(ie,j,k,8,idblocke)=hfieldsh(io,j,k,8,idblocko)
-	  hfieldsh(ie,j,k,9,idblocke)=hfieldsh(io,j,k,9,idblocko)
-	  hfieldsh(ie,j,k,10,idblocke)=hfieldsh(io,j,k,10,idblocko)
+	  hfieldsh(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
 	  
 	  gio=nx_d-1
 	  gie=1
@@ -954,16 +954,16 @@
 	  io=gio-xblocko*TILE_DIMx_d+2*TILE_DIMx_d
 	  ie=gie-xblocke*TILE_DIMx_d+2*TILE_DIMx_d
 	  
-      hfieldsh(ie,j,k,1,idblocke)=hfieldsh(io,j,k,1,idblocko)
-	  hfieldsh(ie,j,k,2,idblocke)=hfieldsh(io,j,k,2,idblocko)
-	  hfieldsh(ie,j,k,3,idblocke)=hfieldsh(io,j,k,3,idblocko)
-	  hfieldsh(ie,j,k,4,idblocke)=hfieldsh(io,j,k,4,idblocko)
-	  hfieldsh(ie,j,k,5,idblocke)=hfieldsh(io,j,k,5,idblocko)
-	  hfieldsh(ie,j,k,6,idblocke)=hfieldsh(io,j,k,6,idblocko)
-	  hfieldsh(ie,j,k,7,idblocke)=hfieldsh(io,j,k,7,idblocko)
-	  hfieldsh(ie,j,k,8,idblocke)=hfieldsh(io,j,k,8,idblocko)
-	  hfieldsh(ie,j,k,9,idblocke)=hfieldsh(io,j,k,9,idblocko)
-	  hfieldsh(ie,j,k,10,idblocke)=hfieldsh(io,j,k,10,idblocko)
+      hfieldsh(idx5d(ie,j,k,1,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,1,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,2,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,2,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,3,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,3,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,4,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,4,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,5,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,5,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,6,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,6,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,7,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,7,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,8,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,8,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,9,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,9,idblocko,nx_d,ny_d,nz_d,10))
+	  hfieldsh(idx5d(ie,j,k,10,idblocke,nx_d,ny_d,nz_d,10))=hfieldsh(idx5d(io,j,k,10,idblocko,nx_d,ny_d,nz_d,10))
       
       
     end subroutine bc_per_x_hvar_flop

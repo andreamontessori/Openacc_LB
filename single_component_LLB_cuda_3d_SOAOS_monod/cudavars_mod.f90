@@ -7,6 +7,8 @@
     
     integer, parameter :: db=kind(1.e0)
     
+    integer, parameter :: nhfields=10
+    
     real(kind=db),parameter :: zero=real(0.d0,kind=db)
     real(kind=db),parameter :: one=real(1.d0,kind=db)
     real(kind=db),parameter :: half=real(0.5d0,kind=db)
@@ -57,7 +59,8 @@
     
     !real(kind=db), allocatable, dimension(:,:,:,:), device :: rho,u,v,w,pxx,pxy,pxz,pyy,pyz,pzz
     !real(kind=db), allocatable, dimension(:,:,:,:), device :: rhoh,uh,vh,wh,pxxh,pxyh,pxzh,pyyh,pyzh,pzzh
-    real(kind=db), allocatable, dimension(:,:,:,:,:), device :: hfields,hfieldsh
+    !real(kind=db), allocatable, dimension(:,:,:,:,:), device :: hfields,hfieldsh
+    real(kind=db), allocatable, dimension(:), device :: hfields,hfieldsh
     real(kind=4), allocatable, dimension(:,:,:), device :: rhoprint_d
     real(kind=4), allocatable, dimension(:,:,:,:), device :: velprint_d
     integer(kind=1), allocatable, dimension(:,:,:), device   :: isfluid
@@ -83,27 +86,27 @@
 	
 	mytest=rhos!real(gi**3+gj**3+gk**3)
 	
-	hfields(i,j,k,1,idblock)=mytest!rhos
-	hfields(i,j,k,2,idblock)=vxs
-	hfields(i,j,k,3,idblock)=vys
-	hfields(i,j,k,4,idblock)=vzs
-	hfields(i,j,k,5,idblock)=zero
-	hfields(i,j,k,6,idblock)=zero
-	hfields(i,j,k,7,idblock)=zero
-	hfields(i,j,k,8,idblock)=zero
-	hfields(i,j,k,9,idblock)=zero
-	hfields(i,j,k,10,idblock)=zero
+	hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))=mytest!rhos
+	hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))=vxs
+	hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))=vys
+	hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))=vzs
+	hfields(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))=zero
 	
-	hfieldsh(i,j,k,1,idblock)=mytest!rhos
-	hfieldsh(i,j,k,2,idblock)=vxs
-	hfieldsh(i,j,k,3,idblock)=vys
-	hfieldsh(i,j,k,4,idblock)=vzs
-	hfieldsh(i,j,k,5,idblock)=zero
-	hfieldsh(i,j,k,6,idblock)=zero
-	hfieldsh(i,j,k,7,idblock)=zero
-	hfieldsh(i,j,k,8,idblock)=zero
-	hfieldsh(i,j,k,9,idblock)=zero
-	hfieldsh(i,j,k,10,idblock)=zero
+	hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))=mytest!rhos
+	hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))=vxs
+	hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))=vys
+	hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))=vzs
+	hfieldsh(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))=zero
 	
     
     return
@@ -137,29 +140,29 @@
 	mytest=rhos!real(gi**3+gj**3+gk**3)
 	
 	
-	hfields(i,j,k,1,idblock)=mytest!rhos
-	hfields(i,j,k,2,idblock)=vxs
-	hfields(i,j,k,3,idblock)=vys
-	hfields(i,j,k,4,idblock)=vzs
-	hfields(i,j,k,5,idblock)=zero
-	hfields(i,j,k,6,idblock)=zero
-	hfields(i,j,k,7,idblock)=zero
-	hfields(i,j,k,8,idblock)=zero
-	hfields(i,j,k,9,idblock)=zero
-	hfields(i,j,k,10,idblock)=zero
+	hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))=mytest!rhos
+	hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))=vxs
+	hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))=vys
+	hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))=vzs
+	hfields(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfields(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))=zero
 	
 	!if(gi==3 .and. gj==3 .and. gk==0)write(*,*)'CAZZONE ',gi,gj,gk
 	
-	hfieldsh(i,j,k,1,idblock)=mytest!rhos
-	hfieldsh(i,j,k,2,idblock)=vxs
-	hfieldsh(i,j,k,3,idblock)=vys
-	hfieldsh(i,j,k,4,idblock)=vzs
-	hfieldsh(i,j,k,5,idblock)=zero
-	hfieldsh(i,j,k,6,idblock)=zero
-	hfieldsh(i,j,k,7,idblock)=zero
-	hfieldsh(i,j,k,8,idblock)=zero
-	hfieldsh(i,j,k,9,idblock)=zero
-	hfieldsh(i,j,k,10,idblock)=zero
+	hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))=mytest!rhos
+	hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))=vxs
+	hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))=vys
+	hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))=vzs
+	hfieldsh(idx5d(i,j,k,5,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,6,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,7,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,8,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,9,idblock,nx_d,ny_d,nz_d,10))=zero
+	hfieldsh(idx5d(i,j,k,10,idblock,nx_d,ny_d,nz_d,10))=zero
     
     return
 
@@ -322,10 +325,10 @@
 	  
 	!write(*,*)i,j,p_d(0)*myrho_d
 	if(abs(isfluid(gi,gj,gk)).eq.1)then
-      rhoprint_d(gi,gj,gk)=hfields(i,j,k,1,idblock)
-	  velprint_d(1,gi,gj,gk)=hfields(i,j,k,2,idblock)
-	  velprint_d(2,gi,gj,gk)=hfields(i,j,k,3,idblock)
-	  velprint_d(3,gi,gj,gk)=hfields(i,j,k,4,idblock)
+      rhoprint_d(gi,gj,gk)=hfields(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))
+	  velprint_d(1,gi,gj,gk)=hfields(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))
+	  velprint_d(2,gi,gj,gk)=hfields(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))
+	  velprint_d(3,gi,gj,gk)=hfields(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))
 		
 	else
 	  
@@ -352,15 +355,15 @@
 	j=threadIdx%y
 	k=threadIdx%z
 	
-	idblock=blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1
+	idblock=idx5d(blockIdx%x+blockIdx%y*nxblock_d+blockIdx%z*nxyblock_d+1,2,3,4,5,1,2,3,4)
 	  
 	  
 	!write(*,*)i,j,p_d(0)*myrho_d
 	if(abs(isfluid(gi,gj,gk)).eq.1)then
-      rhoprint_d(gi,gj,gk)=hfieldsh(i,j,k,1,idblock)
-	  velprint_d(1,gi,gj,gk)=hfieldsh(i,j,k,2,idblock)
-	  velprint_d(2,gi,gj,gk)=hfieldsh(i,j,k,3,idblock)
-	  velprint_d(3,gi,gj,gk)=hfieldsh(i,j,k,4,idblock)
+      rhoprint_d(gi,gj,gk)=hfieldsh(idx5d(i,j,k,1,idblock,nx_d,ny_d,nz_d,10))
+	  velprint_d(1,gi,gj,gk)=hfieldsh(idx5d(i,j,k,2,idblock,nx_d,ny_d,nz_d,10))
+	  velprint_d(2,gi,gj,gk)=hfieldsh(idx5d(i,j,k,3,idblock,nx_d,ny_d,nz_d,10))
+	  velprint_d(3,gi,gj,gk)=hfieldsh(idx5d(i,j,k,4,idblock,nx_d,ny_d,nz_d,10))
 		
 	else
 	  
@@ -392,5 +395,35 @@
     return
     
  end subroutine  abortOnLastErrorAndSync
+ 
+ elemental function idx5(ind1,ind2,ind3,ind4,ind5,m1,m2,m3,m4)
+ 
+  implicit none
+  
+  integer, intent(in) :: ind1,ind2,ind3,ind4,ind5,m1,m2,m3,m4
+  
+  integer :: idx5
+  
+  idx5=1+(ind1-1)+(ind2-1)*m1+(ind3-1)*(m1*m2)+(ind4-1)*(m1*m2*m3)+ &
+   (ind5-1)*(m1*m2*m3*m4)
+  
+  return
+  
+ end function idx5
+ 
+ attributes(device) elemental function idx5d(ind1,ind2,ind3,ind4,ind5,m1,m2,m3,m4)
+ 
+  implicit none
+  
+  integer, intent(in) :: ind1,ind2,ind3,ind4,ind5,m1,m2,m3,m4
+  
+  integer :: idx5d
+  
+  idx5d=1+(ind1-1)+(ind2-1)*m1+(ind3-1)*(m1*m2)+(ind4-1)*(m1*m2*m3)+ &
+   (ind5-1)*(m1*m2*m3*m4)
+  
+  return
+  
+ end function idx5d
 
  end module cudavars
